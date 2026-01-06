@@ -9,6 +9,8 @@ interface Suggestion {
   votes: number
   status: string
   created_at: string
+  comment_count?: number
+  author: string | null
 }
 
 interface Status {
@@ -79,6 +81,8 @@ export default function SuggestionList() {
           content={suggestion.content}
           votes={suggestion.votes}
           createdAt={suggestion.created_at}
+          commentCount={suggestion.comment_count}
+          author={suggestion.author}
           isInProgress={
             status?.state === 'working' &&
             status?.current_suggestion_id === suggestion.id

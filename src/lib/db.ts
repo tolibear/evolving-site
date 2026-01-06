@@ -86,6 +86,12 @@ const initSchema = async () => {
   } catch {
     // Column already exists
   }
+  // Add author column for Ralph Wiggum suggestions (ignore if already exists)
+  try {
+    await db.execute('ALTER TABLE suggestions ADD COLUMN author TEXT DEFAULT NULL')
+  } catch {
+    // Column already exists
+  }
 }
 
 // Initialize on module load
@@ -99,6 +105,8 @@ export interface Suggestion {
   created_at: string
   implemented_at: string | null
   ai_note: string | null
+  author: string | null // null = anonymous user, 'ralph' = Ralph Wiggum
+  comment_count?: number
 }
 
 export interface Status {
@@ -136,9 +144,15 @@ async function ensureSchema() {
 export async function getSuggestions(): Promise<Suggestion[]> {
   await ensureSchema()
   const result = await db.execute(`
-    SELECT * FROM suggestions
-    WHERE status = 'pending'
-    ORDER BY votes DESC, created_at ASC
+    SELECT s.*, COALESCE(c.comment_count, 0) as comment_count
+    FROM suggestions s
+    LEFT JOIN (
+      SELECT suggestion_id, COUNT(*) as comment_count
+      FROM comments
+      GROUP BY suggestion_id
+    ) c ON s.id = c.suggestion_id
+    WHERE s.status = 'pending'
+    ORDER BY s.votes DESC, s.created_at ASC
   `)
   return result.rows as unknown as Suggestion[]
 }
@@ -148,6 +162,18 @@ export async function createSuggestion(content: string): Promise<number> {
   const result = await db.execute({
     sql: 'INSERT INTO suggestions (content) VALUES (?)',
     args: [content],
+  })
+  return Number(result.lastInsertRowid)
+}
+
+export async function createSuggestionWithAuthor(
+  content: string,
+  author: string | null
+): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'INSERT INTO suggestions (content, author) VALUES (?, ?)',
+    args: [content, author],
   })
   return Number(result.lastInsertRowid)
 }
@@ -282,6 +308,18 @@ export async function getComments(suggestionId: number): Promise<Comment[]> {
   return result.rows as unknown as Comment[]
 }
 
+export async function getUserComment(
+  suggestionId: number,
+  commenterHash: string
+): Promise<Comment | null> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT * FROM comments WHERE suggestion_id = ? AND commenter_hash = ?',
+    args: [suggestionId, commenterHash],
+  })
+  return (result.rows[0] as unknown as Comment) || null
+}
+
 export async function addComment(
   suggestionId: number,
   content: string,
@@ -293,6 +331,19 @@ export async function addComment(
     args: [suggestionId, content, commenterHash],
   })
   return Number(result.lastInsertRowid)
+}
+
+export async function updateComment(
+  id: number,
+  content: string,
+  commenterHash: string
+): Promise<boolean> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'UPDATE comments SET content = ? WHERE id = ? AND commenter_hash = ?',
+    args: [content, id, commenterHash],
+  })
+  return result.rowsAffected > 0
 }
 
 export async function getCommentCount(suggestionId: number): Promise<number> {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import useSWR, { mutate } from 'swr'
 import VoteButton from './VoteButton'
 
@@ -11,12 +11,19 @@ interface Comment {
   created_at: string
 }
 
+interface CommentsResponse {
+  comments: Comment[]
+  currentUserHash: string
+}
+
 interface SuggestionCardProps {
   id: number
   content: string
   votes: number
   createdAt: string
   isInProgress?: boolean
+  commentCount?: number
+  author?: string | null
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -26,17 +33,32 @@ export default function SuggestionCard({
   content,
   votes,
   createdAt,
-  isInProgress
+  isInProgress,
+  commentCount = 0,
+  author
 }: SuggestionCardProps) {
   const [showComments, setShowComments] = useState(false)
-  const [newComment, setNewComment] = useState('')
+  const [commentText, setCommentText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [editingComment, setEditingComment] = useState<Comment | null>(null)
 
-  const { data: comments } = useSWR<Comment[]>(
+  const { data } = useSWR<CommentsResponse>(
     showComments ? `/api/comments?suggestionId=${id}` : null,
     fetcher
   )
+
+  const comments = data?.comments || []
+  const currentUserHash = data?.currentUserHash
+  const userComment = comments.find(c => c.commenter_hash === currentUserHash)
+
+  // When user's comment is found and not editing, pre-fill for edit mode
+  useEffect(() => {
+    if (userComment && !editingComment && !commentText) {
+      setEditingComment(userComment)
+      setCommentText(userComment.content)
+    }
+  }, [userComment, editingComment, commentText])
 
   // Format the date
   const formatDate = (dateString: string) => {
@@ -56,27 +78,32 @@ export default function SuggestionCard({
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newComment.trim() || isSubmitting) return
+    if (!commentText.trim() || isSubmitting) return
 
     setIsSubmitting(true)
     setError(null)
 
     try {
+      const isEditing = !!editingComment
       const res = await fetch('/api/comments', {
-        method: 'POST',
+        method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ suggestionId: id, content: newComment.trim() })
+        body: JSON.stringify(
+          isEditing
+            ? { commentId: editingComment.id, content: commentText.trim() }
+            : { suggestionId: id, content: commentText.trim() }
+        )
       })
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || 'Failed to add comment')
+        throw new Error(data.error || 'Failed to save comment')
       }
 
-      setNewComment('')
       mutate(`/api/comments?suggestionId=${id}`)
+      mutate('/api/suggestions')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add comment')
+      setError(err instanceof Error ? err.message : 'Failed to save comment')
     } finally {
       setIsSubmitting(false)
     }
@@ -100,6 +127,12 @@ export default function SuggestionCard({
           )}
           <p className="text-foreground break-words">{content}</p>
           <div className="flex items-center gap-3 mt-2">
+            {author === 'ralph' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200">
+                <img src="/ralph-avatar.svg" alt="" className="w-4 h-4" />
+                Ralph
+              </span>
+            )}
             <span className="text-xs text-muted">
               {formatDate(createdAt)}
             </span>
@@ -110,7 +143,7 @@ export default function SuggestionCard({
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              {showComments ? 'Hide' : 'Comments'}
+              {showComments ? 'Hide' : commentCount > 0 ? `${commentCount}` : 'Comment'}
             </button>
           </div>
         </div>
@@ -119,37 +152,51 @@ export default function SuggestionCard({
       {showComments && (
         <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
           {/* Existing comments */}
-          {comments && comments.length > 0 && (
+          {comments.length > 0 && (
             <div className="space-y-2 mb-3">
-              {comments.map((comment) => (
-                <div key={comment.id} className="text-sm pl-3 border-l-2 border-neutral-300 dark:border-neutral-600">
-                  <p className="text-foreground">{comment.content}</p>
-                  <span className="text-xs text-muted">
-                    {formatDate(comment.created_at)}
-                  </span>
-                </div>
-              ))}
+              {comments.map((comment) => {
+                const isOwnComment = comment.commenter_hash === currentUserHash
+                return (
+                  <div
+                    key={comment.id}
+                    className={`text-sm pl-3 border-l-2 ${
+                      isOwnComment
+                        ? 'border-accent bg-accent/5 -ml-1 pl-4 py-1 rounded-r'
+                        : 'border-neutral-300 dark:border-neutral-600'
+                    }`}
+                  >
+                    <p className="text-foreground">{comment.content}</p>
+                    <span className="text-xs text-muted">
+                      {isOwnComment && <span className="text-accent mr-1">You</span>}
+                      {formatDate(comment.created_at)}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           )}
 
-          {/* Add comment form */}
+          {/* Comment form - shows edit mode if user already has a comment */}
           <form onSubmit={handleSubmitComment} className="flex gap-2">
             <input
               type="text"
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add context for Claude..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder={editingComment ? "Edit your comment..." : "Add context for Claude..."}
               maxLength={300}
               className="flex-1 text-sm px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-background text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent"
             />
             <button
               type="submit"
-              disabled={isSubmitting || !newComment.trim()}
+              disabled={isSubmitting || !commentText.trim() || !!(editingComment && commentText === editingComment.content)}
               className="text-sm px-2 py-1 rounded bg-accent text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
             >
-              {isSubmitting ? '...' : 'Add'}
+              {isSubmitting ? '...' : editingComment ? 'Save' : 'Add'}
             </button>
           </form>
+          {editingComment && (
+            <p className="text-xs text-muted mt-1">1 comment per person. Editing your comment.</p>
+          )}
           {error && (
             <p className="text-xs text-red-500 mt-1">{error}</p>
           )}

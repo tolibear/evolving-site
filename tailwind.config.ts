@@ -10,11 +10,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: '#fafafa',
-        foreground: '#171717',
-        accent: '#3b82f6',
-        success: '#22c55e',
-        muted: '#a3a3a3',
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        accent: 'var(--accent)',
+        success: 'var(--success)',
+        muted: 'var(--muted)',
       },
     },
   },

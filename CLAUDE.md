@@ -19,9 +19,9 @@ npm run lint     # ESLint check
 ## Architecture
 
 ### Database
-- **Production**: Turso (libSQL) - requires `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` env vars
-- **Local**: SQLite file at `data/evolving-site.db` (auto-created on first run)
-- Database client: `@libsql/client` (works with both local and Turso)
+- **Turso (libSQL)** - requires `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` env vars
+- Always connects to production database (no local fallback)
+- Database client: `@libsql/client`
 - Schema initialized automatically in `src/lib/db.ts`
 
 ### Data Flow

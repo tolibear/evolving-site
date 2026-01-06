@@ -1,18 +1,16 @@
 import { createClient } from '@libsql/client'
 
-// Use Turso if credentials are available, otherwise local file
-const useTurso = Boolean(process.env.TURSO_DATABASE_URL)
+// Always use Turso production database - no local fallback
+if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
+  throw new Error(
+    'Missing required environment variables: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must be set'
+  )
+}
 
-const db = createClient(
-  useTurso
-    ? {
-        url: process.env.TURSO_DATABASE_URL!,
-        authToken: process.env.TURSO_AUTH_TOKEN,
-      }
-    : {
-        url: 'file:data/evolving-site.db',
-      }
-)
+const db = createClient({
+  url: process.env.TURSO_DATABASE_URL,
+  authToken: process.env.TURSO_AUTH_TOKEN,
+})
 
 // Initialize schema (runs on first import)
 const initSchema = async () => {

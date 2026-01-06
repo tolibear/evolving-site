@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import useSWR from 'swr'
 
 interface Status {
@@ -18,6 +19,35 @@ export default function StatusBanner() {
     fetcher,
     { refreshInterval: 10000 } // Refresh every 10 seconds
   )
+
+  const [countdown, setCountdown] = useState('')
+
+  // Calculate countdown to next hour for automated mode
+  useEffect(() => {
+    if (status?.automation_mode !== 'automated' || status?.state === 'working') {
+      setCountdown('')
+      return
+    }
+
+    const updateCountdown = () => {
+      const now = new Date()
+      const nextHour = new Date(now)
+      nextHour.setHours(nextHour.getHours() + 1, 0, 0, 0)
+      const diffMs = nextHour.getTime() - now.getTime()
+      const diffMins = Math.floor(diffMs / 60000)
+      const diffSecs = Math.floor((diffMs % 60000) / 1000)
+
+      if (diffMins > 0) {
+        setCountdown(`${diffMins}m ${diffSecs}s`)
+      } else {
+        setCountdown(`${diffSecs}s`)
+      }
+    }
+
+    updateCountdown()
+    const interval = setInterval(updateCountdown, 1000)
+    return () => clearInterval(interval)
+  }, [status?.automation_mode, status?.state])
 
   if (error) {
     return null // Silently fail - not critical
@@ -56,11 +86,6 @@ export default function StatusBanner() {
     }
   }
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-
   const isAutomated = status?.automation_mode === 'automated'
 
   return (
@@ -82,9 +107,9 @@ export default function StatusBanner() {
         >
           {isAutomated ? 'AUTO' : 'MANUAL'}
         </span>
-        {status?.updated_at && (
+        {isAutomated && countdown && status?.state !== 'working' && (
           <span className="text-xs opacity-60">
-            {formatTime(status.updated_at)}
+            next in {countdown}
           </span>
         )}
       </div>

@@ -55,6 +55,16 @@ const initSchema = async () => {
       FOREIGN KEY (suggestion_id) REFERENCES suggestions(id)
     );
 
+    -- Comments table
+    CREATE TABLE IF NOT EXISTS comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      suggestion_id INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      commenter_hash TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (suggestion_id) REFERENCES suggestions(id)
+    );
+
     -- Initialize status row if not exists
     INSERT OR IGNORE INTO status (id, state, message) VALUES (1, 'idle', 'Awaiting next suggestion...');
   `)
@@ -107,6 +117,14 @@ export interface ChangelogEntry {
   commit_hash: string | null
   implemented_at: string
   ai_note: string | null
+}
+
+export interface Comment {
+  id: number
+  suggestion_id: number
+  content: string
+  commenter_hash: string
+  created_at: string
 }
 
 // Ensure schema is ready before queries
@@ -252,6 +270,38 @@ export async function addChangelogEntry(
           VALUES (?, ?, ?, ?, ?)`,
     args: [suggestionId, suggestionContent, votesWhenImplemented, commitHash, aiNote ?? null],
   })
+}
+
+// Comment queries
+export async function getComments(suggestionId: number): Promise<Comment[]> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT * FROM comments WHERE suggestion_id = ? ORDER BY created_at ASC',
+    args: [suggestionId],
+  })
+  return result.rows as unknown as Comment[]
+}
+
+export async function addComment(
+  suggestionId: number,
+  content: string,
+  commenterHash: string
+): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'INSERT INTO comments (suggestion_id, content, commenter_hash) VALUES (?, ?, ?)',
+    args: [suggestionId, content, commenterHash],
+  })
+  return Number(result.lastInsertRowid)
+}
+
+export async function getCommentCount(suggestionId: number): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT COUNT(*) as count FROM comments WHERE suggestion_id = ?',
+    args: [suggestionId],
+  })
+  return (result.rows[0] as unknown as { count: number }).count
 }
 
 export default db

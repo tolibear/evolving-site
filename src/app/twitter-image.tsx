@@ -10,6 +10,10 @@ export const size = {
 export const contentType = 'image/png'
 
 export default async function Image() {
+  const ralphImageData = await fetch(
+    new URL('/ralph.png', 'https://evolving-site.vercel.app')
+  ).then((res) => res.arrayBuffer())
+
   return new ImageResponse(
     (
       <div
@@ -17,63 +21,91 @@ export default async function Image() {
           height: '100%',
           width: '100%',
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg, #171717 0%, #262626 50%, #171717 100%)',
+          background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fef3c7 100%)',
           fontFamily: 'system-ui, sans-serif',
+          position: 'relative',
         }}
       >
-        {/* Decorative elements */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'radial-gradient(circle at 20% 80%, rgba(115, 115, 115, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(163, 163, 163, 0.1) 0%, transparent 50%)',
-            display: 'flex',
-          }}
-        />
-
-        {/* Main content */}
+        {/* Left side - Ralph with speech bubble */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: '40px 60px',
-            textAlign: 'center',
+            justifyContent: 'flex-end',
+            width: '40%',
+            paddingBottom: 0,
+            position: 'relative',
           }}
         >
-          {/* Icon/Logo area */}
+          {/* Speech bubble */}
           <div
             style={{
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 80,
-              height: 80,
-              borderRadius: 20,
-              background: 'linear-gradient(135deg, #525252 0%, #404040 100%)',
-              marginBottom: 32,
-              fontSize: 40,
+              flexDirection: 'column',
+              position: 'absolute',
+              top: 60,
+              right: 20,
+              background: 'white',
+              borderRadius: 24,
+              padding: '20px 28px',
+              maxWidth: 280,
+              boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
             }}
           >
-            <span style={{ filter: 'grayscale(100%) brightness(1.5)' }}>&#9883;</span>
+            <span style={{ fontSize: 22, color: '#171717', fontStyle: 'italic', lineHeight: 1.4 }}>
+              &ldquo;I&apos;m helping!&rdquo;
+            </span>
+            {/* Bubble tail */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: -20,
+                left: 40,
+                width: 0,
+                height: 0,
+                borderLeft: '12px solid transparent',
+                borderRight: '12px solid transparent',
+                borderTop: '24px solid white',
+              }}
+            />
           </div>
 
+          {/* Ralph image */}
+          <img
+            src={`data:image/png;base64,${Buffer.from(ralphImageData).toString('base64')}`}
+            alt="Ralph Wiggum"
+            width={320}
+            height={400}
+            style={{
+              objectFit: 'contain',
+              objectPosition: 'bottom',
+              marginBottom: -10,
+            }}
+          />
+        </div>
+
+        {/* Right side - Content */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            width: '60%',
+            padding: '40px 60px 40px 20px',
+          }}
+        >
           {/* Title */}
           <h1
             style={{
-              fontSize: 72,
-              fontWeight: 700,
-              color: '#fafafa',
+              fontSize: 64,
+              fontWeight: 800,
+              color: '#171717',
               margin: 0,
               marginBottom: 16,
               letterSpacing: '-0.02em',
+              lineHeight: 1.1,
             }}
           >
             Evolving Site
@@ -82,31 +114,71 @@ export default async function Image() {
           {/* Tagline */}
           <p
             style={{
-              fontSize: 28,
-              color: '#a3a3a3',
+              fontSize: 26,
+              color: '#525252',
               margin: 0,
-              maxWidth: 800,
-              lineHeight: 1.4,
+              marginBottom: 32,
+              lineHeight: 1.5,
+              maxWidth: 500,
             }}
           >
-            Suggest features, vote, and watch Claude implement the winners
+            Suggest features, vote on them, and watch Claude implement the winners live
           </p>
 
-          {/* Footer badge */}
+          {/* Features */}
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '10px 20px',
+                background: 'rgba(255,255,255,0.7)',
+                borderRadius: 100,
+                fontSize: 18,
+                color: '#374151',
+              }}
+            >
+              💡 Submit Ideas
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '10px 20px',
+                background: 'rgba(255,255,255,0.7)',
+                borderRadius: 100,
+                fontSize: 18,
+                color: '#374151',
+              }}
+            >
+              🗳️ Vote
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '10px 20px',
+                background: 'rgba(255,255,255,0.7)',
+                borderRadius: 100,
+                fontSize: 18,
+                color: '#374151',
+              }}
+            >
+              🤖 Auto-implemented
+            </div>
+          </div>
+
+          {/* Powered by */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              marginTop: 48,
-              padding: '12px 24px',
-              background: 'rgba(82, 82, 82, 0.3)',
-              borderRadius: 100,
-              border: '1px solid rgba(163, 163, 163, 0.2)',
+              marginTop: 40,
+              fontSize: 16,
+              color: '#6b7280',
             }}
           >
-            <span style={{ fontSize: 16, color: '#a3a3a3' }}>
-              Powered by Claude + Ralph Wiggum
-            </span>
+            Powered by Claude AI + Ralph Wiggum
           </div>
         </div>
       </div>

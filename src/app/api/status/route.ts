@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getStatus, updateStatus } from '@/lib/db'
+import { getStatus, updateStatus, setAutomationMode } from '@/lib/db'
 
 // GET /api/status - Get current Claude status
 export async function GET() {
@@ -21,7 +21,22 @@ export async function POST(request: Request) {
     // In production, you'd want to authenticate this endpoint
     // For now, we'll allow it for the Ralph loop to use
     const body = await request.json()
-    const { currentSuggestionId, state, message } = body
+    const { currentSuggestionId, state, message, automationMode } = body
+
+    // Handle automation mode update
+    if (automationMode) {
+      if (!['manual', 'automated'].includes(automationMode)) {
+        return NextResponse.json(
+          { error: 'Invalid automationMode. Must be: manual or automated' },
+          { status: 400 }
+        )
+      }
+      await setAutomationMode(automationMode)
+      // If only setting mode, return early
+      if (!state && !message) {
+        return NextResponse.json({ message: 'Automation mode updated successfully' })
+      }
+    }
 
     // Validate state
     if (state && !['idle', 'working', 'completed'].includes(state)) {

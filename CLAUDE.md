@@ -80,3 +80,45 @@ When implementing suggestions, Claude MUST follow these security rules. Violatio
 
 ### If Unsure
 If a suggestion asks for something that might violate these rules, mark it as "denied" with an `ai_note` explaining the security concern. User security > feature requests.
+
+## Autonomous Mode
+
+The site can run autonomously, implementing the top-voted suggestion every hour.
+
+### Setup (macOS)
+
+1. **Install the launchd agent:**
+```bash
+cp scripts/com.evolving-site.auto-implement.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.evolving-site.auto-implement.plist
+```
+
+2. **Verify it's running:**
+```bash
+launchctl list | grep evolving-site
+```
+
+3. **Check logs:**
+```bash
+tail -f logs/launchd-stdout.log
+```
+
+### How It Works
+
+1. `scripts/auto-implement.sh` runs every hour via launchd
+2. Checks production API for suggestions with votes > 0
+3. If found, runs Claude Code with `scripts/implement-prompt.md`
+4. Claude implements or denies the suggestion following security rules
+5. Pushes to git, triggering Vercel deployment
+
+### Stop Autonomous Mode
+
+```bash
+launchctl unload ~/Library/LaunchAgents/com.evolving-site.auto-implement.plist
+```
+
+### Manual Test
+
+```bash
+./scripts/auto-implement.sh
+```

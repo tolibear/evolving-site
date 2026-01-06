@@ -70,6 +70,12 @@ const initSchema = async () => {
   } catch {
     // Column already exists
   }
+  // Add automation_mode column (ignore if already exists)
+  try {
+    await db.execute("ALTER TABLE status ADD COLUMN automation_mode TEXT DEFAULT 'manual'")
+  } catch {
+    // Column already exists
+  }
 }
 
 // Initialize on module load
@@ -90,6 +96,7 @@ export interface Status {
   state: 'idle' | 'working' | 'completed'
   message: string
   updated_at: string
+  automation_mode: 'manual' | 'automated'
 }
 
 export interface ChangelogEntry {
@@ -196,7 +203,7 @@ export async function addVote(
 export async function getStatus(): Promise<Status> {
   await ensureSchema()
   const result = await db.execute(
-    'SELECT current_suggestion_id, state, message, updated_at FROM status WHERE id = 1'
+    "SELECT current_suggestion_id, state, message, updated_at, COALESCE(automation_mode, 'manual') as automation_mode FROM status WHERE id = 1"
   )
   return result.rows[0] as unknown as Status
 }
@@ -212,6 +219,14 @@ export async function updateStatus(
           SET current_suggestion_id = ?, state = ?, message = ?, updated_at = datetime('now')
           WHERE id = 1`,
     args: [currentSuggestionId, state, message],
+  })
+}
+
+export async function setAutomationMode(mode: 'manual' | 'automated'): Promise<void> {
+  await ensureSchema()
+  await db.execute({
+    sql: `UPDATE status SET automation_mode = ?, updated_at = datetime('now') WHERE id = 1`,
+    args: [mode],
   })
 }
 

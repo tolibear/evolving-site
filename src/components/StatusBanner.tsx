@@ -7,6 +7,7 @@ interface Status {
   state: 'idle' | 'working' | 'completed'
   message: string
   updated_at: string
+  automation_mode: 'manual' | 'automated'
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -60,6 +61,8 @@ export default function StatusBanner() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
 
+  const isAutomated = status?.automation_mode === 'automated'
+
   return (
     <div className={`rounded-lg border px-4 py-3 mb-8 flex items-center gap-3 ${getStateColor(status?.state || 'idle')}`}>
       {getStateIcon(status?.state || 'idle')}
@@ -68,11 +71,23 @@ export default function StatusBanner() {
           {status?.message || 'Loading status...'}
         </p>
       </div>
-      {status?.updated_at && (
-        <span className="text-xs opacity-60">
-          {formatTime(status.updated_at)}
+      <div className="flex items-center gap-2">
+        <span
+          className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+            isAutomated
+              ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300'
+              : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
+          }`}
+          title={isAutomated ? 'Autonomous mode: implementing hourly' : 'Manual mode: owner approval required'}
+        >
+          {isAutomated ? 'AUTO' : 'MANUAL'}
         </span>
-      )}
+        {status?.updated_at && (
+          <span className="text-xs opacity-60">
+            {formatTime(status.updated_at)}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

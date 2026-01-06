@@ -11,6 +11,12 @@ interface Suggestion {
   created_at: string
 }
 
+interface Status {
+  current_suggestion_id: number | null
+  state: 'idle' | 'working' | 'completed'
+  message: string
+}
+
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 export default function SuggestionList() {
@@ -18,6 +24,12 @@ export default function SuggestionList() {
     '/api/suggestions',
     fetcher,
     { refreshInterval: 5000 } // Refresh every 5 seconds
+  )
+
+  const { data: status } = useSWR<Status>(
+    '/api/status',
+    fetcher,
+    { refreshInterval: 5000 }
   )
 
   if (isLoading) {
@@ -67,6 +79,10 @@ export default function SuggestionList() {
           content={suggestion.content}
           votes={suggestion.votes}
           createdAt={suggestion.created_at}
+          isInProgress={
+            status?.state === 'working' &&
+            status?.current_suggestion_id === suggestion.id
+          }
         />
       ))}
     </div>

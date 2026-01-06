@@ -101,7 +101,7 @@ export interface Suggestion {
   id: number
   content: string
   votes: number
-  status: 'pending' | 'in_progress' | 'implemented' | 'denied'
+  status: 'pending' | 'in_progress' | 'implemented' | 'denied' | 'needs_input'
   created_at: string
   implemented_at: string | null
   ai_note: string | null
@@ -211,6 +211,16 @@ export async function getDeniedSuggestions(): Promise<Suggestion[]> {
     SELECT * FROM suggestions
     WHERE status = 'denied'
     ORDER BY implemented_at DESC
+  `)
+  return result.rows as unknown as Suggestion[]
+}
+
+export async function getNeedsInputSuggestions(): Promise<Suggestion[]> {
+  await ensureSchema()
+  const result = await db.execute(`
+    SELECT * FROM suggestions
+    WHERE status = 'needs_input'
+    ORDER BY votes DESC, created_at ASC
   `)
   return result.rows as unknown as Suggestion[]
 }

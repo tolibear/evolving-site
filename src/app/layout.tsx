@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import ThemeToggle from '@/components/ThemeToggle'
+import ActiveUserCounter from '@/components/ActiveUserCounter'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -65,6 +66,9 @@ export default function RootLayout({
           {/* Footer */}
           <footer className="mt-16 pt-8 border-t border-neutral-200 dark:border-neutral-700 text-center text-sm text-muted">
             <p>Powered by Claude + Ralph Wiggum</p>
+            <div className="mt-2 flex justify-center">
+              <ActiveUserCounter />
+            </div>
           </footer>
         </div>
       </body>

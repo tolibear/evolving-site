@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getChangelog } from '@/lib/db'
 
+// Force dynamic - always fetch fresh data
+export const dynamic = 'force-dynamic'
+
 // GET /api/changelog - Get implementation history
 export async function GET() {
   try {

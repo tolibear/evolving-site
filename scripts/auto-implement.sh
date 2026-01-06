@@ -3,14 +3,13 @@
 # Evolving Site - Autonomous Implementation Script
 # Runs hourly via launchd to implement top-voted suggestions
 
-set -e
-
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 LOG_DIR="$PROJECT_DIR/logs"
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
 LOG_FILE="$LOG_DIR/implement_$TIMESTAMP.log"
+API_URL="https://evolving-site.vercel.app"
 
 # Ensure log directory exists
 mkdir -p "$LOG_DIR"
@@ -25,6 +24,15 @@ cleanup_logs() {
     find "$LOG_DIR" -name "implement_*.log" -mtime +7 -delete 2>/dev/null || true
 }
 
+# Switch to manual mode via API
+switch_to_manual() {
+    log "Switching to manual mode due to failure..."
+    curl -s -X POST "$API_URL/api/status" \
+        -H "Content-Type: application/json" \
+        -d '{"automationMode": "manual", "message": "Automation paused - manual review required"}' \
+        > /dev/null 2>&1 || true
+}
+
 # Main execution
 main() {
     log "=== Starting autonomous implementation ==="
@@ -32,13 +40,32 @@ main() {
     cd "$PROJECT_DIR"
     log "Working directory: $PROJECT_DIR"
 
+    # Check if automation mode is enabled
+    log "Checking automation mode..."
+    STATUS=$(curl -s "$API_URL/api/status")
+    MODE=$(echo "$STATUS" | node -e "
+        const data = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+        console.log(data.automation_mode || 'manual');
+    " 2>/dev/null || echo "manual")
+
+    if [ "$MODE" != "automated" ]; then
+        log "Automation mode is '$MODE', not 'automated'. Skipping."
+        cleanup_logs
+        exit 0
+    fi
+
     # Pull latest changes
     log "Pulling latest from git..."
-    git pull --rebase origin master 2>&1 | tee -a "$LOG_FILE"
+    if ! git pull --rebase origin master 2>&1 | tee -a "$LOG_FILE"; then
+        log "Git pull failed!"
+        switch_to_manual
+        cleanup_logs
+        exit 1
+    fi
 
     # Check for pending suggestions via production API
     log "Checking for pending suggestions..."
-    SUGGESTIONS=$(curl -s "https://evolving-site.vercel.app/api/suggestions")
+    SUGGESTIONS=$(curl -s "$API_URL/api/suggestions")
 
     # Check if there are any suggestions with votes > 0
     HAS_VOTABLE=$(echo "$SUGGESTIONS" | node -e "
@@ -73,6 +100,7 @@ main() {
         log "=== Implementation completed successfully ==="
     else
         log "=== Implementation failed with exit code $EXIT_CODE ==="
+        switch_to_manual
     fi
 
     cleanup_logs

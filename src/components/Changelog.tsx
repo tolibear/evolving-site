@@ -9,6 +9,7 @@ interface ChangelogEntry {
   votes_when_implemented: number
   commit_hash: string | null
   implemented_at: string
+  ai_note: string | null
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -76,6 +77,11 @@ export default function Changelog() {
                 <p className="text-foreground break-words">
                   {entry.suggestion_content}
                 </p>
+                {entry.ai_note && (
+                  <p className="text-sm text-muted italic mt-2 pl-3 border-l-2 border-green-300 dark:border-green-700">
+                    {entry.ai_note}
+                  </p>
+                )}
                 <div className="flex items-center gap-3 mt-2 text-xs text-muted">
                   <span className="flex items-center gap-1">
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -60,6 +60,18 @@ const initSchema = async () => {
     -- Initialize status row if not exists
     INSERT OR IGNORE INTO status (id, state, message) VALUES (1, 'idle', 'Awaiting next suggestion...');
   `)
+
+  // Add ai_note columns (ignore if already exists)
+  try {
+    await db.execute('ALTER TABLE suggestions ADD COLUMN ai_note TEXT')
+  } catch {
+    // Column already exists
+  }
+  try {
+    await db.execute('ALTER TABLE changelog ADD COLUMN ai_note TEXT')
+  } catch {
+    // Column already exists
+  }
 }
 
 // Initialize on module load
@@ -69,9 +81,10 @@ export interface Suggestion {
   id: number
   content: string
   votes: number
-  status: 'pending' | 'in_progress' | 'implemented'
+  status: 'pending' | 'in_progress' | 'implemented' | 'denied'
   created_at: string
   implemented_at: string | null
+  ai_note: string | null
 }
 
 export interface Status {
@@ -88,6 +101,7 @@ export interface ChangelogEntry {
   votes_when_implemented: number
   commit_hash: string | null
   implemented_at: string
+  ai_note: string | null
 }
 
 // Ensure schema is ready before queries
@@ -128,15 +142,28 @@ export async function getTopSuggestion(): Promise<Suggestion | null> {
 
 export async function updateSuggestionStatus(
   id: number,
-  status: string
+  status: string,
+  aiNote?: string
 ): Promise<void> {
   await ensureSchema()
   await db.execute({
     sql: `UPDATE suggestions
-          SET status = ?, implemented_at = CASE WHEN ? = 'implemented' THEN datetime('now') ELSE implemented_at END
+          SET status = ?,
+              implemented_at = CASE WHEN ? = 'implemented' OR ? = 'denied' THEN datetime('now') ELSE implemented_at END,
+              ai_note = COALESCE(?, ai_note)
           WHERE id = ?`,
-    args: [status, status, id],
+    args: [status, status, status, aiNote ?? null, id],
   })
+}
+
+export async function getDeniedSuggestions(): Promise<Suggestion[]> {
+  await ensureSchema()
+  const result = await db.execute(`
+    SELECT * FROM suggestions
+    WHERE status = 'denied'
+    ORDER BY implemented_at DESC
+  `)
+  return result.rows as unknown as Suggestion[]
 }
 
 // Vote queries
@@ -203,13 +230,14 @@ export async function addChangelogEntry(
   suggestionId: number,
   suggestionContent: string,
   votesWhenImplemented: number,
-  commitHash: string | null
+  commitHash: string | null,
+  aiNote?: string
 ): Promise<void> {
   await ensureSchema()
   await db.execute({
-    sql: `INSERT INTO changelog (suggestion_id, suggestion_content, votes_when_implemented, commit_hash)
-          VALUES (?, ?, ?, ?)`,
-    args: [suggestionId, suggestionContent, votesWhenImplemented, commitHash],
+    sql: `INSERT INTO changelog (suggestion_id, suggestion_content, votes_when_implemented, commit_hash, ai_note)
+          VALUES (?, ?, ?, ?, ?)`,
+    args: [suggestionId, suggestionContent, votesWhenImplemented, commitHash, aiNote ?? null],
   })
 }
 

@@ -3,16 +3,13 @@
  */
 
 /**
- * Sanitize user input to prevent XSS attacks
- * Escapes HTML special characters
+ * Sanitize user input for safe storage
+ * Note: React auto-escapes text content, so we only strip control characters.
+ * Dangerous patterns are blocked by isInputSafe() before this is called.
  */
 export function sanitizeInput(input: string): string {
-  return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
+  // Remove control characters except newlines/tabs
+  return input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
 }
 
 /**

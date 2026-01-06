@@ -34,12 +34,13 @@ Use the Turso database (env vars are set) to update the status table:
 - **Implement**: Make the code changes, run `npm run build` to verify
 - **Deny**: Update suggestion status to 'denied' with ai_note
 
-### Step 5: Finalize
+### Step 5: Finalize (CRITICAL - DO NOT SKIP)
 - Add changelog entry (if implemented)
 - Update suggestion status to 'implemented' or 'denied'
 - Set status back to 'idle'
-- Commit with descriptive message
-- Push to origin/master
+- **MUST commit all changes** with descriptive message
+- **MUST push to origin/master** to trigger Vercel deployment
+- **MUST verify** with `git status` that working tree is clean
 
 ## Important Rules
 
@@ -48,6 +49,7 @@ Use the Turso database (env vars are set) to update the status table:
 - Keep changes minimal and focused
 - If unsure about safety, DENY the suggestion
 - Always include an ai_note explaining what you did
+- **NEVER end without committing and pushing** - incomplete deployments break the site
 
 ## Start Now
 

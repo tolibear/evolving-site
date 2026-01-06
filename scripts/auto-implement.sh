@@ -86,11 +86,12 @@ main() {
 
     log "Found suggestion to implement: $HAS_VOTABLE"
 
-    # Run Claude Code with the implementation prompt
-    log "Running Claude Code..."
+    # Run Claude Code with Ralph loop for iterative implementation
+    log "Running Ralph implementation loop..."
 
-    # Use --print to show output, -p for prompt from file
-    claude -p "$(cat "$SCRIPT_DIR/implement-prompt.md")" \
+    # Use /ralph-loop for iterative implementation with completion promise
+    PROMPT=$(cat "$SCRIPT_DIR/implement-prompt.md")
+    claude "/ralph-loop \"$PROMPT\" --completion-promise \"IMPLEMENTATION COMPLETE\" --max-iterations 15" \
         --allowedTools "Bash(npm run build:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Read,Write,Edit,Glob,Grep" \
         2>&1 | tee -a "$LOG_FILE"
 

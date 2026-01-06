@@ -51,6 +51,18 @@ Use the Turso database (env vars are set) to update the status table:
 - Always include an ai_note explaining what you did
 - **NEVER end without committing and pushing** - incomplete deployments break the site
 
+## Completion Signal
+
+When you have successfully completed the implementation (or denial) AND pushed to git, output:
+```
+<promise>IMPLEMENTATION COMPLETE</promise>
+```
+
+This signals that the Ralph loop can end. Do not output this until you have verified:
+- All changes are committed
+- Changes are pushed to origin/master
+- `git status` shows clean working tree
+
 ## Start Now
 
 Begin by fetching the current suggestions and identifying the top-voted one.

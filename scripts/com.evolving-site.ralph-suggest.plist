@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.evolving-site.ralph-suggest</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/toli/Documents/Coding/Ralph/scripts/ralph-suggest.sh</string>
+    </array>
+
+    <key>StartInterval</key>
+    <integer>3600</integer>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/toli/Documents/Coding/Ralph</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/toli/Documents/Coding/Ralph/logs/ralph-suggest-stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/toli/Documents/Coding/Ralph/logs/ralph-suggest-stderr.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

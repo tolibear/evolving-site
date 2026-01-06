@@ -1,0 +1,48 @@
+import { NextResponse } from 'next/server'
+import { getStatus, updateStatus } from '@/lib/db'
+
+// GET /api/status - Get current Claude status
+export async function GET() {
+  try {
+    const status = await getStatus()
+    return NextResponse.json(status)
+  } catch (error) {
+    console.error('Error fetching status:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch status' },
+      { status: 500 }
+    )
+  }
+}
+
+// POST /api/status - Update Claude status (called by Ralph loop)
+export async function POST(request: Request) {
+  try {
+    // In production, you'd want to authenticate this endpoint
+    // For now, we'll allow it for the Ralph loop to use
+    const body = await request.json()
+    const { currentSuggestionId, state, message } = body
+
+    // Validate state
+    if (state && !['idle', 'working', 'completed'].includes(state)) {
+      return NextResponse.json(
+        { error: 'Invalid state. Must be: idle, working, or completed' },
+        { status: 400 }
+      )
+    }
+
+    await updateStatus(
+      currentSuggestionId ?? null,
+      state ?? 'idle',
+      message ?? 'Awaiting next suggestion...'
+    )
+
+    return NextResponse.json({ message: 'Status updated successfully' })
+  } catch (error) {
+    console.error('Error updating status:', error)
+    return NextResponse.json(
+      { error: 'Failed to update status' },
+      { status: 500 }
+    )
+  }
+}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { hasVoted, addVote } from '@/lib/db'
 import { getClientIP, createVoterHash, checkRateLimit } from '@/lib/utils'
+import { isValidId } from '@/lib/security'
 
 // POST /api/vote - Vote for a suggestion
 export async function POST(request: Request) {
@@ -23,8 +24,8 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { suggestionId } = body
 
-    // Validate suggestionId
-    if (!suggestionId || typeof suggestionId !== 'number') {
+    // Validate suggestionId using security utility
+    if (!isValidId(suggestionId)) {
       return NextResponse.json(
         { error: 'Valid suggestionId is required' },
         { status: 400 }

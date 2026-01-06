@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSuggestions, createSuggestion } from '@/lib/db'
 import { getClientIP, checkRateLimit } from '@/lib/utils'
+import { sanitizeSuggestion } from '@/lib/security'
 
 // GET /api/suggestions - List all pending suggestions
 export async function GET() {
@@ -36,31 +37,17 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { content } = body
 
-    // Validate content
-    if (!content || typeof content !== 'string') {
+    // Validate and sanitize content using security utilities
+    const result = sanitizeSuggestion(content)
+    if (!result.valid) {
       return NextResponse.json(
-        { error: 'Content is required' },
+        { error: result.error },
         { status: 400 }
       )
     }
 
-    const trimmedContent = content.trim()
-    if (trimmedContent.length < 10) {
-      return NextResponse.json(
-        { error: 'Suggestion must be at least 10 characters' },
-        { status: 400 }
-      )
-    }
-
-    if (trimmedContent.length > 500) {
-      return NextResponse.json(
-        { error: 'Suggestion must be less than 500 characters' },
-        { status: 400 }
-      )
-    }
-
-    // Create the suggestion
-    const id = await createSuggestion(trimmedContent)
+    // Create the suggestion with sanitized content
+    const id = await createSuggestion(result.sanitized)
 
     return NextResponse.json(
       {

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import useSWR from 'swr'
 
 interface NeedsInputSuggestion {
@@ -14,7 +15,10 @@ interface NeedsInputSuggestion {
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
+const ITEMS_TO_SHOW = 5
+
 export default function NeedsInputList() {
+  const [showAll, setShowAll] = useState(false)
   const { data: suggestions, error, isLoading } = useSWR<NeedsInputSuggestion[]>(
     '/api/needs-input',
     fetcher,
@@ -51,6 +55,9 @@ export default function NeedsInputList() {
     return null // Don't show section if no suggestions need input
   }
 
+  const displayedSuggestions = showAll ? suggestions : suggestions.slice(0, ITEMS_TO_SHOW)
+  const hasMore = suggestions.length > ITEMS_TO_SHOW
+
   return (
     <div className="mt-8">
       <h2 className="text-lg font-semibold text-foreground mb-4">
@@ -60,7 +67,7 @@ export default function NeedsInputList() {
         These suggestions require manual setup (like environment variables or external services) before they can be implemented.
       </p>
       <div className="space-y-3">
-        {suggestions.map((suggestion) => (
+        {displayedSuggestions.map((suggestion) => (
           <div
             key={suggestion.id}
             className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3"
@@ -92,6 +99,28 @@ export default function NeedsInputList() {
           </div>
         ))}
       </div>
+      {hasMore && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="mt-3 text-sm text-muted hover:text-foreground transition-colors flex items-center gap-1"
+        >
+          {showAll ? (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+              Show less
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              View {suggestions.length - ITEMS_TO_SHOW} more
+            </>
+          )}
+        </button>
+      )}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import useSWR from 'swr'
 
 interface ChangelogEntry {
@@ -14,7 +15,10 @@ interface ChangelogEntry {
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
+const ITEMS_TO_SHOW = 5
+
 export default function Changelog() {
+  const [showAll, setShowAll] = useState(false)
   const { data: entries, error, isLoading } = useSWR<ChangelogEntry[]>(
     '/api/changelog',
     fetcher,
@@ -61,13 +65,16 @@ export default function Changelog() {
     )
   }
 
+  const displayedEntries = showAll ? entries : entries.slice(0, ITEMS_TO_SHOW)
+  const hasMore = entries.length > ITEMS_TO_SHOW
+
   return (
     <div className="mt-12">
       <h2 className="text-lg font-semibold text-foreground mb-4">
         Changelog ({entries.length} implemented)
       </h2>
       <div className="space-y-3">
-        {entries.map((entry) => (
+        {displayedEntries.map((entry) => (
           <div
             key={entry.id}
             className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-lg px-4 py-3"
@@ -104,6 +111,28 @@ export default function Changelog() {
           </div>
         ))}
       </div>
+      {hasMore && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="mt-3 text-sm text-muted hover:text-foreground transition-colors flex items-center gap-1"
+        >
+          {showAll ? (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+              Show less
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              View {entries.length - ITEMS_TO_SHOW} more
+            </>
+          )}
+        </button>
+      )}
     </div>
   )
 }

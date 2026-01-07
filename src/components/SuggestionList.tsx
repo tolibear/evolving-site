@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import useSWR from 'swr'
 import SuggestionCard from './SuggestionCard'
 import VoteAllowanceDisplay from './VoteAllowanceDisplay'
@@ -22,7 +23,10 @@ interface Status {
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
+const ITEMS_TO_SHOW = 5
+
 export default function SuggestionList() {
+  const [showAll, setShowAll] = useState(false)
   const { data: suggestions, error, isLoading } = useSWR<Suggestion[]>(
     '/api/suggestions',
     fetcher,
@@ -70,6 +74,9 @@ export default function SuggestionList() {
     )
   }
 
+  const displayedSuggestions = showAll ? suggestions : suggestions.slice(0, ITEMS_TO_SHOW)
+  const hasMore = suggestions.length > ITEMS_TO_SHOW
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -78,7 +85,7 @@ export default function SuggestionList() {
         </h2>
         <VoteAllowanceDisplay />
       </div>
-      {suggestions.map((suggestion) => (
+      {displayedSuggestions.map((suggestion) => (
         <SuggestionCard
           key={suggestion.id}
           id={suggestion.id}
@@ -93,6 +100,28 @@ export default function SuggestionList() {
           }
         />
       ))}
+      {hasMore && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="text-sm text-muted hover:text-foreground transition-colors flex items-center gap-1"
+        >
+          {showAll ? (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+              Show less
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              View {suggestions.length - ITEMS_TO_SHOW} more
+            </>
+          )}
+        </button>
+      )}
     </div>
   )
 }

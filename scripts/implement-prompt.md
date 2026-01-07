@@ -35,11 +35,12 @@ Use the Turso database (env vars are set) to update the status table:
 - **Deny**: Update suggestion status to 'denied' with ai_note
 
 ### Step 5: Finalize (CRITICAL - DO NOT SKIP)
-- Add changelog entry (if implemented)
-- Update suggestion status to 'implemented' or 'denied'
-- Set status back to 'idle'
 - **MUST commit all changes** with descriptive message
 - **MUST push to origin/master** to trigger Vercel deployment
+- **MUST run finalize script** to update database:
+  ```bash
+  npm run finalize -- <suggestionId> <status> "<content>" <votes> "<aiNote>" <commitHash>
+  ```
 - **MUST verify** with `git status` that working tree is clean
 
 ## Important Rules

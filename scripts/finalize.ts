@@ -8,8 +8,10 @@
  *   npm run finalize -- 12 implemented "Add dark mode" 5 "Added dark mode toggle with CSS variables" abc1234
  *   npm run finalize -- 13 denied "Unsafe feature" 2 "Denied due to security concerns"
  */
-import 'dotenv/config'
-import { updateSuggestionStatus, addChangelogEntry, updateStatus, grantVotesToAllUsers } from '../src/lib/db.js'
+
+// Load env vars BEFORE importing db module
+import { config } from 'dotenv'
+config({ path: '.env.local' })
 
 async function main() {
   const args = process.argv.slice(2)
@@ -43,6 +45,9 @@ async function main() {
     console.error('Error: status must be "implemented" or "denied"')
     process.exit(1)
   }
+
+  // Dynamic import AFTER env vars are loaded
+  const { updateSuggestionStatus, addChangelogEntry, updateStatus, grantVotesToAllUsers } = await import('../src/lib/db.js')
 
   console.log(`Finalizing suggestion ${suggestionId} as ${status}...`)
 

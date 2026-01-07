@@ -2,7 +2,7 @@
 
 import { getRalphConfig, validateConfig } from './config'
 import { RalphApiClient } from './api-client'
-import { implementSuggestion, gitPull } from './implementation'
+import { implementSuggestion, gitPull, gitPush, hasUnpushedCommits } from './implementation'
 import { printBanner, printStatus, printHelp, log, clearLine, printCountdown } from './ui'
 import { initializeStream, closeStream } from './stream-manager'
 
@@ -94,6 +94,22 @@ async function main(): Promise<void> {
 
   log('Ralph is now running. Press Ctrl+C to stop.', 'success')
 
+  // Check for unpushed commits from previous runs
+  try {
+    const unpushed = await hasUnpushedCommits(config.projectDir)
+    if (unpushed) {
+      log('Found unpushed commits from previous run, pushing...', 'warn')
+      const pushSuccess = await gitPush(config.projectDir)
+      if (pushSuccess) {
+        log('Successfully pushed previous commits!', 'success')
+      } else {
+        log('Could not push previous commits - will retry later', 'warn')
+      }
+    }
+  } catch (err) {
+    log(`Error checking for unpushed commits: ${err}`, 'warn')
+  }
+
   while (running) {
     try {
       // Check current status from API
@@ -160,7 +176,30 @@ async function main(): Promise<void> {
       })
 
       // Implement the suggestion (stream will be closed inside implementSuggestion)
-      const result = await implementSuggestion(suggestion, config.projectDir)
+      let result = await implementSuggestion(suggestion, config.projectDir)
+
+      // If implementation succeeded or needs_input due to push failure, try to push
+      if (result.status === 'needs_input' || result.status === 'implemented') {
+        const unpushed = await hasUnpushedCommits(config.projectDir)
+        if (unpushed) {
+          log('Found unpushed commits, attempting push...', 'info')
+          const pushSuccess = await gitPush(config.projectDir)
+          if (pushSuccess) {
+            // If we successfully pushed, convert needs_input to implemented
+            if (result.status === 'needs_input') {
+              log('Push succeeded! Converting to implemented.', 'success')
+              result = {
+                ...result,
+                success: true,
+                status: 'implemented',
+                aiNote: result.aiNote?.replace(/cannot push.*$/i, 'Successfully pushed after retry.') || 'Implemented successfully',
+              }
+            }
+          } else {
+            log('Push failed - will retry next cycle', 'warn')
+          }
+        }
+      }
 
       // Finalize the result
       log('Finalizing...', 'info')

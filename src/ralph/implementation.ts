@@ -511,6 +511,38 @@ async function runGitCommand(args: string[], cwd: string): Promise<{ code: numbe
   })
 }
 
+/**
+ * Push to origin/master with retry logic
+ */
+export async function gitPush(cwd: string, maxRetries: number = 3): Promise<boolean> {
+  log('Pushing to origin/master...', 'info')
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const result = await runGitCommand(['push', 'origin', 'master'], cwd)
+
+    if (result.code === 0) {
+      log('Git push successful', 'success')
+      return true
+    }
+
+    if (attempt < maxRetries) {
+      log(`Push attempt ${attempt} failed, retrying in 5s...`, 'warn')
+      await new Promise(resolve => setTimeout(resolve, 5000))
+    }
+  }
+
+  log('Git push failed after all retries', 'error')
+  return false
+}
+
+/**
+ * Check if there are unpushed commits
+ */
+export async function hasUnpushedCommits(cwd: string): Promise<boolean> {
+  const result = await runGitCommand(['log', 'origin/master..HEAD', '--oneline'], cwd)
+  return result.stdout.trim().length > 0
+}
+
 export async function gitPull(cwd: string): Promise<void> {
   log('Pulling latest changes...', 'info')
 

@@ -147,7 +147,7 @@ export default function SuggestionList() {
           author={suggestion.author}
           isOwner={suggestion.isOwner}
           userVoteType={userVotes[suggestion.id] || null}
-          suggestionNumber={index + 1}
+          suggestionNumber={suggestion.id}
           submitter={suggestion.submitter}
           contributors={suggestion.contributors}
           contributorCount={suggestion.contributorCount}

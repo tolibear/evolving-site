@@ -21,11 +21,13 @@ export default function StatusBanner() {
   )
 
   const [countdown, setCountdown] = useState('')
+  const [isStarting, setIsStarting] = useState(false)
 
   // Calculate countdown to next 15-minute interval for automated mode
   useEffect(() => {
     if (status?.automation_mode !== 'automated' || status?.state === 'working') {
       setCountdown('')
+      setIsStarting(false)
       return
     }
 
@@ -43,9 +45,15 @@ export default function StatusBanner() {
       const diffMins = Math.floor(diffMs / 60000)
       const diffSecs = Math.floor((diffMs % 60000) / 1000)
 
-      if (diffMins > 0) {
+      // When countdown hits 0 (or very close), show starting state
+      if (diffMs <= 1000) {
+        setIsStarting(true)
+        setCountdown('')
+      } else if (diffMins > 0) {
+        setIsStarting(false)
         setCountdown(`${diffMins}m ${diffSecs}s`)
       } else {
+        setIsStarting(false)
         setCountdown(`${diffSecs}s`)
       }
     }
@@ -59,7 +67,10 @@ export default function StatusBanner() {
     return null // Silently fail - not critical
   }
 
-  const getStateColor = (state: string) => {
+  const getStateColor = (state: string, starting: boolean) => {
+    if (starting) {
+      return 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200'
+    }
     switch (state) {
       case 'working':
         return 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200'
@@ -70,7 +81,15 @@ export default function StatusBanner() {
     }
   }
 
-  const getStateIcon = (state: string) => {
+  const getStateIcon = (state: string, starting: boolean) => {
+    if (starting) {
+      return (
+        <span className="relative flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+        </span>
+      )
+    }
     switch (state) {
       case 'working':
         return (
@@ -94,12 +113,16 @@ export default function StatusBanner() {
 
   const isAutomated = status?.automation_mode === 'automated'
 
+  const displayMessage = isStarting
+    ? 'Starting implementation...'
+    : (status?.message || 'Loading status...')
+
   return (
-    <div className={`rounded-lg border px-4 py-3 mb-8 flex items-center gap-3 ${getStateColor(status?.state || 'idle')}`}>
-      {getStateIcon(status?.state || 'idle')}
+    <div className={`rounded-lg border px-4 py-3 mb-8 flex items-center gap-3 ${getStateColor(status?.state || 'idle', isStarting)}`}>
+      {getStateIcon(status?.state || 'idle', isStarting)}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">
-          {status?.message || 'Loading status...'}
+          {displayMessage}
         </p>
       </div>
       <div className="flex items-center gap-2">
@@ -113,7 +136,7 @@ export default function StatusBanner() {
         >
           {isAutomated ? 'AUTO' : 'MANUAL'}
         </span>
-        {isAutomated && countdown && status?.state !== 'working' && (
+        {isAutomated && countdown && status?.state !== 'working' && !isStarting && (
           <span className="text-xs opacity-60">
             next in {countdown}
           </span>

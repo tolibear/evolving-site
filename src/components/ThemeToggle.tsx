@@ -49,8 +49,14 @@ export default function ThemeToggle() {
     const newEnabled = !soundEnabled
     setSoundEnabled(newEnabled)
     localStorage.setItem('sound-config', JSON.stringify({ enabled: newEnabled, volume: 0.3 }))
-    if (newEnabled) {
-      playSound('click')
+    // Also update the soundManager's internal state
+    if (typeof window !== 'undefined') {
+      import('@/lib/sounds').then(({ soundManager }) => {
+        soundManager?.setEnabled(newEnabled)
+        if (newEnabled) {
+          soundManager?.play('click')
+        }
+      })
     }
   }
 

@@ -643,11 +643,12 @@ body {
 
 /* Neon hover effects for interactive elements */
 .neon button:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.2);
 }
 
 .neon button:active {
-  transform: scale(0.98);
+  transform: scale(0.95);
+  filter: brightness(1.3);
 }
 
 /* Neon focus rings */
@@ -656,3 +657,61 @@ body {
   outline-offset: 2px;
   box-shadow: 0 0 10px rgba(255, 107, 0, 0.5);
 }
+
+/* Neon mode component overrides - match dark: variants */
+.neon .bg-neutral-800 { background-color: #0a0a0a; }
+.neon .bg-neutral-700 { background-color: #171717; }
+.neon .text-neutral-200 { color: #fdba74; }
+.neon .text-neutral-300 { color: rgba(251, 146, 60, 0.8); }
+
+/* Neon mode in-progress indicator */
+.neon .border-amber-400, .neon .border-amber-500 { border-color: #ff6b00; }
+.neon .bg-amber-50\/50, .neon .bg-amber-900\/20 { background-color: rgba(255, 107, 0, 0.1); }
+.neon .text-amber-700, .neon .text-amber-400 { color: #ff6b00; }
+.neon .bg-amber-400, .neon .bg-amber-500 { background-color: #ff6b00; }
+
+/* Neon mode yellow badges (Ralph author badge) */
+.neon .bg-yellow-100 { background-color: rgba(255, 107, 0, 0.2); }
+.neon .bg-yellow-900\/50 { background-color: rgba(255, 107, 0, 0.3); }
+.neon .text-yellow-800, .neon .text-yellow-200 { color: #ff6b00; }
+
+/* Neon mode blue status (AUTO badge) */
+.neon .bg-blue-100 { background-color: rgba(0, 255, 255, 0.15); }
+.neon .bg-blue-900\/50 { background-color: rgba(0, 255, 255, 0.2); }
+.neon .text-blue-600, .neon .text-blue-300 { color: #00ffff; }
+
+/* Neon mode changelog entries */
+.neon .border-green-100, .neon .border-green-800 { border-color: rgba(0, 255, 136, 0.3); }
+.neon .border-green-300, .neon .border-green-700 { border-color: rgba(0, 255, 136, 0.5); }
+.neon .text-green-500 { color: #00ff88; }
+.neon .text-green-800, .neon .text-green-600, .neon .text-green-400 { color: #00ff88; }
+
+/* Neon mode delete/cancel buttons */
+.neon .bg-red-600 { background-color: #ff0080; }
+.neon .bg-red-600:hover { background-color: #ff3399; }
+.neon .text-red-500, .neon .text-red-400 { color: #ff0080; }
+.neon .text-red-700, .neon .text-red-300 { color: #ff3399; }
+.neon .text-red-600 { color: #ff0080; }
+
+/* Neon mode comment borders */
+.neon .border-neutral-300, .neon .border-neutral-600 { border-color: rgba(255, 107, 0, 0.3); }
+
+/* Neon mode suggestion number */
+.neon .text-neutral-300 { color: rgba(255, 107, 0, 0.4); }
+.neon .text-neutral-600 { color: rgba(255, 107, 0, 0.5); }
+
+/* Neon mode loading skeleton */
+.neon .bg-neutral-100 { background-color: #171717; }
+
+/* Neon mode refresh prompt */
+.neon .bg-green-500 { background-color: #00ff88; color: #0a0a0a; }
+.neon .text-green-600 { color: #00ff88; }
+.neon .bg-green-50 { background-color: rgba(0, 255, 136, 0.1); }
+.neon .text-green-200 { color: rgba(0, 255, 136, 0.6); }
+
+/* Neon mode hover backgrounds for buttons */
+.neon .hover\:bg-orange-500\/20:hover { background-color: rgba(255, 107, 0, 0.25) !important; }
+.neon .hover\:bg-neutral-200:hover { background-color: rgba(255, 107, 0, 0.2) !important; }
+.neon .hover\:bg-neutral-700:hover { background-color: rgba(255, 107, 0, 0.2) !important; }
+.neon .hover\:bg-neutral-300:hover { background-color: rgba(255, 107, 0, 0.25) !important; }
+.neon .hover\:bg-neutral-600:hover { background-color: rgba(255, 107, 0, 0.25) !important; }

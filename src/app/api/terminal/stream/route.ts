@@ -117,6 +117,8 @@ export async function GET(request: Request) {
           // Ignore status fetch errors
         }
 
+        let sessionEnded = false // Track if we've sent session_end for current session
+
         for (let i = 0; i < MAX_DURATION; i++) {
           // Check if client disconnected
           if (request.signal.aborted) {
@@ -136,6 +138,7 @@ export async function GET(request: Request) {
             if (newActiveSession && newActiveSession.id !== sessionId) {
               sessionId = newActiveSession.id
               lastSequence = -1
+              sessionEnded = false
               sendEvent('session', {
                 id: newActiveSession.id,
                 suggestionId: newActiveSession.suggestion_id,
@@ -157,12 +160,28 @@ export async function GET(request: Request) {
 
             // Check if session ended
             if (currentSession.status !== 'active') {
-              sendEvent('session_end', {
-                sessionId: currentSession.id,
-                status: currentSession.status,
-                endedAt: currentSession.ended_at,
-              })
-              // Keep connection open for potential new session
+              if (!sessionEnded) {
+                sendEvent('session_end', {
+                  sessionId: currentSession.id,
+                  status: currentSession.status,
+                  endedAt: currentSession.ended_at,
+                })
+                sessionEnded = true
+              }
+
+              // Check for new active session (current session has ended)
+              const newActiveSession = await getActiveTerminalSession()
+              if (newActiveSession && newActiveSession.id !== sessionId) {
+                sessionId = newActiveSession.id
+                lastSequence = -1
+                sessionEnded = false
+                sendEvent('session', {
+                  id: newActiveSession.id,
+                  suggestionId: newActiveSession.suggestion_id,
+                  status: newActiveSession.status,
+                  startedAt: newActiveSession.started_at,
+                })
+              }
             }
           }
 

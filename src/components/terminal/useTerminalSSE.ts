@@ -116,18 +116,21 @@ export function useTerminalSSE(options: UseTerminalSSEOptions = {}): UseTerminal
     eventSource.addEventListener('session', (event) => {
       try {
         const data = JSON.parse(event.data)
-        setSession({
-          id: data.id,
-          suggestionId: data.suggestionId,
-          status: data.status,
-          startedAt: data.startedAt,
-          endedAt: data.endedAt,
+        // Clear lines when switching to a new session (compare with current state)
+        setSession((prevSession) => {
+          if (prevSession && data.id !== prevSession.id) {
+            // New session detected - clear lines
+            setLines([])
+            lastSequenceRef.current = -1
+          }
+          return {
+            id: data.id,
+            suggestionId: data.suggestionId,
+            status: data.status,
+            startedAt: data.startedAt,
+            endedAt: data.endedAt,
+          }
         })
-        // Clear lines when switching to a new session
-        if (data.id !== session?.id) {
-          setLines([])
-          lastSequenceRef.current = -1
-        }
       } catch (error) {
         console.error('Failed to parse session event:', error)
       }
@@ -248,7 +251,7 @@ export function useTerminalSSE(options: UseTerminalSSEOptions = {}): UseTerminal
     eventSource.addEventListener('error', (event) => {
       console.error('SSE error event:', event)
     })
-  }, [enabled, sessionId, replay, session?.id])
+  }, [enabled, sessionId, replay])
 
   // Connect on mount and when options change
   useEffect(() => {

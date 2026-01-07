@@ -102,40 +102,21 @@ const initSchema = async () => {
 
   // One-time migration: Mark suggestion #12 as implemented (vote allowance feature)
   // The feature was implemented in commit d4a0b11 but database wasn't updated
+  // This runs every time to ensure the status gets updated (idempotent)
   try {
-    const result = await db.execute({
-      sql: `SELECT status FROM suggestions WHERE id = 12`,
-      args: [],
+    const aiNote = 'Added vote allowance system. New users start with 2 votes. Voting costs 1 vote, un-voting refunds it. All users receive 2 new votes when a feature is implemented.'
+
+    // Always try to update - this is idempotent
+    const updateResult = await db.execute({
+      sql: `UPDATE suggestions SET status = 'implemented', implemented_at = COALESCE(implemented_at, datetime('now')), ai_note = COALESCE(ai_note, ?) WHERE id = 12 AND status = 'pending'`,
+      args: [aiNote],
     })
-    if (result.rows.length > 0 && result.rows[0].status === 'pending') {
-      const aiNote = 'Added vote allowance system. New users start with 2 votes. Voting costs 1 vote, un-voting refunds it. All users receive 2 new votes when a feature is implemented.'
-      const content = 'give users 2 votes every implementation, show how many votes they have left'
 
-      await db.execute({
-        sql: `UPDATE suggestions SET status = 'implemented', implemented_at = datetime('now'), ai_note = ? WHERE id = 12`,
-        args: [aiNote],
-      })
-
-      // Check if changelog entry already exists
-      const changelogCheck = await db.execute({
-        sql: `SELECT id FROM changelog WHERE suggestion_id = 12`,
-        args: [],
-      })
-      if (changelogCheck.rows.length === 0) {
-        await db.execute({
-          sql: `INSERT INTO changelog (suggestion_id, suggestion_content, votes_when_implemented, commit_hash, ai_note) VALUES (12, ?, 1, 'd4a0b11', ?)`,
-          args: [content, aiNote],
-        })
-        // Grant 2 votes to all existing users for this implementation
-        await db.execute({
-          sql: `UPDATE vote_allowance SET remaining_votes = remaining_votes + 2, last_grant_at = datetime('now')`,
-          args: [],
-        })
-      }
+    if (updateResult.rowsAffected > 0) {
       console.log('Migration: Marked suggestion #12 as implemented')
     }
   } catch (e) {
-    // Suggestion 12 might not exist or migration already ran
+    // Suggestion 12 might not exist
     console.log('Migration for suggestion #12 skipped:', e)
   }
 }

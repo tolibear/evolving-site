@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import useSWR, { mutate } from 'swr'
 import VoteButton from './VoteButton'
+import FeatureIcon from './FeatureIcon'
 
 interface Comment {
   id: number
@@ -163,7 +164,14 @@ export default function SuggestionCard({
               </span>
             </div>
           )}
-          <p className="text-foreground break-words">{content}</p>
+          <div className="flex items-start gap-2">
+            <FeatureIcon
+              content={content}
+              size={18}
+              className="flex-shrink-0 mt-0.5 text-muted opacity-60"
+            />
+            <p className="text-foreground break-words">{content}</p>
+          </div>
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             {author === 'ralph' && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200">

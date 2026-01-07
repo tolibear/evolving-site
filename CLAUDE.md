@@ -46,15 +46,25 @@ When asked to implement a suggestion:
 1. Update status to "working" via `updateStatus()` in `src/lib/db.ts`
 2. Make the changes
 3. Run `npm run build` to verify
-4. Update suggestion status to "implemented" or "denied" with `updateSuggestionStatus()`
-5. Add changelog entry with `addChangelogEntry()`
-6. Set status back to "idle"
-7. Commit changes
-8. **Push to origin/master** to trigger Vercel deployment
+4. Commit and push changes to trigger deployment
+5. **CRITICAL: Run the finalize script** to update the database:
+   ```bash
+   npm run finalize -- <suggestionId> <status> "<content>" <votes> "<aiNote>" <commitHash>
+   ```
+   Example:
+   ```bash
+   npm run finalize -- 12 implemented "Add dark mode" 5 "Added toggle with CSS variables" abc1234
+   ```
 
-Use `ai_note` parameter to add implementation notes visible in the UI.
+The finalize script:
+- Updates suggestion status to "implemented" or "denied"
+- Adds changelog entry (if implemented)
+- Grants 2 votes to all users (if implemented)
+- Sets status back to "idle"
 
-**CRITICAL**: Never end implementation without pushing. Changes must reach production for users to see them.
+**CRITICAL**: Never end implementation without:
+1. Pushing to origin/master (triggers Vercel deployment)
+2. Running `npm run finalize` (removes suggestion from pending list)
 
 ## Rate Limits
 - Suggestions: 5 per hour per IP

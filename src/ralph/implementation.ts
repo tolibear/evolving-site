@@ -1,5 +1,4 @@
 import { spawn } from 'child_process'
-import * as pty from 'node-pty'
 import { log, printImplementing, printResult, printVercelStatus, printRefreshPrompt } from './ui'
 import type { Suggestion, ImplementationResult } from './types'
 
@@ -103,27 +102,31 @@ async function runClaude(
     log('Starting Claude Code...', 'info')
     console.log() // Add spacing
 
-    // Use node-pty to create a proper pseudo-terminal
-    // This gives Claude full TTY support so output renders correctly
-    // Use full path since node-pty may not inherit PATH correctly
+    // Use child_process.spawn with inherited stdio for real-time output
     const claudePath = process.env.CLAUDE_PATH || '/Users/toli/.local/bin/claude'
-    const claude = pty.spawn(claudePath, ['--dangerously-skip-permissions', '-p', prompt], {
-      name: 'xterm-256color',
-      cols: process.stdout.columns || 120,
-      rows: process.stdout.rows || 30,
+    const claude = spawn(claudePath, ['--dangerously-skip-permissions', '-p', prompt], {
       cwd,
-      env: process.env as { [key: string]: string },
+      env: process.env,
+      stdio: ['inherit', 'pipe', 'pipe'],
     })
 
     let output = ''
 
-    // Stream output to terminal in real-time
-    claude.onData((data) => {
-      process.stdout.write(data)
-      output += data
+    // Stream stdout to terminal in real-time
+    claude.stdout?.on('data', (data: Buffer) => {
+      const text = data.toString()
+      process.stdout.write(text)
+      output += text
     })
 
-    claude.onExit(({ exitCode }) => {
+    // Stream stderr to terminal in real-time
+    claude.stderr?.on('data', (data: Buffer) => {
+      const text = data.toString()
+      process.stderr.write(text)
+      output += text
+    })
+
+    claude.on('close', (exitCode) => {
       console.log() // Add spacing after Claude output
       log('Claude Code finished', 'info')
 
@@ -155,6 +158,14 @@ async function runClaude(
       resolve({
         success: true,
         aiNote: 'Implementation completed',
+      })
+    })
+
+    claude.on('error', (err) => {
+      log(`Failed to spawn Claude: ${err.message}`, 'error')
+      resolve({
+        success: false,
+        error: `Failed to spawn Claude: ${err.message}`,
       })
     })
   })

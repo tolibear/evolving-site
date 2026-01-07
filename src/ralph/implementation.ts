@@ -1,0 +1,206 @@
+import { spawn } from 'child_process'
+import { log, printImplementing, printResult } from './ui'
+import type { Suggestion, ImplementationResult } from './types'
+
+export async function implementSuggestion(
+  suggestion: Suggestion,
+  projectDir: string
+): Promise<ImplementationResult> {
+  printImplementing(suggestion.content)
+  log(`Suggestion #${suggestion.id}: "${suggestion.content}"`, 'info')
+  log(`Current votes: ${suggestion.votes}`, 'info')
+
+  const prompt = buildImplementationPrompt(suggestion)
+
+  try {
+    // Run Claude Code with the implementation prompt
+    const result = await runClaude(prompt, projectDir)
+
+    if (result.success) {
+      const commitHash = await getLatestCommitHash(projectDir)
+      printResult(true, result.aiNote || 'Implementation completed successfully')
+      return {
+        success: true,
+        suggestionId: suggestion.id,
+        status: 'implemented',
+        commitHash,
+        aiNote: result.aiNote || 'Implementation completed successfully',
+      }
+    } else {
+      printResult(false, result.aiNote || result.error || 'Implementation failed')
+      return {
+        success: false,
+        suggestionId: suggestion.id,
+        status: result.denied ? 'denied' : 'failed',
+        aiNote: result.aiNote || result.error || 'Implementation failed',
+        error: result.error,
+      }
+    }
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    log(`Implementation error: ${errorMsg}`, 'error')
+    printResult(false, `Error: ${errorMsg}`)
+    return {
+      success: false,
+      suggestionId: suggestion.id,
+      status: 'failed',
+      aiNote: `Error during implementation: ${errorMsg}`,
+      error: errorMsg,
+    }
+  }
+}
+
+function buildImplementationPrompt(suggestion: Suggestion): string {
+  return `You are implementing suggestion #${suggestion.id} for the Evolving Site.
+
+## Suggestion
+"${suggestion.content}"
+
+## Current Votes
+${suggestion.votes}
+
+## Instructions
+1. Follow all security rules in CLAUDE.md
+2. If the suggestion is safe and feasible, implement it
+3. If the suggestion violates security rules or is not feasible, deny it
+4. Run \`npm run build\` to verify no errors
+5. Commit with a descriptive message
+6. Push to origin/master
+7. After completing, output a JSON result on its own line:
+
+For implemented features:
+{"success": true, "aiNote": "Brief description of what was implemented"}
+
+For denied suggestions:
+{"success": false, "denied": true, "aiNote": "Reason for denial"}
+
+For failures:
+{"success": false, "aiNote": "What went wrong"}
+
+IMPORTANT: Output the JSON result on a single line at the end.`
+}
+
+async function runClaude(
+  prompt: string,
+  cwd: string
+): Promise<{
+  success: boolean
+  denied?: boolean
+  aiNote?: string
+  error?: string
+}> {
+  return new Promise((resolve) => {
+    log('Starting Claude Code...', 'info')
+
+    const claude = spawn(
+      'claude',
+      [
+        '--print',
+        prompt,
+        '--allowedTools',
+        'Bash(npm run build:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Read,Write,Edit,Glob,Grep',
+      ],
+      {
+        cwd,
+        stdio: ['inherit', 'pipe', 'pipe'],
+        env: { ...process.env },
+      }
+    )
+
+    let stdout = ''
+    let stderr = ''
+
+    claude.stdout?.on('data', (data: Buffer) => {
+      const text = data.toString()
+      stdout += text
+      // Echo output to terminal in real-time
+      process.stdout.write(text)
+    })
+
+    claude.stderr?.on('data', (data: Buffer) => {
+      const text = data.toString()
+      stderr += text
+      process.stderr.write(text)
+    })
+
+    claude.on('close', (code) => {
+      if (code !== 0) {
+        resolve({
+          success: false,
+          error: stderr || `Claude exited with code ${code}`,
+        })
+        return
+      }
+
+      // Try to parse JSON result from output (look for last JSON object)
+      const jsonMatches = stdout.match(/\{[^{}]*"success"[^{}]*\}/g)
+      if (jsonMatches && jsonMatches.length > 0) {
+        const lastMatch = jsonMatches[jsonMatches.length - 1]
+        try {
+          const parsed = JSON.parse(lastMatch)
+          resolve({
+            success: parsed.success === true,
+            denied: parsed.denied === true,
+            aiNote: parsed.aiNote,
+          })
+          return
+        } catch {
+          // Failed to parse JSON
+        }
+      }
+
+      // If no JSON found but exit code was 0, assume success
+      resolve({
+        success: true,
+        aiNote: 'Implementation completed (no explicit result)',
+      })
+    })
+
+    claude.on('error', (err) => {
+      resolve({
+        success: false,
+        error: `Failed to spawn Claude: ${err.message}`,
+      })
+    })
+  })
+}
+
+async function getLatestCommitHash(cwd: string): Promise<string> {
+  return new Promise((resolve) => {
+    const git = spawn('git', ['rev-parse', '--short', 'HEAD'], { cwd })
+    let hash = ''
+    git.stdout.on('data', (data: Buffer) => {
+      hash += data.toString().trim()
+    })
+    git.on('close', () => resolve(hash || 'unknown'))
+    git.on('error', () => resolve('unknown'))
+  })
+}
+
+export async function gitPull(cwd: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    log('Pulling latest changes...', 'info')
+    const git = spawn('git', ['pull', '--rebase', 'origin', 'master'], {
+      cwd,
+      stdio: ['inherit', 'pipe', 'pipe'],
+    })
+
+    let stderr = ''
+    git.stderr?.on('data', (data: Buffer) => {
+      stderr += data.toString()
+    })
+
+    git.on('close', (code) => {
+      if (code === 0) {
+        log('Git pull successful', 'success')
+        resolve()
+      } else {
+        reject(new Error(`git pull failed: ${stderr || `exit code ${code}`}`))
+      }
+    })
+
+    git.on('error', (err) => {
+      reject(new Error(`Failed to spawn git: ${err.message}`))
+    })
+  })
+}

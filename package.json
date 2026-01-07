@@ -10,9 +10,12 @@
     "build": "next build",
     "build:verify": "next build && echo '✓ Build successful'",
     "build:push": "git push origin master && echo '✓ Pushed to production'",
-    "finalize": "npx tsx scripts/finalize.ts",
     "start": "next start",
     "lint": "next lint",
+    "ralph": "npx tsx src/ralph/index.ts",
+    "ralph:auto": "npx tsx src/ralph/index.ts --auto",
+    "ralph:manual": "npx tsx src/ralph/index.ts --manual",
+    "finalize": "npx tsx scripts/finalize.ts",
     "db:init": "node scripts/init-db.js"
   },
   "dependencies": {

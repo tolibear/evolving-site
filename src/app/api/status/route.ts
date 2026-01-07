@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
-import { getStatus, updateStatus, setAutomationMode } from '@/lib/db'
+import { getStatus, updateStatus, setAutomationMode, setIntervalMinutes } from '@/lib/db'
+
+export const dynamic = 'force-dynamic'
 
 // GET /api/status - Get current Claude status
 export async function GET() {

@@ -9,6 +9,7 @@ interface Status {
   message: string
   updated_at: string
   automation_mode: 'manual' | 'automated'
+  interval_minutes: number
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -23,45 +24,23 @@ export default function StatusBanner() {
   const [countdown, setCountdown] = useState('')
   const [isStarting, setIsStarting] = useState(false)
 
-  // Calculate countdown to next 10-minute interval for automated mode
+  const intervalMinutes = status?.interval_minutes || 10
+
+  // Show starting state when working
   useEffect(() => {
-    if (status?.automation_mode !== 'automated' || status?.state === 'working') {
+    if (status?.state === 'working') {
+      setIsStarting(true)
       setCountdown('')
+    } else {
       setIsStarting(false)
-      return
-    }
-
-    const updateCountdown = () => {
-      const now = new Date()
-      const mins = now.getMinutes()
-      const nextTen = Math.ceil((mins + 1) / 10) * 10
-      const next = new Date(now)
-      if (nextTen >= 60) {
-        next.setHours(next.getHours() + 1, 0, 0, 0)
+      // Show interval info when automated and idle
+      if (status?.automation_mode === 'automated') {
+        setCountdown(`every ${intervalMinutes}m`)
       } else {
-        next.setMinutes(nextTen, 0, 0)
-      }
-      const diffMs = next.getTime() - now.getTime()
-      const diffMins = Math.floor(diffMs / 60000)
-      const diffSecs = Math.floor((diffMs % 60000) / 1000)
-
-      // When countdown hits 0 (or very close), show starting state
-      if (diffMs <= 1000) {
-        setIsStarting(true)
         setCountdown('')
-      } else if (diffMins > 0) {
-        setIsStarting(false)
-        setCountdown(`${diffMins}m ${diffSecs}s`)
-      } else {
-        setIsStarting(false)
-        setCountdown(`${diffSecs}s`)
       }
     }
-
-    updateCountdown()
-    const interval = setInterval(updateCountdown, 1000)
-    return () => clearInterval(interval)
-  }, [status?.automation_mode, status?.state])
+  }, [status?.automation_mode, status?.state, intervalMinutes])
 
   if (error) {
     return null // Silently fail - not critical
@@ -136,9 +115,9 @@ export default function StatusBanner() {
         >
           {isAutomated ? 'AUTO' : 'MANUAL'}
         </span>
-        {isAutomated && countdown && status?.state !== 'working' && !isStarting && (
+        {isAutomated && countdown && !isStarting && (
           <span className="text-xs opacity-60">
-            next in {countdown}
+            {countdown}
           </span>
         )}
       </div>

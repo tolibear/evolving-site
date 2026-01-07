@@ -94,44 +94,56 @@ When implementing suggestions, Claude MUST follow these security rules. Violatio
 ### If Unsure
 If a suggestion asks for something that might violate these rules, mark it as "denied" with an `ai_note` explaining the security concern. User security > feature requests.
 
-## Autonomous Mode
+## Ralph Agent (Autonomous Mode)
 
-The site can run autonomously, implementing the top-voted suggestion every 10 minutes.
+Ralph is the implementation agent that runs in your terminal with full visibility.
 
-### Setup (macOS)
+### Commands
 
-1. **Install the launchd agent:**
 ```bash
-cp scripts/com.evolving-site.auto-implement.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.evolving-site.auto-implement.plist
-```
-
-2. **Verify it's running:**
-```bash
-launchctl list | grep evolving-site
-```
-
-3. **Check logs:**
-```bash
-tail -f logs/launchd-stdout.log
+npm run ralph           # Start Ralph (respects current mode setting)
+npm run ralph:auto      # Start in automated mode
+npm run ralph:manual    # Start in manual mode (monitoring only)
+# Press Ctrl+C to stop
 ```
 
 ### How It Works
 
-1. `scripts/auto-implement.sh` runs every 10 minutes via launchd
-2. Checks production API for suggestions with votes > 0
-3. If found, runs Claude Code with `scripts/implement-prompt.md`
-4. Claude implements or denies the suggestion following security rules
-5. Pushes to git, triggering Vercel deployment
+1. Ralph runs as a foreground process in your terminal
+2. Every N minutes (configurable), it checks for top-voted suggestions
+3. If a suggestion has votes > 0 and mode is "automated":
+   - Pulls latest git changes
+   - Runs Claude Code to implement the suggestion
+   - Commits and pushes to trigger Vercel deployment
+   - Updates the database (finalizes the suggestion)
+4. Shows all progress in real-time in the terminal
+5. On errors, automatically switches to manual mode
 
-### Stop Autonomous Mode
+### Configuration
 
+Set in `.env.local`:
 ```bash
-launchctl unload ~/Library/LaunchAgents/com.evolving-site.auto-implement.plist
+RALPH_INTERVAL_MINUTES=10    # Check interval (1-60 minutes, default: 10)
+RALPH_API_SECRET=xxx         # Required: API secret for authentication
+RALPH_API_URL=https://...    # Optional: Override production URL
 ```
 
-### Manual Test
+### Mode Switching
 
+**From CLI:**
 ```bash
-./scripts/auto-implement.sh
+npm run ralph:auto    # Enable automated implementation
+npm run ralph:manual  # Enable manual mode (monitoring only)
 ```
+
+**From Web UI:**
+The status banner shows the current mode. Mode can also be toggled via the `/api/ralph` endpoint.
+
+### Visual Feedback
+
+When running, Ralph shows:
+- ASCII banner on startup
+- Current mode and interval
+- Real-time implementation progress
+- Countdown timer between checks
+- Success/failure notifications

@@ -99,6 +99,12 @@ const initSchema = async () => {
   } catch {
     // Column already exists
   }
+  // Add interval_minutes column for configurable check interval (ignore if already exists)
+  try {
+    await db.execute('ALTER TABLE status ADD COLUMN interval_minutes INTEGER DEFAULT 10')
+  } catch {
+    // Column already exists
+  }
 
   // One-time migration: Mark suggestion #12 as implemented (vote allowance feature)
   // The feature was implemented in commit d4a0b11 but database wasn't updated
@@ -206,6 +212,7 @@ export interface Status {
   message: string
   updated_at: string
   automation_mode: 'manual' | 'automated'
+  interval_minutes: number
 }
 
 export interface ChangelogEntry {
@@ -369,7 +376,7 @@ export async function removeVote(
 export async function getStatus(): Promise<Status> {
   await ensureSchema()
   const result = await db.execute(
-    "SELECT current_suggestion_id, state, message, updated_at, COALESCE(automation_mode, 'manual') as automation_mode FROM status WHERE id = 1"
+    "SELECT current_suggestion_id, state, message, updated_at, COALESCE(automation_mode, 'manual') as automation_mode, COALESCE(interval_minutes, 10) as interval_minutes FROM status WHERE id = 1"
   )
   return result.rows[0] as unknown as Status
 }
@@ -393,6 +400,14 @@ export async function setAutomationMode(mode: 'manual' | 'automated'): Promise<v
   await db.execute({
     sql: `UPDATE status SET automation_mode = ?, updated_at = datetime('now') WHERE id = 1`,
     args: [mode],
+  })
+}
+
+export async function setIntervalMinutes(minutes: number): Promise<void> {
+  await ensureSchema()
+  await db.execute({
+    sql: `UPDATE status SET interval_minutes = ?, updated_at = datetime('now') WHERE id = 1`,
+    args: [minutes],
   })
 }
 

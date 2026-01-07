@@ -26,6 +26,7 @@ export interface RalphStatus {
   updated_at: string
   automation_mode: 'manual' | 'automated'
   interval_minutes: number
+  next_check_at: string | null
 }
 
 export interface ImplementationResult {

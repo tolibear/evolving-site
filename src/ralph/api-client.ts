@@ -26,6 +26,7 @@ export class RalphApiClient {
     message?: string
     automationMode?: 'manual' | 'automated'
     currentSuggestionId?: number | null
+    nextCheckAt?: string | null
   }): Promise<void> {
     const res = await fetch(`${this.config.apiUrl}/api/status`, {
       method: 'POST',

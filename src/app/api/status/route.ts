@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getStatus, updateStatus, setAutomationMode, setIntervalMinutes } from '@/lib/db'
+import { getStatus, updateStatus, setAutomationMode, setIntervalMinutes, setNextCheckAt } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { currentSuggestionId, state, message, automationMode } = body
+    const { currentSuggestionId, state, message, automationMode, nextCheckAt } = body
 
     // Handle automation mode update
     if (automationMode) {
@@ -40,8 +40,17 @@ export async function POST(request: Request) {
       }
       await setAutomationMode(automationMode)
       // If only setting mode, return early
-      if (!state && !message) {
+      if (!state && !message && nextCheckAt === undefined) {
         return NextResponse.json({ message: 'Automation mode updated successfully' })
+      }
+    }
+
+    // Handle next check time update
+    if (nextCheckAt !== undefined) {
+      await setNextCheckAt(nextCheckAt)
+      // If only setting nextCheckAt, return early
+      if (!state && !message) {
+        return NextResponse.json({ message: 'Next check time updated successfully' })
       }
     }
 

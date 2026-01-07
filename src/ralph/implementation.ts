@@ -99,34 +99,30 @@ async function runClaude(
   error?: string
 }> {
   return new Promise((resolve) => {
-    log('Starting Claude Code (interactive mode)...', 'info')
+    log('Starting Claude Code...', 'info')
     console.log() // Add spacing
 
-    // Use -p flag for prompt with streaming output
+    // Spawn claude with fully inherited stdio for real-time interaction
+    // Use stdin to pass the prompt, stdout/stderr inherited for streaming
     const claude = spawn(
       'claude',
       [
-        '-p',
-        prompt,
         '--allowedTools',
         'Bash(npm run build:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Read,Write,Edit,Glob,Grep',
       ],
       {
         cwd,
-        // Use inherit for all stdio to get real-time streaming
-        stdio: ['inherit', 'pipe', 'inherit'],
+        // Inherit all stdio for full interactive mode
+        stdio: ['pipe', 'inherit', 'inherit'],
         env: { ...process.env },
       }
     )
 
-    let stdout = ''
-
-    claude.stdout?.on('data', (data: Buffer) => {
-      const text = data.toString()
-      stdout += text
-      // Stream output to terminal in real-time
-      process.stdout.write(text)
-    })
+    // Write the prompt to stdin and close it
+    if (claude.stdin) {
+      claude.stdin.write(prompt)
+      claude.stdin.end()
+    }
 
     claude.on('close', (code) => {
       console.log() // Add spacing after Claude output
@@ -139,27 +135,11 @@ async function runClaude(
         return
       }
 
-      // Try to parse JSON result from output (look for last JSON object)
-      const jsonMatches = stdout.match(/\{[^{}]*"success"[^{}]*\}/g)
-      if (jsonMatches && jsonMatches.length > 0) {
-        const lastMatch = jsonMatches[jsonMatches.length - 1]
-        try {
-          const parsed = JSON.parse(lastMatch)
-          resolve({
-            success: parsed.success === true,
-            denied: parsed.denied === true,
-            aiNote: parsed.aiNote,
-          })
-          return
-        } catch {
-          // Failed to parse JSON
-        }
-      }
-
-      // If no JSON found but exit code was 0, assume success
+      // With inherited stdout, we can't capture output to parse JSON
+      // Assume success if exit code is 0, Claude will have committed
       resolve({
         success: true,
-        aiNote: 'Implementation completed (no explicit result)',
+        aiNote: 'Implementation completed',
       })
     })
 

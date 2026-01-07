@@ -10,6 +10,7 @@ interface Status {
   updated_at: string
   automation_mode: 'manual' | 'automated'
   interval_minutes: number
+  next_check_at: string | null
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -48,14 +49,47 @@ export default function StatusBanner() {
     }
   }, [status?.state, lastState])
 
-  // Show interval info when automated and idle
+  // Live countdown synced with server
   useEffect(() => {
-    if (status?.state === 'idle' && status?.automation_mode === 'automated') {
-      setCountdown(`every ${intervalMinutes}m`)
-    } else {
+    if (status?.state !== 'idle' || status?.automation_mode !== 'automated') {
       setCountdown('')
+      return
     }
-  }, [status?.automation_mode, status?.state, intervalMinutes])
+
+    // If no next_check_at, show the interval
+    if (!status?.next_check_at) {
+      setCountdown(`every ${intervalMinutes}m`)
+      return
+    }
+
+    const updateCountdown = () => {
+      const nextCheck = new Date(status.next_check_at!).getTime()
+      const now = Date.now()
+      const remaining = nextCheck - now
+
+      if (remaining <= 0) {
+        setCountdown('checking...')
+        return
+      }
+
+      const minutes = Math.floor(remaining / 60000)
+      const seconds = Math.floor((remaining % 60000) / 1000)
+
+      if (minutes > 0) {
+        setCountdown(`${minutes}m ${seconds}s`)
+      } else {
+        setCountdown(`${seconds}s`)
+      }
+    }
+
+    // Update immediately
+    updateCountdown()
+
+    // Update every second
+    const interval = setInterval(updateCountdown, 1000)
+
+    return () => clearInterval(interval)
+  }, [status?.automation_mode, status?.state, status?.next_check_at, intervalMinutes])
 
   if (error) {
     return null // Silently fail - not critical

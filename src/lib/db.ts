@@ -105,6 +105,12 @@ const initSchema = async () => {
   } catch {
     // Column already exists
   }
+  // Add next_check_at column for countdown sync (ignore if already exists)
+  try {
+    await db.execute('ALTER TABLE status ADD COLUMN next_check_at TEXT DEFAULT NULL')
+  } catch {
+    // Column already exists
+  }
 
   // One-time migration: Mark suggestion #12 as implemented (vote allowance feature)
   // The feature was implemented in commit d4a0b11 but database wasn't updated
@@ -213,6 +219,7 @@ export interface Status {
   updated_at: string
   automation_mode: 'manual' | 'automated'
   interval_minutes: number
+  next_check_at: string | null
 }
 
 export interface ChangelogEntry {
@@ -376,7 +383,7 @@ export async function removeVote(
 export async function getStatus(): Promise<Status> {
   await ensureSchema()
   const result = await db.execute(
-    "SELECT current_suggestion_id, state, message, updated_at, COALESCE(automation_mode, 'manual') as automation_mode, COALESCE(interval_minutes, 10) as interval_minutes FROM status WHERE id = 1"
+    "SELECT current_suggestion_id, state, message, updated_at, COALESCE(automation_mode, 'manual') as automation_mode, COALESCE(interval_minutes, 10) as interval_minutes, next_check_at FROM status WHERE id = 1"
   )
   return result.rows[0] as unknown as Status
 }
@@ -408,6 +415,14 @@ export async function setIntervalMinutes(minutes: number): Promise<void> {
   await db.execute({
     sql: `UPDATE status SET interval_minutes = ?, updated_at = datetime('now') WHERE id = 1`,
     args: [minutes],
+  })
+}
+
+export async function setNextCheckAt(nextCheckAt: string | null): Promise<void> {
+  await ensureSchema()
+  await db.execute({
+    sql: `UPDATE status SET next_check_at = ?, updated_at = datetime('now') WHERE id = 1`,
+    args: [nextCheckAt],
   })
 }
 

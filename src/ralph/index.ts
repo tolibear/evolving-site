@@ -17,9 +17,19 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-async function sleepWithCountdown(ms: number): Promise<boolean> {
+async function sleepWithCountdown(ms: number, client?: RalphApiClient): Promise<boolean> {
   const startTime = Date.now()
   const endTime = startTime + ms
+
+  // Update API with next check time
+  if (client) {
+    const nextCheckAt = new Date(endTime).toISOString()
+    try {
+      await client.updateStatus({ nextCheckAt })
+    } catch {
+      // Ignore errors when updating next check time
+    }
+  }
 
   // Check for interruption every second
   while (Date.now() < endTime) {
@@ -29,6 +39,16 @@ async function sleepWithCountdown(ms: number): Promise<boolean> {
     await sleep(1000)
   }
   clearLine()
+
+  // Clear the next check time when countdown finishes
+  if (client) {
+    try {
+      await client.updateStatus({ nextCheckAt: null })
+    } catch {
+      // Ignore errors
+    }
+  }
+
   return true
 }
 
@@ -86,7 +106,7 @@ async function main(): Promise<void> {
         log('Mode is MANUAL - waiting for mode change...', 'info')
         log('Switch to automated mode with: npm run ralph:auto', 'info')
         // Check every 30 seconds when in manual mode
-        const shouldContinue = await sleepWithCountdown(30 * 1000)
+        const shouldContinue = await sleepWithCountdown(30 * 1000, client)
         if (!shouldContinue) break
         continue
       }
@@ -94,7 +114,7 @@ async function main(): Promise<void> {
       // Check if already working on something
       if (status.state === 'working') {
         log('Already working on a suggestion. Waiting...', 'warn')
-        const shouldContinue = await sleepWithCountdown(30 * 1000)
+        const shouldContinue = await sleepWithCountdown(30 * 1000, client)
         if (!shouldContinue) break
         continue
       }
@@ -104,7 +124,7 @@ async function main(): Promise<void> {
 
       if (!suggestion) {
         log('No suggestions with votes > 0. Waiting...', 'info')
-        const shouldContinue = await sleepWithCountdown(intervalMinutes * 60 * 1000)
+        const shouldContinue = await sleepWithCountdown(intervalMinutes * 60 * 1000, client)
         if (!shouldContinue) break
         continue
       }
@@ -118,7 +138,7 @@ async function main(): Promise<void> {
         log(`Git pull failed: ${err instanceof Error ? err.message : err}`, 'error')
         log('Switching to manual mode...', 'warn')
         await client.updateStatus({ automationMode: 'manual' })
-        const shouldContinue = await sleepWithCountdown(60 * 1000)
+        const shouldContinue = await sleepWithCountdown(60 * 1000, client)
         if (!shouldContinue) break
         continue
       }
@@ -168,7 +188,7 @@ async function main(): Promise<void> {
 
       // Wait for next interval
       log(`Waiting ${intervalMinutes} minutes before next check...`, 'info')
-      const shouldContinue = await sleepWithCountdown(intervalMinutes * 60 * 1000)
+      const shouldContinue = await sleepWithCountdown(intervalMinutes * 60 * 1000, client)
       if (!shouldContinue) break
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error)
@@ -187,7 +207,7 @@ async function main(): Promise<void> {
       }
 
       // Wait 1 minute before retrying
-      const shouldContinue = await sleepWithCountdown(60 * 1000)
+      const shouldContinue = await sleepWithCountdown(60 * 1000, client)
       if (!shouldContinue) break
     }
   }

@@ -1,4 +1,5 @@
 import { spawn } from 'child_process'
+import * as pty from 'node-pty'
 import { log, printImplementing, printResult, printVercelStatus, printRefreshPrompt } from './ui'
 import type { Suggestion, ImplementationResult } from './types'
 
@@ -102,45 +103,56 @@ async function runClaude(
     log('Starting Claude Code...', 'info')
     console.log() // Add spacing
 
-    // Pass prompt as positional argument with full TTY inheritance
-    const claude = spawn(
-      'claude',
-      [
-        '--dangerously-skip-permissions',
-        '-p',
-        prompt,
-      ],
-      {
-        cwd,
-        // Close stdin so Claude exits after prompt, but show output
-        stdio: ['ignore', 'inherit', 'inherit'],
-        env: { ...process.env },
-      }
-    )
+    // Use node-pty to create a proper pseudo-terminal
+    // This gives Claude full TTY support so output renders correctly
+    const claude = pty.spawn('claude', ['--dangerously-skip-permissions', '-p', prompt], {
+      name: 'xterm-256color',
+      cols: process.stdout.columns || 120,
+      rows: process.stdout.rows || 30,
+      cwd,
+      env: process.env as { [key: string]: string },
+    })
 
-    claude.on('close', (code) => {
+    let output = ''
+
+    // Stream output to terminal in real-time
+    claude.onData((data) => {
+      process.stdout.write(data)
+      output += data
+    })
+
+    claude.onExit(({ exitCode }) => {
       console.log() // Add spacing after Claude output
+      log('Claude Code finished', 'info')
 
-      if (code !== 0) {
+      // Try to parse JSON result from output
+      const jsonMatch = output.match(/\{"success":\s*(true|false)[^}]*\}/)
+      if (jsonMatch) {
+        try {
+          const result = JSON.parse(jsonMatch[0])
+          resolve({
+            success: result.success,
+            denied: result.denied,
+            aiNote: result.aiNote,
+          })
+          return
+        } catch {
+          // Fall through to default handling
+        }
+      }
+
+      if (exitCode !== 0) {
         resolve({
           success: false,
-          error: `Claude exited with code ${code}`,
+          error: `Claude exited with code ${exitCode}`,
         })
         return
       }
 
-      // With inherited stdout, we can't capture output to parse JSON
-      // Assume success if exit code is 0, Claude will have committed
+      // Assume success if exit code is 0
       resolve({
         success: true,
         aiNote: 'Implementation completed',
-      })
-    })
-
-    claude.on('error', (err) => {
-      resolve({
-        success: false,
-        error: `Failed to spawn Claude: ${err.message}`,
       })
     })
   })

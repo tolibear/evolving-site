@@ -22,7 +22,12 @@ export default function Changelog() {
   const { data: entries, error, isLoading } = useSWR<ChangelogEntry[]>(
     '/api/changelog',
     fetcher,
-    { refreshInterval: 30000 } // Refresh every 30 seconds
+    {
+      refreshInterval: 30000, // Refresh every 30 seconds
+      keepPreviousData: true, // Prevent data from being undefined during revalidation
+      revalidateOnFocus: false, // Prevent revalidation on tab focus
+      dedupingInterval: 5000, // Dedupe requests within 5 seconds
+    }
   )
 
   const formatDate = (dateString: string) => {

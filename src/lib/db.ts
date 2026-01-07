@@ -253,6 +253,21 @@ export async function addVote(
   })
 }
 
+export async function removeVote(
+  suggestionId: number,
+  voterHash: string
+): Promise<void> {
+  await ensureSchema()
+  await db.execute({
+    sql: 'DELETE FROM votes WHERE suggestion_id = ? AND voter_hash = ?',
+    args: [suggestionId, voterHash],
+  })
+  await db.execute({
+    sql: 'UPDATE suggestions SET votes = votes - 1 WHERE id = ? AND votes > 0',
+    args: [suggestionId],
+  })
+}
+
 // Status queries
 export async function getStatus(): Promise<Status> {
   await ensureSchema()

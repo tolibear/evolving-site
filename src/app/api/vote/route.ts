@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { hasVoted, addVote } from '@/lib/db'
+import { hasVoted, addVote, removeVote } from '@/lib/db'
 import { getClientIP, createVoterHash, checkRateLimit } from '@/lib/utils'
 import { isValidId } from '@/lib/security'
 
-// POST /api/vote - Vote for a suggestion
+// POST /api/vote - Toggle vote for a suggestion
 export async function POST(request: Request) {
   try {
     const ip = getClientIP(request)
@@ -35,13 +35,16 @@ export async function POST(request: Request) {
     // Create voter hash for deduplication
     const voterHash = createVoterHash(ip, userAgent)
 
-    // Check if already voted
+    // Check if already voted - toggle behavior
     const alreadyVoted = await hasVoted(suggestionId, voterHash)
     if (alreadyVoted) {
-      return NextResponse.json(
-        { error: 'You have already voted for this suggestion' },
-        { status: 409 }
-      )
+      // Remove the vote
+      await removeVote(suggestionId, voterHash)
+      return NextResponse.json({
+        message: 'Vote removed successfully',
+        action: 'removed',
+        remaining: rateLimit.remaining
+      })
     }
 
     // Record the vote
@@ -49,6 +52,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       message: 'Vote recorded successfully',
+      action: 'added',
       remaining: rateLimit.remaining
     })
   } catch (error) {

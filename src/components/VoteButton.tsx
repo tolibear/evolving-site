@@ -14,7 +14,7 @@ export default function VoteButton({ suggestionId, votes }: VoteButtonProps) {
   const [error, setError] = useState<string | null>(null)
 
   const handleVote = async () => {
-    if (isVoting || hasVoted) return
+    if (isVoting) return
 
     setIsVoting(true)
     setError(null)
@@ -29,14 +29,11 @@ export default function VoteButton({ suggestionId, votes }: VoteButtonProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        if (response.status === 409) {
-          // Already voted
-          setHasVoted(true)
-        }
         throw new Error(data.error || 'Failed to vote')
       }
 
-      setHasVoted(true)
+      // Toggle vote state based on action
+      setHasVoted(data.action === 'added')
       // Refresh suggestions to update vote counts
       mutate('/api/suggestions')
     } catch (err) {
@@ -52,16 +49,16 @@ export default function VoteButton({ suggestionId, votes }: VoteButtonProps) {
     <div className="flex flex-col items-center">
       <button
         onClick={handleVote}
-        disabled={isVoting || hasVoted}
+        disabled={isVoting}
         className={`
           flex flex-col items-center justify-center p-2 rounded-lg transition-all
           ${hasVoted
-            ? 'text-accent bg-blue-50 dark:bg-blue-900/30 cursor-default'
+            ? 'text-accent bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 active:scale-95'
             : 'text-muted hover:text-accent hover:bg-blue-50 dark:hover:bg-blue-900/30 active:scale-95'
           }
           disabled:cursor-not-allowed
         `}
-        title={hasVoted ? 'You voted for this' : 'Vote for this suggestion'}
+        title={hasVoted ? 'Click to remove your vote' : 'Vote for this suggestion'}
       >
         <svg
           className={`w-6 h-6 ${isVoting ? 'animate-pulse' : ''}`}

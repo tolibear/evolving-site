@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getComments, addComment, getUserComment, updateComment } from '@/lib/db'
 import { getClientIP, createVoterHash, checkRateLimit } from '@/lib/utils'
-import { isValidId } from '@/lib/security'
+import { isValidId, isInputSafe, sanitizeInput } from '@/lib/security'
 
 // Force dynamic
 export const dynamic = 'force-dynamic'
@@ -86,6 +86,17 @@ export async function POST(request: Request) {
       )
     }
 
+    // Check for dangerous content patterns
+    if (!isInputSafe(trimmedContent)) {
+      return NextResponse.json(
+        { error: 'Comment contains disallowed content' },
+        { status: 400 }
+      )
+    }
+
+    // Sanitize the content
+    const sanitizedContent = sanitizeInput(trimmedContent)
+
     // Create commenter hash
     const commenterHash = createVoterHash(ip, userAgent)
 
@@ -98,7 +109,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const id = await addComment(suggestionId, trimmedContent, commenterHash)
+    const id = await addComment(suggestionId, sanitizedContent, commenterHash)
 
     return NextResponse.json(
       {
@@ -156,10 +167,21 @@ export async function PUT(request: Request) {
       )
     }
 
+    // Check for dangerous content patterns
+    if (!isInputSafe(trimmedContent)) {
+      return NextResponse.json(
+        { error: 'Comment contains disallowed content' },
+        { status: 400 }
+      )
+    }
+
+    // Sanitize the content
+    const sanitizedContent = sanitizeInput(trimmedContent)
+
     // Create commenter hash - only allows editing own comments
     const commenterHash = createVoterHash(ip, userAgent)
 
-    const updated = await updateComment(commentId, trimmedContent, commenterHash)
+    const updated = await updateComment(commentId, sanitizedContent, commenterHash)
     if (!updated) {
       return NextResponse.json(
         { error: 'Comment not found or you cannot edit this comment' },

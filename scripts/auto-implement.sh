@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Evolving Site - Autonomous Implementation Script
-# Runs hourly via launchd to implement top-voted suggestions
+# Runs every 15 minutes via launchd to implement top-voted suggestions
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,6 +10,11 @@ LOG_DIR="$PROJECT_DIR/logs"
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
 LOG_FILE="$LOG_DIR/implement_$TIMESTAMP.log"
 API_URL="https://evolving-site.vercel.app"
+
+# Load RALPH_API_SECRET from .env.local
+if [ -f "$PROJECT_DIR/.env.local" ]; then
+    RALPH_API_SECRET=$(grep '^RALPH_API_SECRET=' "$PROJECT_DIR/.env.local" | cut -d'=' -f2-)
+fi
 
 # Ensure log directory exists
 mkdir -p "$LOG_DIR"
@@ -27,10 +32,15 @@ cleanup_logs() {
 # Switch to manual mode via API
 switch_to_manual() {
     log "Switching to manual mode due to failure..."
-    curl -s -X POST "$API_URL/api/status" \
-        -H "Content-Type: application/json" \
-        -d '{"automationMode": "manual", "message": "Automation paused - manual review required"}' \
-        > /dev/null 2>&1 || true
+    if [ -n "$RALPH_API_SECRET" ]; then
+        curl -s -X POST "$API_URL/api/status" \
+            -H "Content-Type: application/json" \
+            -H "x-ralph-secret: $RALPH_API_SECRET" \
+            -d '{"automationMode": "manual", "message": "Automation paused - manual review required"}' \
+            > /dev/null 2>&1 || true
+    else
+        log "Warning: RALPH_API_SECRET not set, cannot update status"
+    fi
 }
 
 # Main execution

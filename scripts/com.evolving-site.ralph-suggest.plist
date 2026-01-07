@@ -7,14 +7,14 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/toli/Documents/Coding/Ralph/scripts/ralph-suggest.sh</string>
+        <string>/Users/toli/Ralph/scripts/ralph-suggest.sh</string>
     </array>
 
     <key>StartInterval</key>
     <integer>3600</integer>
 
     <key>WorkingDirectory</key>
-    <string>/Users/toli/Documents/Coding/Ralph</string>
+    <string>/Users/toli/Ralph</string>
 
     <key>EnvironmentVariables</key>
     <dict>
@@ -23,10 +23,10 @@
     </dict>
 
     <key>StandardOutPath</key>
-    <string>/Users/toli/Documents/Coding/Ralph/logs/ralph-suggest-stdout.log</string>
+    <string>/Users/toli/Ralph/logs/ralph-suggest-stdout.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/toli/Documents/Coding/Ralph/logs/ralph-suggest-stderr.log</string>
+    <string>/Users/toli/Ralph/logs/ralph-suggest-stderr.log</string>
 
     <key>RunAtLoad</key>
     <false/>

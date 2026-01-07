@@ -16,10 +16,15 @@ export async function GET() {
 }
 
 // POST /api/status - Update Claude status (called by Ralph loop)
+// Requires authentication via x-ralph-secret header
 export async function POST(request: Request) {
   try {
-    // In production, you'd want to authenticate this endpoint
-    // For now, we'll allow it for the Ralph loop to use
+    // Validate internal API secret
+    const secret = request.headers.get('x-ralph-secret')
+    if (!secret || secret !== process.env.RALPH_API_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
     const { currentSuggestionId, state, message, automationMode } = body
 

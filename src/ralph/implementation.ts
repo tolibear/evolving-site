@@ -99,18 +99,13 @@ async function runClaude(
   error?: string
 }> {
   return new Promise((resolve) => {
-
-    // Use 'script' command to create a pseudo-TTY for Claude
-    // This allows Claude's interactive output to display correctly
     const claudePath = process.env.CLAUDE_PATH || '/Users/toli/.local/bin/claude'
-    const claude = spawn('script', [
-      '-q', '/dev/null',  // Quiet mode, no typescript file
-      claudePath,
+    const claude = spawn(claudePath, [
       '--dangerously-skip-permissions',
       '-p', prompt
     ], {
       cwd,
-      env: { ...process.env, TERM: 'xterm-256color' },
+      env: process.env,
       stdio: ['inherit', 'pipe', 'pipe'],
     })
 

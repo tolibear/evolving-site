@@ -118,6 +118,44 @@ For failures:
 IMPORTANT: Output the JSON result on a single line at the end.`
 }
 
+// ANSI colors for terminal output
+const colors = {
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  dim: '\x1b[2m',
+  cyan: '\x1b[36m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  gray: '\x1b[90m',
+}
+
+// Format tool use events for display
+function formatToolUse(toolName: string, input: Record<string, unknown>): string {
+  switch (toolName) {
+    case 'Read':
+      return `${colors.cyan}📖 Reading${colors.reset} ${colors.dim}${input.file_path}${colors.reset}`
+    case 'Edit':
+      return `${colors.yellow}✏️  Editing${colors.reset} ${colors.dim}${input.file_path}${colors.reset}`
+    case 'Write':
+      return `${colors.green}📝 Writing${colors.reset} ${colors.dim}${input.file_path}${colors.reset}`
+    case 'Bash':
+      const cmd = String(input.command || '').slice(0, 80)
+      return `${colors.magenta}$ ${colors.reset}${colors.dim}${cmd}${cmd.length >= 80 ? '...' : ''}${colors.reset}`
+    case 'Glob':
+      return `${colors.blue}🔍 Searching${colors.reset} ${colors.dim}${input.pattern}${colors.reset}`
+    case 'Grep':
+      return `${colors.blue}🔎 Grep${colors.reset} ${colors.dim}${input.pattern}${colors.reset}`
+    case 'Task':
+      return `${colors.cyan}🤖 Agent${colors.reset} ${colors.dim}${input.description || 'task'}${colors.reset}`
+    case 'TodoWrite':
+      return `${colors.yellow}📋 Todos${colors.reset} ${colors.dim}updated${colors.reset}`
+    default:
+      return `${colors.gray}🔧 ${toolName}${colors.reset}`
+  }
+}
+
 async function runClaude(
   prompt: string,
   cwd: string
@@ -131,44 +169,171 @@ async function runClaude(
   return new Promise((resolve) => {
     const claudePath = process.env.CLAUDE_PATH || '/Users/toli/.local/bin/claude'
 
-    // Spawn Claude WITHOUT -p flag - we'll pipe prompt to stdin instead
-    // This makes Claude run in interactive mode and stream all activity
+    // Use stream-json format to get ALL events (tool calls, edits, etc.)
     const claude = spawn(claudePath, [
+      '-p', prompt,
+      '--output-format', 'stream-json',
+      '--verbose',
+      '--include-partial-messages',
       '--dangerously-skip-permissions',
     ], {
       cwd,
       env: process.env,
-      stdio: ['pipe', 'pipe', 'pipe'],  // All three are piped now
+      stdio: ['pipe', 'pipe', 'pipe'],
     })
 
-    let output = ''
+    let fullOutput = ''
+    let currentText = ''
+    let resultData: { success?: boolean; denied?: boolean; needsInput?: boolean; aiNote?: string } | null = null
 
-    // Send prompt via stdin and close to trigger processing
-    claude.stdin?.write(prompt)
-    claude.stdin?.end()
+    // Buffer for incomplete JSON lines
+    let lineBuffer = ''
 
-    // Stream stdout to terminal in real-time and to web stream
+    // Process JSON lines from stdout
     claude.stdout?.on('data', (data: Buffer) => {
-      const text = data.toString()
-      process.stdout.write(text)
-      output += text
-      writeToStream(data)
+      lineBuffer += data.toString()
+
+      // Process complete lines
+      const lines = lineBuffer.split('\n')
+      lineBuffer = lines.pop() || '' // Keep incomplete line in buffer
+
+      for (const line of lines) {
+        if (!line.trim()) continue
+
+        try {
+          const event = JSON.parse(line)
+          processStreamEvent(event)
+        } catch {
+          // Not valid JSON, skip
+        }
+      }
     })
 
-    // Stream stderr to terminal in real-time and to web stream
+    function processStreamEvent(event: Record<string, unknown>) {
+      const type = event.type as string
+
+      switch (type) {
+        case 'system':
+          // Initialization event
+          const output = `${colors.green}✓ Claude Code started${colors.reset}\n`
+          process.stdout.write(output)
+          writeToStream(output)
+          break
+
+        case 'assistant':
+          // Assistant message with content
+          const msg = event.message as Record<string, unknown>
+          if (msg?.content && Array.isArray(msg.content)) {
+            for (const block of msg.content) {
+              if ((block as Record<string, unknown>).type === 'tool_use') {
+                const toolUse = block as { name: string; input: Record<string, unknown> }
+                const formatted = formatToolUse(toolUse.name, toolUse.input)
+                const toolOutput = formatted + '\n'
+                process.stdout.write(toolOutput)
+                writeToStream(toolOutput)
+              }
+            }
+          }
+          break
+
+        case 'stream_event':
+          const streamEvent = event.event as Record<string, unknown>
+          if (!streamEvent) break
+
+          const eventType = streamEvent.type as string
+
+          if (eventType === 'content_block_delta') {
+            const delta = streamEvent.delta as Record<string, unknown>
+            if (delta?.type === 'text_delta' && delta.text) {
+              const text = delta.text as string
+              currentText += text
+              fullOutput += text
+              process.stdout.write(text)
+              writeToStream(text)
+            }
+          } else if (eventType === 'content_block_start') {
+            const contentBlock = streamEvent.content_block as Record<string, unknown>
+            if (contentBlock?.type === 'tool_use') {
+              const toolName = contentBlock.name as string
+              const startOutput = `\n${colors.dim}▶ ${toolName}...${colors.reset}\n`
+              process.stdout.write(startOutput)
+              writeToStream(startOutput)
+            }
+          }
+          break
+
+        case 'tool_use':
+          // Tool execution
+          const toolEvent = event as { tool: string; input: Record<string, unknown> }
+          if (toolEvent.tool) {
+            const formatted = formatToolUse(toolEvent.tool, toolEvent.input || {})
+            const toolOutput = formatted + '\n'
+            process.stdout.write(toolOutput)
+            writeToStream(toolOutput)
+          }
+          break
+
+        case 'tool_result':
+          // Tool result - show abbreviated
+          const resultOutput = `${colors.dim}  └─ done${colors.reset}\n`
+          process.stdout.write(resultOutput)
+          writeToStream(resultOutput)
+          break
+
+        case 'result':
+          // Final result
+          const result = event.result as string
+          if (result) {
+            fullOutput = result
+
+            // Try to parse JSON result
+            const jsonMatch = result.match(/\{"success":\s*(true|false)[^}]*\}/)
+            if (jsonMatch) {
+              try {
+                resultData = JSON.parse(jsonMatch[0])
+              } catch {
+                // Ignore parse errors
+              }
+            }
+          }
+          break
+      }
+    }
+
+    // Stream stderr (for errors)
     claude.stderr?.on('data', (data: Buffer) => {
       const text = data.toString()
       process.stderr.write(text)
-      output += text
-      writeToStream(data)
+      writeToStream(text)
     })
 
     claude.on('close', async (exitCode) => {
-      console.log() // Add spacing after Claude output
+      // Process any remaining buffer
+      if (lineBuffer.trim()) {
+        try {
+          const event = JSON.parse(lineBuffer)
+          processStreamEvent(event)
+        } catch {
+          // Ignore
+        }
+      }
+
+      console.log() // Add spacing
       log('Claude Code finished', 'info')
 
-      // Try to parse JSON result from output
-      const jsonMatch = output.match(/\{"success":\s*(true|false)[^}]*\}/)
+      // Use parsed result if available
+      if (resultData) {
+        resolve({
+          success: resultData.success ?? false,
+          denied: resultData.denied,
+          needsInput: resultData.needsInput,
+          aiNote: resultData.aiNote,
+        })
+        return
+      }
+
+      // Try to parse JSON from full output
+      const jsonMatch = fullOutput.match(/\{"success":\s*(true|false)[^}]*\}/)
       if (jsonMatch) {
         try {
           const result = JSON.parse(jsonMatch[0])
@@ -180,7 +345,7 @@ async function runClaude(
           })
           return
         } catch {
-          // Fall through to default handling
+          // Fall through
         }
       }
 
@@ -192,7 +357,6 @@ async function runClaude(
         return
       }
 
-      // Assume success if exit code is 0
       resolve({
         success: true,
         aiNote: 'Implementation completed',

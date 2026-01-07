@@ -141,6 +141,48 @@ const initSchema = async () => {
     // Suggestion 12 might not exist
     console.log('Migration for suggestion #12 skipped:', e)
   }
+
+  // One-time migration: Mark suggestion #13 as implemented (brown mode)
+  // The feature was implemented in commit 4ec78b8 but database wasn't updated
+  try {
+    const aiNote13 = 'Added brown mode as a third theme option. Click the theme toggle to cycle through light, dark, and brown. Uses warm earth tones with amber/brown color palette.'
+    const content13 = 'In addition to light and dark mode, add brown mode'
+
+    // Check if suggestion 13 is still pending
+    const checkResult13 = await db.execute({
+      sql: `SELECT status FROM suggestions WHERE id = 13`,
+      args: [],
+    })
+
+    if (checkResult13.rows.length > 0 && checkResult13.rows[0].status === 'pending') {
+      // Update suggestion status
+      await db.execute({
+        sql: `UPDATE suggestions SET status = 'implemented', implemented_at = datetime('now'), ai_note = ? WHERE id = 13`,
+        args: [aiNote13],
+      })
+
+      // Add changelog entry (check if exists first)
+      const changelogCheck13 = await db.execute({
+        sql: `SELECT id FROM changelog WHERE suggestion_id = 13`,
+        args: [],
+      })
+      if (changelogCheck13.rows.length === 0) {
+        await db.execute({
+          sql: `INSERT INTO changelog (suggestion_id, suggestion_content, votes_when_implemented, commit_hash, ai_note) VALUES (13, ?, 1, '4ec78b8', ?)`,
+          args: [content13, aiNote13],
+        })
+        // Grant 2 votes to all existing users
+        await db.execute({
+          sql: `UPDATE vote_allowance SET remaining_votes = remaining_votes + 2, last_grant_at = datetime('now')`,
+          args: [],
+        })
+      }
+      console.log('Migration: Marked suggestion #13 as implemented with changelog')
+    }
+  } catch (e) {
+    // Suggestion 13 might not exist
+    console.log('Migration for suggestion #13 skipped:', e)
+  }
 }
 
 // Initialize on module load

@@ -103,55 +103,77 @@ When implementing suggestions, Claude MUST follow these security rules. Violatio
 ### If Unsure
 If a suggestion asks for something that might violate these rules, mark it as "denied" with an `ai_note` explaining the security concern. User security > feature requests.
 
-## Ralph Agent (Autonomous Mode)
+## Ralph Agent (VPS Deployment)
 
-Ralph is the implementation agent that runs in your terminal with full visibility.
+Ralph is the autonomous implementation agent that runs 24/7 on an AWS VPS.
 
-### Commands
+### Architecture
+
+- **Website**: Next.js deployed on Vercel (auto-deploys on git push)
+- **Ralph Agent**: Runs as a systemd service on AWS VPS
+- **Database**: Turso (shared between website and Ralph)
+
+### VPS Commands
 
 ```bash
-npm run ralph           # Start Ralph (respects current mode setting)
-npm run ralph:auto      # Start in automated mode
-npm run ralph:manual    # Start in manual mode (monitoring only)
-# Press Ctrl+C to stop
+./deploy-ralph.sh    # Push changes and restart Ralph on VPS
+./ralph-logs.sh      # Stream live logs from VPS
+```
+
+### Local Development Commands
+
+```bash
+npm run ralph           # Start Ralph locally (respects current mode)
+npm run ralph:auto      # Start locally in automated mode
+npm run ralph:manual    # Start locally in manual mode
 ```
 
 ### How It Works
 
-1. Ralph runs as a foreground process in your terminal
+1. Ralph runs continuously on the VPS as a systemd service
 2. Every N minutes (configurable), it checks for top-voted suggestions
 3. If a suggestion has votes > 0 and mode is "automated":
    - Pulls latest git changes
    - Runs Claude Code to implement the suggestion
-   - Commits and pushes to trigger Vercel deployment
+   - Commits and pushes (triggers Vercel deployment)
    - Updates the database (finalizes the suggestion)
-4. Shows all progress in real-time in the terminal
+4. Logs are available via `journalctl` on the VPS
 5. On errors, automatically switches to manual mode
 
 ### Configuration
 
-Set in `.env.local`:
+Set in `.env` on the VPS:
 ```bash
 RALPH_INTERVAL_MINUTES=10    # Check interval (1-60 minutes, default: 10)
 RALPH_API_SECRET=xxx         # Required: API secret for authentication
 RALPH_API_URL=https://...    # Optional: Override production URL
 ```
 
-### Mode Switching
+### VPS Management
 
-**From CLI:**
 ```bash
-npm run ralph:auto    # Enable automated implementation
-npm run ralph:manual  # Enable manual mode (monitoring only)
+# SSH into VPS (see ~/Ralph/VPS-SECRETS.md for connection details)
+ssh -i "$KEY" "$HOST"
+
+# On VPS: Service management
+sudo systemctl status ralph    # Check status
+sudo systemctl restart ralph   # Restart service
+sudo systemctl stop ralph      # Stop service
+sudo journalctl -u ralph -f    # Stream logs
 ```
 
+### Mode Switching
+
 **From Web UI:**
-The status banner shows the current mode. Mode can also be toggled via the `/api/ralph` endpoint.
+The status banner shows the current mode. Mode can be toggled via the `/api/ralph` endpoint.
+
+**From VPS:**
+Restart the service with `--auto` or `--manual` flags by editing the systemd unit file.
 
 ### Visual Feedback
 
-When running, Ralph shows:
-- ASCII banner on startup
+When running, Ralph logs:
+- Startup banner and configuration
 - Current mode and interval
 - Real-time implementation progress
 - Countdown timer between checks

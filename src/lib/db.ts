@@ -111,6 +111,12 @@ const initSchema = async () => {
   } catch {
     // Column already exists
   }
+  // Add submitter_hash column for tracking who submitted each suggestion (ignore if already exists)
+  try {
+    await db.execute('ALTER TABLE suggestions ADD COLUMN submitter_hash TEXT DEFAULT NULL')
+  } catch {
+    // Column already exists
+  }
 
   // One-time migration: Mark suggestion #12 as implemented (vote allowance feature)
   // The feature was implemented in commit d4a0b11 but database wasn't updated
@@ -209,6 +215,7 @@ export interface Suggestion {
   implemented_at: string | null
   ai_note: string | null
   author: string | null // null = anonymous user, 'ralph' = Ralph Wiggum
+  submitter_hash: string | null // hash of IP+UserAgent for identifying the submitter
   comment_count?: number
 }
 
@@ -268,11 +275,11 @@ export async function getSuggestions(): Promise<Suggestion[]> {
   return result.rows as unknown as Suggestion[]
 }
 
-export async function createSuggestion(content: string): Promise<number> {
+export async function createSuggestion(content: string, submitterHash?: string): Promise<number> {
   await ensureSchema()
   const result = await db.execute({
-    sql: 'INSERT INTO suggestions (content) VALUES (?)',
-    args: [content],
+    sql: 'INSERT INTO suggestions (content, submitter_hash) VALUES (?, ?)',
+    args: [content, submitterHash ?? null],
   })
   return Number(result.lastInsertRowid)
 }
@@ -334,6 +341,38 @@ export async function getNeedsInputSuggestions(): Promise<Suggestion[]> {
     ORDER BY votes DESC, created_at ASC
   `)
   return result.rows as unknown as Suggestion[]
+}
+
+export async function getSuggestionById(id: number): Promise<Suggestion | null> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT * FROM suggestions WHERE id = ?',
+    args: [id],
+  })
+  return (result.rows[0] as unknown as Suggestion) || null
+}
+
+export async function deleteSuggestion(id: number, submitterHash: string): Promise<boolean> {
+  await ensureSchema()
+  // Only delete if the submitter_hash matches AND status is 'pending'
+  // This ensures users can only delete their own pending suggestions
+  const result = await db.execute({
+    sql: `DELETE FROM suggestions WHERE id = ? AND submitter_hash = ? AND status = 'pending'`,
+    args: [id, submitterHash],
+  })
+  // Also clean up any associated votes and comments
+  if (result.rowsAffected > 0) {
+    await db.execute({
+      sql: 'DELETE FROM votes WHERE suggestion_id = ?',
+      args: [id],
+    })
+    await db.execute({
+      sql: 'DELETE FROM comments WHERE suggestion_id = ?',
+      args: [id],
+    })
+    return true
+  }
+  return false
 }
 
 // Vote queries

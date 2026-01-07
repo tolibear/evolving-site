@@ -24,6 +24,7 @@ interface SuggestionCardProps {
   isInProgress?: boolean
   commentCount?: number
   author?: string | null
+  isOwner?: boolean
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -35,13 +36,16 @@ export default function SuggestionCard({
   createdAt,
   isInProgress,
   commentCount = 0,
-  author
+  author,
+  isOwner = false
 }: SuggestionCardProps) {
   const [showComments, setShowComments] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editingComment, setEditingComment] = useState<Comment | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const { data } = useSWR<CommentsResponse>(
     showComments ? `/api/comments?suggestionId=${id}` : null,
@@ -109,6 +113,31 @@ export default function SuggestionCard({
     }
   }
 
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    setError(null)
+
+    try {
+      const res = await fetch('/api/suggestions', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suggestionId: id })
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to delete suggestion')
+      }
+
+      mutate('/api/suggestions')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete suggestion')
+      setShowDeleteConfirm(false)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className={`card ${isInProgress ? 'border-2 border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-900/20' : ''}`}>
       <div className="flex gap-4">
@@ -145,7 +174,44 @@ export default function SuggestionCard({
               </svg>
               {showComments ? 'Hide' : commentCount > 0 ? `${commentCount}` : 'Comment'}
             </button>
+            {isOwner && !isInProgress && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors flex items-center gap-1"
+                title="Delete your suggestion"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
+              </button>
+            )}
           </div>
+
+          {/* Delete confirmation */}
+          {showDeleteConfirm && (
+            <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-700 dark:text-red-300 mb-2">
+                Are you sure you want to delete this suggestion?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                >
+                  {isDeleting ? 'Deleting...' : 'Yes, delete'}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  className="text-xs px-2 py-1 bg-neutral-200 dark:bg-neutral-700 text-foreground rounded hover:bg-neutral-300 dark:hover:bg-neutral-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

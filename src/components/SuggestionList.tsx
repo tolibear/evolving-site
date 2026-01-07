@@ -13,6 +13,7 @@ interface Suggestion {
   created_at: string
   comment_count?: number
   author: string | null
+  isOwner: boolean
 }
 
 interface Status {
@@ -94,6 +95,7 @@ export default function SuggestionList() {
           createdAt={suggestion.created_at}
           commentCount={suggestion.comment_count}
           author={suggestion.author}
+          isOwner={suggestion.isOwner}
           isInProgress={
             status?.state === 'working' &&
             status?.current_suggestion_id === suggestion.id

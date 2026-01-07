@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { mutate } from 'swr'
+import { playSound } from '@/lib/sounds'
 
 interface VoteButtonProps {
   suggestionId: number
@@ -15,6 +16,7 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [isWiggling, setIsWiggling] = useState(false)
+  const [isPop, setIsPop] = useState(false)
 
   // Update vote type when initialVoteType changes
   useEffect(() => {
@@ -28,6 +30,14 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
       return () => clearTimeout(timer)
     }
   }, [isWiggling])
+
+  // Clear pop animation after it completes
+  useEffect(() => {
+    if (isPop) {
+      const timer = setTimeout(() => setIsPop(false), 300)
+      return () => clearTimeout(timer)
+    }
+  }, [isPop])
 
   const handleVote = async (newVoteType: 'up' | 'down') => {
     if (isVoting) return
@@ -50,8 +60,11 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
 
       // Update vote state based on response
       setVoteType(data.voteType)
-      // Trigger wiggle animation to indicate vote receipt
+      // Trigger animations to indicate vote receipt
       setIsWiggling(true)
+      setIsPop(true)
+      // Play vote sound
+      playSound('vote')
       // Show success feedback briefly
       setSuccess(true)
       setTimeout(() => setSuccess(false), 1500)
@@ -60,6 +73,7 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
       mutate('/api/vote-allowance')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Vote failed')
+      playSound('error')
       // Clear error after 2 seconds
       setTimeout(() => setError(null), 2000)
     } finally {
@@ -101,10 +115,10 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
       </button>
 
       {/* Vote count */}
-      <span className={`text-sm font-semibold ${
+      <span className={`text-sm font-semibold transition-transform ${
         voteType === 'up' ? 'text-green-600 dark:text-green-400' :
         voteType === 'down' ? 'text-red-500 dark:text-red-400' : 'text-muted'
-      }`}>{votes}</span>
+      } ${isPop ? 'animate-pop' : ''}`}>{votes}</span>
 
       {/* Downvote button */}
       <button

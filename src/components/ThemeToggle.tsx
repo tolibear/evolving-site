@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-type Theme = 'light' | 'dark' | 'brown'
+type Theme = 'light' | 'dark' | 'brown' | 'lemon'
 
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>('light')
@@ -18,14 +18,14 @@ export default function ThemeToggle() {
   }, [])
 
   const applyTheme = (newTheme: Theme) => {
-    document.documentElement.classList.remove('dark', 'brown')
+    document.documentElement.classList.remove('dark', 'brown', 'lemon')
     if (newTheme !== 'light') {
       document.documentElement.classList.add(newTheme)
     }
   }
 
   const cycleTheme = () => {
-    const themeOrder: Theme[] = ['light', 'dark', 'brown']
+    const themeOrder: Theme[] = ['light', 'dark', 'brown', 'lemon']
     const currentIndex = themeOrder.indexOf(theme)
     const nextTheme = themeOrder[(currentIndex + 1) % themeOrder.length]
     setTheme(nextTheme)
@@ -41,7 +41,8 @@ export default function ThemeToggle() {
     switch (theme) {
       case 'light': return 'Switch to dark mode'
       case 'dark': return 'Switch to brown mode'
-      case 'brown': return 'Switch to light mode'
+      case 'brown': return 'Switch to lemon mode'
+      case 'lemon': return 'Switch to light mode'
     }
   }
 
@@ -51,6 +52,8 @@ export default function ThemeToggle() {
       className={`p-2 rounded-lg transition-colors ${
         theme === 'brown'
           ? 'hover:bg-amber-900'
+          : theme === 'lemon'
+          ? 'hover:bg-yellow-200'
           : 'hover:bg-neutral-200 dark:hover:bg-neutral-700'
       }`}
       aria-label={getAriaLabel()}
@@ -72,6 +75,12 @@ export default function ThemeToggle() {
       {theme === 'brown' && (
         <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M4 2a2 2 0 00-2 2v11a3 3 0 106 0V4a2 2 0 00-2-2H4zm1 14a1 1 0 100-2 1 1 0 000 2zm5-1.757l4.9-4.9a2 2 0 000-2.828L13.485 5.1a2 2 0 00-2.828 0L10 5.757v8.486zM16 18H9.071l6-6H16a2 2 0 012 2v2a2 2 0 01-2 2z" clipRule="evenodd" />
+        </svg>
+      )}
+      {theme === 'lemon' && (
+        <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+          <ellipse cx="10" cy="10" rx="6" ry="8" transform="rotate(-30 10 10)" />
+          <ellipse cx="10" cy="10" rx="4" ry="6" transform="rotate(-30 10 10)" fill="#fef08a" />
         </svg>
       )}
     </button>

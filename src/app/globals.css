@@ -26,6 +26,14 @@
   --muted: #a68b6a;
 }
 
+.lemon {
+  --background: #fffbeb;
+  --foreground: #422006;
+  --accent: #ca8a04;
+  --success: #65a30d;
+  --muted: #a16207;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
@@ -49,12 +57,20 @@ body {
   @apply bg-amber-950 border-amber-900;
 }
 
+.lemon .card {
+  @apply bg-yellow-50 border-yellow-300;
+}
+
 .card:hover {
   @apply shadow-md dark:shadow-neutral-900/50;
 }
 
 .brown .card:hover {
   @apply shadow-amber-900/50;
+}
+
+.lemon .card:hover {
+  @apply shadow-yellow-400/50;
 }
 
 /* Button base styles */
@@ -72,6 +88,10 @@ body {
 
 .brown .btn-secondary {
   @apply bg-amber-900 text-amber-100 hover:bg-amber-800;
+}
+
+.lemon .btn-secondary {
+  @apply bg-yellow-200 text-yellow-900 hover:bg-yellow-300;
 }
 
 /* Status indicator pulse animation */
@@ -150,3 +170,32 @@ body {
 
 .brown .bg-yellow-100, .brown .bg-yellow-900\/50 { background-color: rgba(202, 138, 4, 0.3); }
 .brown [class*="text-yellow-800"], .brown [class*="text-yellow-200"] { color: rgb(254, 240, 138); }
+
+/* Lemon mode overrides for common variants */
+.lemon .bg-neutral-100 { @apply bg-yellow-100; }
+.lemon .bg-neutral-200 { @apply bg-yellow-200; }
+.lemon .bg-neutral-800 { @apply bg-yellow-100; }
+.lemon .bg-white { @apply bg-yellow-50; }
+.lemon .border-neutral-200 { @apply border-yellow-300; }
+.lemon .border-neutral-300 { @apply border-yellow-400; }
+.lemon .border-neutral-600 { @apply border-yellow-500; }
+.lemon .border-neutral-700 { @apply border-yellow-400; }
+.lemon .text-neutral-700 { @apply text-yellow-900; }
+.lemon .text-neutral-600 { @apply text-yellow-800; }
+.lemon .text-neutral-500 { @apply text-yellow-700; }
+.lemon .text-neutral-400 { @apply text-yellow-600; }
+
+/* Lemon mode status variants */
+.lemon .bg-blue-50 { background-color: rgba(253, 224, 71, 0.5); }
+.lemon .border-blue-200 { @apply border-yellow-400; }
+.lemon .text-blue-800 { @apply text-yellow-900; }
+
+.lemon .bg-green-50 { background-color: rgba(163, 230, 53, 0.3); }
+.lemon .border-green-100, .lemon .border-green-300 { @apply border-lime-400; }
+.lemon .text-green-800 { @apply text-lime-800; }
+
+.lemon .bg-red-50 { background-color: rgba(254, 202, 202, 0.5); }
+.lemon [class*="border-red-100"], .lemon [class*="border-red-300"] { border-color: rgb(252, 165, 165); }
+
+.lemon .bg-amber-50 { background-color: rgba(254, 243, 199, 0.7); }
+.lemon [class*="border-amber-200"] { border-color: rgb(253, 230, 138); }

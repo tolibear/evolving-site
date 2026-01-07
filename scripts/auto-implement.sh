@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Evolving Site - Autonomous Implementation Script
-# Runs every 15 minutes via launchd to implement top-voted suggestions
+# Runs every 10 minutes via launchd to implement top-voted suggestions
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

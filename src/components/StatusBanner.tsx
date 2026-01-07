@@ -23,7 +23,7 @@ export default function StatusBanner() {
   const [countdown, setCountdown] = useState('')
   const [isStarting, setIsStarting] = useState(false)
 
-  // Calculate countdown to next 15-minute interval for automated mode
+  // Calculate countdown to next 10-minute interval for automated mode
   useEffect(() => {
     if (status?.automation_mode !== 'automated' || status?.state === 'working') {
       setCountdown('')
@@ -34,12 +34,12 @@ export default function StatusBanner() {
     const updateCountdown = () => {
       const now = new Date()
       const mins = now.getMinutes()
-      const nextQuarter = Math.ceil((mins + 1) / 15) * 15
+      const nextTen = Math.ceil((mins + 1) / 10) * 10
       const next = new Date(now)
-      if (nextQuarter >= 60) {
+      if (nextTen >= 60) {
         next.setHours(next.getHours() + 1, 0, 0, 0)
       } else {
-        next.setMinutes(nextQuarter, 0, 0)
+        next.setMinutes(nextTen, 0, 0)
       }
       const diffMs = next.getTime() - now.getTime()
       const diffMins = Math.floor(diffMs / 60000)

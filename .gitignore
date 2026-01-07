@@ -48,3 +48,7 @@ next-env.d.ts
 
 # Automation logs
 /logs/
+
+# Temp finalization scripts
+scripts/mark-s12-implemented.js
+scripts/finalize-12.mjs

@@ -86,7 +86,7 @@ If a suggestion asks for something that might violate these rules, mark it as "d
 
 ## Autonomous Mode
 
-The site can run autonomously, implementing the top-voted suggestion every hour.
+The site can run autonomously, implementing the top-voted suggestion every 10 minutes.
 
 ### Setup (macOS)
 
@@ -108,7 +108,7 @@ tail -f logs/launchd-stdout.log
 
 ### How It Works
 
-1. `scripts/auto-implement.sh` runs every hour via launchd
+1. `scripts/auto-implement.sh` runs every 10 minutes via launchd
 2. Checks production API for suggestions with votes > 0
 3. If found, runs Claude Code with `scripts/implement-prompt.md`
 4. Claude implements or denies the suggestion following security rules

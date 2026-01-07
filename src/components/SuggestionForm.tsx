@@ -56,15 +56,28 @@ export default function SuggestionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const submitRef = useRef(false) // Prevent double-submit
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     // Submit on Enter, allow Shift+Enter for new line
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      // Only submit if content is valid
-      if (content.trim().length >= 10 && !isSubmitting) {
+      // Only show confirm if content is valid
+      if (content.trim().length >= 10 && !isSubmitting && !showConfirm) {
+        setShowConfirm(true)
+      }
+    }
+  }
+
+  const handleConfirmKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (showConfirm) {
+      if (e.key === 'Enter') {
+        e.preventDefault()
         handleSubmit(e as unknown as FormEvent)
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        setShowConfirm(false)
       }
     }
   }
@@ -114,6 +127,7 @@ export default function SuggestionForm() {
 
       setContent('')
       setSuccess(true)
+      setShowConfirm(false)
       // Refresh suggestions list
       mutate('/api/suggestions')
 
@@ -137,8 +151,15 @@ export default function SuggestionForm() {
     }
   }
 
+  const handleFormSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    if (content.trim().length >= 10 && !isSubmitting && !showConfirm) {
+      setShowConfirm(true)
+    }
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="card mb-8">
+    <form onSubmit={handleFormSubmit} className="card mb-8">
       <label htmlFor="suggestion" className="block text-sm font-medium mb-2">
         Suggest a feature
       </label>
@@ -151,20 +172,56 @@ export default function SuggestionForm() {
         rows={3}
         maxLength={500}
         className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
-        disabled={isSubmitting}
+        disabled={isSubmitting || showConfirm}
       />
-      <div className="flex items-center justify-between mt-3">
-        <span className="text-sm text-muted">
-          {content.length}/500 · Enter to submit, Shift+Enter for new line
-        </span>
-        <button
-          type="submit"
-          disabled={isSubmitting || content.trim().length < 10}
-          className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+
+      {showConfirm && (
+        <div
+          className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg"
+          onKeyDown={handleConfirmKeyDown}
+          tabIndex={0}
         >
-          {isSubmitting ? 'Submitting...' : 'Submit'}
-        </button>
-      </div>
+          <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+            Ready to submit?
+          </p>
+          <p className="text-sm text-amber-700 dark:text-amber-300 mb-3 italic">
+            &ldquo;{content.trim()}&rdquo;
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowConfirm(false)}
+              className="btn bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 text-neutral-700 dark:text-neutral-200"
+              disabled={isSubmitting}
+            >
+              Edit (Esc)
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSubmit(e as unknown as FormEvent)}
+              className="btn btn-primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Submitting...' : 'Confirm (Enter)'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!showConfirm && (
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-sm text-muted">
+            {content.length}/500 · Enter to submit, Shift+Enter for new line
+          </span>
+          <button
+            type="submit"
+            disabled={isSubmitting || content.trim().length < 10}
+            className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Submit
+          </button>
+        </div>
+      )}
 
       {error && (
         <p className="mt-2 text-sm text-red-600">{error}</p>

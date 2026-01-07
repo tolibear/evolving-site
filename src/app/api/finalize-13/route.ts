@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server'
 import { updateSuggestionStatus, addChangelogEntry, updateStatus, grantVotesToAllUsers } from '@/lib/db'
 import db from '@/lib/db'
 
-// Force dynamic - no caching
+// Force dynamic - no caching - v2 build 20260106
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
 // GET /api/finalize-13 - Finalize suggestion #13 (brown mode)
 export async function GET() {

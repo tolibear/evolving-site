@@ -647,8 +647,14 @@ body {
 }
 
 .neon button:active {
-  transform: scale(0.95);
+  transform: scale(0.98);
   filter: brightness(1.3);
+}
+
+/* Ensure theme toggle buttons are always clickable in neon mode */
+.neon button {
+  position: relative;
+  z-index: 1;
 }
 
 /* Neon focus rings */

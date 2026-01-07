@@ -52,7 +52,7 @@ export default function RootLayout({
             <div className="max-w-3xl mx-auto px-4 py-8">
               {/* Header */}
               <header className="text-center mb-8 relative">
-                <div className="absolute right-0 top-0">
+                <div className="absolute right-0 top-0 z-10">
                   <ThemeToggle />
                 </div>
                 <h1 className="text-3xl font-bold text-foreground mb-2">

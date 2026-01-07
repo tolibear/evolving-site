@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { hasVoted, addVote, removeVote } from '@/lib/db'
+import { hasVoted, addVote, removeVote, getVoteAllowance, decrementVoteAllowance, incrementVoteAllowance } from '@/lib/db'
 import { getClientIP, createVoterHash, checkRateLimit } from '@/lib/utils'
 import { isValidId } from '@/lib/security'
 
@@ -38,22 +38,40 @@ export async function POST(request: Request) {
     // Check if already voted - toggle behavior
     const alreadyVoted = await hasVoted(suggestionId, voterHash)
     if (alreadyVoted) {
-      // Remove the vote
+      // Remove the vote and refund the vote allowance
       await removeVote(suggestionId, voterHash)
+      await incrementVoteAllowance(voterHash)
+      const remainingVotes = await getVoteAllowance(voterHash)
       return NextResponse.json({
         message: 'Vote removed successfully',
         action: 'removed',
-        remaining: rateLimit.remaining
+        remaining: rateLimit.remaining,
+        remainingVotes
       })
     }
 
-    // Record the vote
+    // Check vote allowance before allowing new vote
+    const currentAllowance = await getVoteAllowance(voterHash)
+    if (currentAllowance <= 0) {
+      return NextResponse.json(
+        {
+          error: 'No votes remaining. Wait for the next feature implementation to get more votes!',
+          remainingVotes: 0
+        },
+        { status: 403 }
+      )
+    }
+
+    // Decrement allowance and record the vote
+    await decrementVoteAllowance(voterHash)
     await addVote(suggestionId, voterHash)
+    const remainingVotes = await getVoteAllowance(voterHash)
 
     return NextResponse.json({
       message: 'Vote recorded successfully',
       action: 'added',
-      remaining: rateLimit.remaining
+      remaining: rateLimit.remaining,
+      remainingVotes
     })
   } catch (error) {
     console.error('Error recording vote:', error)

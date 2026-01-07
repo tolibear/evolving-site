@@ -50,8 +50,11 @@ When asked to implement a suggestion:
 5. Add changelog entry with `addChangelogEntry()`
 6. Set status back to "idle"
 7. Commit changes
+8. **Push to origin/master** to trigger Vercel deployment
 
 Use `ai_note` parameter to add implementation notes visible in the UI.
+
+**CRITICAL**: Never end implementation without pushing. Changes must reach production for users to see them.
 
 ## Rate Limits
 - Suggestions: 5 per hour per IP

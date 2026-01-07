@@ -45,8 +45,9 @@ export default function VoteButton({ suggestionId, votes }: VoteButtonProps) {
       setHasVoted(data.action === 'added')
       // Trigger wiggle animation to indicate vote receipt
       setIsWiggling(true)
-      // Refresh suggestions to update vote counts
+      // Refresh suggestions to update vote counts and vote allowance
       mutate('/api/suggestions')
+      mutate('/api/vote-allowance')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Vote failed')
       // Clear error after 2 seconds

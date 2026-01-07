@@ -2,6 +2,7 @@
 
 import useSWR from 'swr'
 import SuggestionCard from './SuggestionCard'
+import VoteAllowanceDisplay from './VoteAllowanceDisplay'
 
 interface Suggestion {
   id: number
@@ -71,9 +72,12 @@ export default function SuggestionList() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-foreground">
-        Suggestions ({suggestions.length})
-      </h2>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h2 className="text-lg font-semibold text-foreground">
+          Suggestions ({suggestions.length})
+        </h2>
+        <VoteAllowanceDisplay />
+      </div>
       {suggestions.map((suggestion) => (
         <SuggestionCard
           key={suggestion.id}

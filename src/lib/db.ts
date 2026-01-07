@@ -65,6 +65,13 @@ const initSchema = async () => {
       FOREIGN KEY (suggestion_id) REFERENCES suggestions(id)
     );
 
+    -- Vote allowance table (tracks how many votes each user has)
+    CREATE TABLE IF NOT EXISTS vote_allowance (
+      voter_hash TEXT PRIMARY KEY,
+      remaining_votes INTEGER DEFAULT 2,
+      last_grant_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     -- Initialize status row if not exists
     INSERT OR IGNORE INTO status (id, state, message) VALUES (1, 'idle', 'Awaiting next suggestion...');
   `)
@@ -133,6 +140,12 @@ export interface Comment {
   content: string
   commenter_hash: string
   created_at: string
+}
+
+export interface VoteAllowance {
+  voter_hash: string
+  remaining_votes: number
+  last_grant_at: string
 }
 
 // Ensure schema is ready before queries
@@ -378,6 +391,57 @@ export async function getCommentCount(suggestionId: number): Promise<number> {
     args: [suggestionId],
   })
   return (result.rows[0] as unknown as { count: number }).count
+}
+
+// Vote allowance queries
+export async function getVoteAllowance(voterHash: string): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT remaining_votes FROM vote_allowance WHERE voter_hash = ?',
+    args: [voterHash],
+  })
+  if (result.rows.length === 0) {
+    // New user - initialize with 2 votes
+    await db.execute({
+      sql: 'INSERT INTO vote_allowance (voter_hash, remaining_votes) VALUES (?, 2)',
+      args: [voterHash],
+    })
+    return 2
+  }
+  return (result.rows[0] as unknown as { remaining_votes: number }).remaining_votes
+}
+
+export async function decrementVoteAllowance(voterHash: string): Promise<boolean> {
+  await ensureSchema()
+  // First ensure the user exists
+  const remaining = await getVoteAllowance(voterHash)
+  if (remaining <= 0) {
+    return false
+  }
+  await db.execute({
+    sql: 'UPDATE vote_allowance SET remaining_votes = remaining_votes - 1 WHERE voter_hash = ?',
+    args: [voterHash],
+  })
+  return true
+}
+
+export async function incrementVoteAllowance(voterHash: string): Promise<void> {
+  await ensureSchema()
+  // Ensure the user exists first
+  await getVoteAllowance(voterHash)
+  await db.execute({
+    sql: 'UPDATE vote_allowance SET remaining_votes = remaining_votes + 1 WHERE voter_hash = ?',
+    args: [voterHash],
+  })
+}
+
+export async function grantVotesToAllUsers(votesPerUser: number): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: `UPDATE vote_allowance SET remaining_votes = remaining_votes + ?, last_grant_at = datetime('now')`,
+    args: [votesPerUser],
+  })
+  return result.rowsAffected
 }
 
 export default db

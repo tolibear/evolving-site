@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { updateSuggestionStatus, addChangelogEntry, updateStatus } from '@/lib/db'
+import { updateSuggestionStatus, addChangelogEntry, updateStatus, grantVotesToAllUsers } from '@/lib/db'
 
 // Force dynamic - always process fresh
 export const dynamic = 'force-dynamic'
@@ -48,6 +48,8 @@ async function processFinalize(
       commitHash || null,
       aiNote
     )
+    // Grant 2 votes to all users when a feature is implemented
+    await grantVotesToAllUsers(2)
   }
 
   // Set status back to idle

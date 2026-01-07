@@ -108,3 +108,4 @@ src/
 7. Add a changelog entry with the commit hash
 8. Update site status back to "idle"
 9. Commit the changes
+10. **Push to origin/master** to trigger Vercel deployment

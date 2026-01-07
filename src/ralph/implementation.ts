@@ -102,11 +102,17 @@ async function runClaude(
     log('Starting Claude Code...', 'info')
     console.log() // Add spacing
 
-    // Use child_process.spawn with inherited stdio for real-time output
+    // Use 'script' command to create a pseudo-TTY for Claude
+    // This allows Claude's interactive output to display correctly
     const claudePath = process.env.CLAUDE_PATH || '/Users/toli/.local/bin/claude'
-    const claude = spawn(claudePath, ['--dangerously-skip-permissions', '-p', prompt], {
+    const claude = spawn('script', [
+      '-q', '/dev/null',  // Quiet mode, no typescript file
+      claudePath,
+      '--dangerously-skip-permissions',
+      '-p', prompt
+    ], {
       cwd,
-      env: process.env,
+      env: { ...process.env, TERM: 'xterm-256color' },
       stdio: ['inherit', 'pipe', 'pipe'],
     })
 

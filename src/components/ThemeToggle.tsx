@@ -2,37 +2,65 @@
 
 import { useEffect, useState } from 'react'
 
+type Theme = 'light' | 'dark' | 'brown'
+
 export default function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false)
+  const [theme, setTheme] = useState<Theme>('light')
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    const stored = localStorage.getItem('theme')
+    const stored = localStorage.getItem('theme') as Theme | null
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    const shouldBeDark = stored === 'dark' || (!stored && prefersDark)
-    setIsDark(shouldBeDark)
-    document.documentElement.classList.toggle('dark', shouldBeDark)
+    const initialTheme: Theme = stored || (prefersDark ? 'dark' : 'light')
+    setTheme(initialTheme)
+    applyTheme(initialTheme)
   }, [])
 
-  const toggleTheme = () => {
-    const newValue = !isDark
-    setIsDark(newValue)
-    localStorage.setItem('theme', newValue ? 'dark' : 'light')
-    document.documentElement.classList.toggle('dark', newValue)
+  const applyTheme = (newTheme: Theme) => {
+    document.documentElement.classList.remove('dark', 'brown')
+    if (newTheme !== 'light') {
+      document.documentElement.classList.add(newTheme)
+    }
+  }
+
+  const cycleTheme = () => {
+    const themeOrder: Theme[] = ['light', 'dark', 'brown']
+    const currentIndex = themeOrder.indexOf(theme)
+    const nextTheme = themeOrder[(currentIndex + 1) % themeOrder.length]
+    setTheme(nextTheme)
+    localStorage.setItem('theme', nextTheme)
+    applyTheme(nextTheme)
   }
 
   if (!mounted) {
     return <div className="w-9 h-9" /> // Placeholder to prevent layout shift
   }
 
+  const getAriaLabel = () => {
+    switch (theme) {
+      case 'light': return 'Switch to dark mode'
+      case 'dark': return 'Switch to brown mode'
+      case 'brown': return 'Switch to light mode'
+    }
+  }
+
   return (
     <button
-      onClick={toggleTheme}
-      className="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      onClick={cycleTheme}
+      className={`p-2 rounded-lg transition-colors ${
+        theme === 'brown'
+          ? 'hover:bg-amber-900'
+          : 'hover:bg-neutral-200 dark:hover:bg-neutral-700'
+      }`}
+      aria-label={getAriaLabel()}
     >
-      {isDark ? (
+      {theme === 'light' && (
+        <svg className="w-5 h-5 text-neutral-600" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+        </svg>
+      )}
+      {theme === 'dark' && (
         <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
           <path
             fillRule="evenodd"
@@ -40,9 +68,10 @@ export default function ThemeToggle() {
             clipRule="evenodd"
           />
         </svg>
-      ) : (
-        <svg className="w-5 h-5 text-neutral-600" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+      )}
+      {theme === 'brown' && (
+        <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M4 2a2 2 0 00-2 2v11a3 3 0 106 0V4a2 2 0 00-2-2H4zm1 14a1 1 0 100-2 1 1 0 000 2zm5-1.757l4.9-4.9a2 2 0 000-2.828L13.485 5.1a2 2 0 00-2.828 0L10 5.757v8.486zM16 18H9.071l6-6H16a2 2 0 012 2v2a2 2 0 01-2 2z" clipRule="evenodd" />
         </svg>
       )}
     </button>

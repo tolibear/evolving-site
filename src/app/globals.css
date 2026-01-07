@@ -18,6 +18,14 @@
   --muted: #737373;
 }
 
+.brown {
+  --background: #2c1810;
+  --foreground: #f5e6d3;
+  --accent: #d4a574;
+  --success: #8b9a6b;
+  --muted: #a68b6a;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
@@ -37,8 +45,16 @@ body {
   @apply bg-white dark:bg-neutral-800 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 p-4;
 }
 
+.brown .card {
+  @apply bg-amber-950 border-amber-900;
+}
+
 .card:hover {
   @apply shadow-md dark:shadow-neutral-900/50;
+}
+
+.brown .card:hover {
+  @apply shadow-amber-900/50;
 }
 
 /* Button base styles */
@@ -52,6 +68,10 @@ body {
 
 .btn-secondary {
   @apply bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-600 active:scale-95;
+}
+
+.brown .btn-secondary {
+  @apply bg-amber-900 text-amber-100 hover:bg-amber-800;
 }
 
 /* Status indicator pulse animation */
@@ -96,3 +116,36 @@ body {
 .animate-wiggle {
   animation: wiggle 0.5s ease-in-out;
 }
+
+/* Brown mode overrides for common dark: variants */
+.brown .bg-neutral-100 { @apply bg-amber-900/50; }
+.brown .bg-neutral-200 { @apply bg-amber-800/50; }
+.brown .bg-neutral-800 { @apply bg-amber-950; }
+.brown .bg-white { @apply bg-amber-950; }
+.brown .border-neutral-200 { @apply border-amber-800; }
+.brown .border-neutral-300 { @apply border-amber-700; }
+.brown .border-neutral-600 { @apply border-amber-700; }
+.brown .border-neutral-700 { @apply border-amber-800; }
+.brown .text-neutral-700 { @apply text-amber-100; }
+.brown .text-neutral-600 { @apply text-amber-200; }
+
+/* Brown mode status variants */
+.brown .bg-blue-50, .brown .bg-blue-900\/30 { background-color: rgba(180, 83, 9, 0.2); }
+.brown .border-blue-200, .brown .border-blue-700 { @apply border-amber-700; }
+.brown .text-blue-800, .brown .text-blue-200 { @apply text-amber-200; }
+
+.brown .bg-amber-50, .brown .bg-amber-900\/30 { background-color: rgba(180, 83, 9, 0.3); }
+.brown .border-amber-200, .brown .border-amber-700 { @apply border-amber-600; }
+.brown .text-amber-800, .brown .text-amber-200 { @apply text-amber-100; }
+
+.brown .bg-green-50, .brown .bg-green-900\/20 { background-color: rgba(101, 163, 13, 0.2); }
+.brown .border-green-100, .brown .border-green-800 { @apply border-lime-800; }
+.brown .border-green-300, .brown .border-green-700 { @apply border-lime-700; }
+.brown .text-green-800 { @apply text-lime-200; }
+
+.brown .bg-red-50, .brown .bg-red-900\/20 { background-color: rgba(153, 27, 27, 0.3); }
+.brown .border-red-100, .brown .border-red-800 { @apply border-red-900; }
+.brown .border-red-300, .brown .border-red-700 { @apply border-red-800; }
+
+.brown .bg-yellow-100, .brown .bg-yellow-900\/50 { background-color: rgba(202, 138, 4, 0.3); }
+.brown .text-yellow-800, .brown .text-yellow-200 { @apply text-yellow-200; }

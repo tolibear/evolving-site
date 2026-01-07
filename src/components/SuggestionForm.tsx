@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, FormEvent } from 'react'
+import { useState, useRef, FormEvent, KeyboardEvent } from 'react'
 import { mutate } from 'swr'
 
 // Fetch with timeout helper
@@ -57,6 +57,17 @@ export default function SuggestionForm() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const submitRef = useRef(false) // Prevent double-submit
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Submit on Enter, allow Shift+Enter for new line
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      // Only submit if content is valid
+      if (content.trim().length >= 10 && !isSubmitting) {
+        handleSubmit(e as unknown as FormEvent)
+      }
+    }
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -135,6 +146,7 @@ export default function SuggestionForm() {
         id="suggestion"
         value={content}
         onChange={(e) => setContent(e.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder="What feature would you like to see? Be specific..."
         rows={3}
         maxLength={500}
@@ -143,7 +155,7 @@ export default function SuggestionForm() {
       />
       <div className="flex items-center justify-between mt-3">
         <span className="text-sm text-muted">
-          {content.length}/500 characters
+          {content.length}/500 · Enter to submit, Shift+Enter for new line
         </span>
         <button
           type="submit"

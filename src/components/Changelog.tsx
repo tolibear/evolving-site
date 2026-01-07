@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import useSWR from 'swr'
+import NanoBanana from './NanoBanana'
 
 interface ChangelogEntry {
   id: number
@@ -85,28 +86,35 @@ export default function Changelog() {
             className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-lg px-4 py-3"
           >
             <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-foreground break-words">
-                  {entry.suggestion_content}
-                </p>
-                {entry.ai_note && (
-                  <p className="text-sm text-muted italic mt-2 pl-3 border-l-2 border-green-300 dark:border-green-700">
-                    {entry.ai_note}
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <NanoBanana
+                  seed={entry.suggestion_content}
+                  size={28}
+                  className="flex-shrink-0 mt-0.5"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-foreground break-words">
+                    {entry.suggestion_content}
                   </p>
-                )}
-                <div className="flex items-center gap-3 mt-2 text-xs text-muted">
-                  <span className="flex items-center gap-1">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
-                    {entry.votes_when_implemented} votes
-                  </span>
-                  <span>{formatDate(entry.implemented_at)}</span>
-                  {entry.commit_hash && (
-                    <code className="bg-neutral-200 dark:bg-neutral-700 px-1 rounded text-xs">
-                      {entry.commit_hash.slice(0, 7)}
-                    </code>
+                  {entry.ai_note && (
+                    <p className="text-sm text-muted italic mt-2 pl-3 border-l-2 border-green-300 dark:border-green-700">
+                      {entry.ai_note}
+                    </p>
                   )}
+                  <div className="flex items-center gap-3 mt-2 text-xs text-muted">
+                    <span className="flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                      {entry.votes_when_implemented} votes
+                    </span>
+                    <span>{formatDate(entry.implemented_at)}</span>
+                    {entry.commit_hash && (
+                      <code className="bg-neutral-200 dark:bg-neutral-700 px-1 rounded text-xs">
+                        {entry.commit_hash.slice(0, 7)}
+                      </code>
+                    )}
+                  </div>
                 </div>
               </div>
               <svg className="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">

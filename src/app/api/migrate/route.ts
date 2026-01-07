@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { updateSuggestionStatus, addChangelogEntry, updateStatus, grantVotesToAllUsers } from '@/lib/db'
 
-// Force dynamic - no caching
+// Force dynamic - no caching (v2)
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 // GET /api/migrate - Run pending migrations (finalize suggestion #13: brown mode)
 export async function GET() {

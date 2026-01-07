@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { checkRateLimitDb, cleanupExpiredRateLimits } from '@/lib/db'
 
 /**
  * Create a hash from IP address and user agent for vote deduplication
@@ -29,8 +30,8 @@ export function getClientIP(request: Request): string {
 }
 
 /**
- * Simple in-memory rate limiter
- * In production, use Redis or similar for distributed rate limiting
+ * In-memory rate limiter (fallback for sync contexts)
+ * For API routes, use checkRateLimitAsync which uses database-backed storage
  */
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
 
@@ -61,6 +62,25 @@ export function checkRateLimit(
     remaining: limit - record.count,
     resetIn: record.resetTime - now
   }
+}
+
+/**
+ * Database-backed rate limiter (distributed across server instances)
+ * Use this for API routes to ensure rate limits work in multi-instance deployments
+ */
+export async function checkRateLimitAsync(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<{ allowed: boolean; remaining: number; resetIn: number }> {
+  // Periodically cleanup expired records (1% chance per request)
+  if (Math.random() < 0.01) {
+    cleanupExpiredRateLimits().catch(() => {
+      // Silently ignore cleanup errors
+    })
+  }
+
+  return checkRateLimitDb(key, limit, windowMs)
 }
 
 /**

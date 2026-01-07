@@ -1,7 +1,92 @@
 import { spawn } from 'child_process'
+import { existsSync } from 'fs'
 import { log, printImplementing, printResult, printVercelStatus, printRefreshPrompt } from './ui'
 import type { Suggestion, ImplementationResult } from './types'
 import { writeToStream, closeStream, getCurrentSessionId } from './stream-manager'
+import { monitorToolUse } from '../lib/security-monitoring'
+
+// Timeout for Claude subprocess (30 minutes)
+const CLAUDE_TIMEOUT_MS = 30 * 60 * 1000
+
+/**
+ * Sanitize terminal output to prevent secret leakage
+ * Filters out patterns that look like secrets/tokens
+ */
+function sanitizeTerminalOutput(output: string): string {
+  return output
+    // Redact Turso/database URLs and tokens
+    .replace(/TURSO_[A-Z_]+=[^\s\n]+/g, 'TURSO_[REDACTED]')
+    .replace(/libsql:\/\/[^\s\n]+/g, 'libsql://[REDACTED]')
+    // Redact JWT tokens (eyJ... pattern)
+    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[JWT_REDACTED]')
+    // Redact API secrets/keys (long hex strings)
+    .replace(/RALPH_API_SECRET=[^\s\n]+/g, 'RALPH_API_SECRET=[REDACTED]')
+    .replace(/[A-Fa-f0-9]{40,}/g, '[TOKEN_REDACTED]')
+    // Redact common secret patterns
+    .replace(/(?:api[_-]?key|secret|token|password|auth)[\s]*[=:]\s*['"]?[^\s'"]+['"]?/gi, '[SECRET_REDACTED]')
+}
+
+/**
+ * Get a safe subset of environment variables for Claude subprocess
+ * Explicitly excludes secrets to prevent accidental exposure
+ */
+function getSafeEnvironment(): Record<string, string | undefined> {
+  const safeEnv: Record<string, string | undefined> = {}
+
+  // Only include safe environment variables
+  const allowedVars = [
+    'PATH',
+    'HOME',
+    'USER',
+    'SHELL',
+    'TERM',
+    'LANG',
+    'LC_ALL',
+    'NODE_ENV',
+    'CLAUDE_PATH', // Allow custom Claude path
+    'TMPDIR',
+    'TMP',
+    'TEMP',
+  ]
+
+  for (const key of allowedVars) {
+    if (process.env[key]) {
+      safeEnv[key] = process.env[key]
+    }
+  }
+
+  return safeEnv
+}
+
+/**
+ * Get the Claude binary path with validation
+ */
+function getClaudePath(): string {
+  // Check environment variable first
+  if (process.env.CLAUDE_PATH) {
+    if (existsSync(process.env.CLAUDE_PATH)) {
+      return process.env.CLAUDE_PATH
+    }
+    log(`Warning: CLAUDE_PATH set but not found: ${process.env.CLAUDE_PATH}`, 'warn')
+  }
+
+  // Common paths to check
+  const commonPaths = [
+    '/usr/local/bin/claude',
+    '/usr/bin/claude',
+    `${process.env.HOME}/.local/bin/claude`,
+    `${process.env.HOME}/.claude/bin/claude`,
+  ]
+
+  for (const path of commonPaths) {
+    if (existsSync(path)) {
+      return path
+    }
+  }
+
+  // Default fallback (may not exist)
+  return '/usr/local/bin/claude'
+}
 
 export async function implementSuggestion(
   suggestion: Suggestion,
@@ -167,7 +252,8 @@ async function runClaude(
   error?: string
 }> {
   return new Promise((resolve) => {
-    const claudePath = process.env.CLAUDE_PATH || '/Users/toli/.local/bin/claude'
+    const claudePath = getClaudePath()
+    log(`Using Claude binary: ${claudePath}`, 'info')
 
     // Use stream-json format to get ALL events (tool calls, edits, etc.)
     // IMPORTANT: -p is a boolean flag (--print), NOT -p <prompt>
@@ -180,9 +266,21 @@ async function runClaude(
       '--dangerously-skip-permissions',
     ], {
       cwd,
-      env: process.env,
+      env: getSafeEnvironment() as NodeJS.ProcessEnv, // Use safe environment without secrets
       stdio: ['pipe', 'pipe', 'pipe'],
     })
+
+    // Set up timeout to kill Claude if it runs too long
+    const timeoutId = setTimeout(() => {
+      log(`Claude process timed out after ${CLAUDE_TIMEOUT_MS / 1000 / 60} minutes`, 'error')
+      claude.kill('SIGTERM')
+      // Force kill after 10 seconds if still running
+      setTimeout(() => {
+        if (!claude.killed) {
+          claude.kill('SIGKILL')
+        }
+      }, 10000)
+    }, CLAUDE_TIMEOUT_MS)
 
     // Pipe prompt via stdin (safer for long prompts than command-line args)
     claude.stdin?.write(prompt)
@@ -223,7 +321,7 @@ async function runClaude(
           // Initialization event
           const output = `${colors.green}✓ Claude Code started${colors.reset}\n`
           process.stdout.write(output)
-          writeToStream(output)
+          writeToStream(sanitizeTerminalOutput(output))
           break
 
         case 'assistant':
@@ -236,7 +334,7 @@ async function runClaude(
                 const formatted = formatToolUse(toolUse.name, toolUse.input)
                 const toolOutput = formatted + '\n'
                 process.stdout.write(toolOutput)
-                writeToStream(toolOutput)
+                writeToStream(sanitizeTerminalOutput(toolOutput))
               }
             }
           }
@@ -255,7 +353,7 @@ async function runClaude(
               currentText += text
               fullOutput += text
               process.stdout.write(text)
-              writeToStream(text)
+              writeToStream(sanitizeTerminalOutput(text))
             }
           } else if (eventType === 'content_block_start') {
             const contentBlock = streamEvent.content_block as Record<string, unknown>
@@ -263,7 +361,7 @@ async function runClaude(
               const toolName = contentBlock.name as string
               const startOutput = `\n${colors.dim}▶ ${toolName}...${colors.reset}\n`
               process.stdout.write(startOutput)
-              writeToStream(startOutput)
+              writeToStream(sanitizeTerminalOutput(startOutput))
             }
           }
           break
@@ -275,7 +373,11 @@ async function runClaude(
             const formatted = formatToolUse(toolEvent.tool, toolEvent.input || {})
             const toolOutput = formatted + '\n'
             process.stdout.write(toolOutput)
-            writeToStream(toolOutput)
+            writeToStream(sanitizeTerminalOutput(toolOutput))
+            // Monitor tool usage for security logging
+            monitorToolUse(toolEvent.tool, toolEvent.input || {}, getCurrentSessionId() ?? undefined).catch(() => {
+              // Silently ignore monitoring errors to not interrupt the main flow
+            })
           }
           break
 
@@ -283,7 +385,7 @@ async function runClaude(
           // Tool result - show abbreviated
           const resultOutput = `${colors.dim}  └─ done${colors.reset}\n`
           process.stdout.write(resultOutput)
-          writeToStream(resultOutput)
+          writeToStream(sanitizeTerminalOutput(resultOutput))
           break
 
         case 'result':
@@ -306,14 +408,17 @@ async function runClaude(
       }
     }
 
-    // Stream stderr (for errors)
+    // Stream stderr (for errors) - sanitize to prevent secret leakage
     claude.stderr?.on('data', (data: Buffer) => {
       const text = data.toString()
       process.stderr.write(text)
-      writeToStream(text)
+      writeToStream(sanitizeTerminalOutput(text))
     })
 
     claude.on('close', async (exitCode) => {
+      // Clear the timeout
+      clearTimeout(timeoutId)
+
       // Process any remaining buffer
       if (lineBuffer.trim()) {
         try {

@@ -96,6 +96,31 @@ const initSchema = async () => {
     -- Index for efficient chunk retrieval
     CREATE INDEX IF NOT EXISTS idx_chunks_session_seq ON terminal_chunks(session_id, sequence);
 
+    -- Rate limits table (for distributed rate limiting)
+    CREATE TABLE IF NOT EXISTS rate_limits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT NOT NULL UNIQUE,
+      count INTEGER DEFAULT 1,
+      reset_time INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Index for rate limit lookups
+    CREATE INDEX IF NOT EXISTS idx_rate_limits_key ON rate_limits(key);
+
+    -- Security events table (for audit logging)
+    CREATE TABLE IF NOT EXISTS security_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_type TEXT NOT NULL,
+      ip_address TEXT,
+      endpoint TEXT,
+      details TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Index for security event queries
+    CREATE INDEX IF NOT EXISTS idx_security_events_type_time ON security_events(event_type, created_at);
+
     -- Initialize status row if not exists
     INSERT OR IGNORE INTO status (id, state, message) VALUES (1, 'idle', 'Awaiting next suggestion...');
   `)
@@ -303,6 +328,23 @@ export interface TerminalChunk {
   session_id: string
   sequence: number
   content: string // Base64-encoded raw terminal output
+  created_at: string
+}
+
+export interface RateLimit {
+  id: number
+  key: string
+  count: number
+  reset_time: number
+  created_at: string
+}
+
+export interface SecurityEvent {
+  id: number
+  event_type: string
+  ip_address: string | null
+  endpoint: string | null
+  details: string | null
   created_at: string
 }
 
@@ -871,19 +913,162 @@ export async function cleanupOldTerminalSessions(keepCount: number = 20): Promis
 
   if (keepIds.length === 0) return 0
 
-  // Delete chunks from old sessions
-  const placeholders = keepIds.map(() => '?').join(',')
+  // Get IDs of sessions to DELETE (those NOT in the keep list)
+  // This approach avoids dynamic SQL construction with user-controllable placeholders
+  const deleteResult = await db.execute({
+    sql: 'SELECT id FROM terminal_sessions ORDER BY started_at DESC LIMIT -1 OFFSET ?',
+    args: [keepCount],
+  })
+  const deleteIds = deleteResult.rows.map((row) => (row as unknown as { id: string }).id)
+
+  if (deleteIds.length === 0) return 0
+
+  // Delete chunks and sessions one by one using parameterized queries
+  // This is safer than dynamic IN clause construction
+  let deletedCount = 0
+  for (const sessionId of deleteIds) {
+    await db.execute({
+      sql: 'DELETE FROM terminal_chunks WHERE session_id = ?',
+      args: [sessionId],
+    })
+    const result = await db.execute({
+      sql: 'DELETE FROM terminal_sessions WHERE id = ?',
+      args: [sessionId],
+    })
+    deletedCount += result.rowsAffected
+  }
+
+  return deletedCount
+}
+
+// Security event logging
+export async function logSecurityEvent(
+  eventType: string,
+  ipAddress: string | null,
+  endpoint: string | null,
+  details?: string
+): Promise<void> {
+  await ensureSchema()
   await db.execute({
-    sql: `DELETE FROM terminal_chunks WHERE session_id NOT IN (${placeholders})`,
-    args: keepIds,
+    sql: 'INSERT INTO security_events (event_type, ip_address, endpoint, details) VALUES (?, ?, ?, ?)',
+    args: [eventType, ipAddress, endpoint, details ?? null],
   })
+}
 
-  // Delete old sessions
+export async function getSecurityEvents(
+  limit: number = 100,
+  eventType?: string
+): Promise<SecurityEvent[]> {
+  await ensureSchema()
+  if (eventType) {
+    const result = await db.execute({
+      sql: 'SELECT * FROM security_events WHERE event_type = ? ORDER BY created_at DESC LIMIT ?',
+      args: [eventType, limit],
+    })
+    return result.rows as unknown as SecurityEvent[]
+  }
   const result = await db.execute({
-    sql: `DELETE FROM terminal_sessions WHERE id NOT IN (${placeholders})`,
-    args: keepIds,
+    sql: 'SELECT * FROM security_events ORDER BY created_at DESC LIMIT ?',
+    args: [limit],
+  })
+  return result.rows as unknown as SecurityEvent[]
+}
+
+// Count auth failures for rate limiting on authentication attempts
+export async function countRecentAuthFailures(
+  ipAddress: string,
+  windowMs: number = 5 * 60 * 1000 // 5 minutes
+): Promise<number> {
+  await ensureSchema()
+  const cutoffTime = new Date(Date.now() - windowMs).toISOString()
+  const result = await db.execute({
+    sql: `SELECT COUNT(*) as count FROM security_events
+          WHERE event_type = 'auth_failure'
+          AND ip_address = ?
+          AND created_at > ?`,
+    args: [ipAddress, cutoffTime],
+  })
+  return (result.rows[0] as unknown as { count: number }).count
+}
+
+// Database-backed rate limiting (distributed across server instances)
+export async function checkRateLimitDb(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<{ allowed: boolean; remaining: number; resetIn: number }> {
+  await ensureSchema()
+  const now = Date.now()
+  const resetTime = now + windowMs
+
+  // Try to get existing rate limit record
+  const existing = await db.execute({
+    sql: 'SELECT count, reset_time FROM rate_limits WHERE key = ?',
+    args: [key],
   })
 
+  if (existing.rows.length === 0) {
+    // No record exists - create new one
+    await db.execute({
+      sql: 'INSERT INTO rate_limits (key, count, reset_time) VALUES (?, 1, ?)',
+      args: [key, resetTime],
+    })
+    return { allowed: true, remaining: limit - 1, resetIn: windowMs }
+  }
+
+  const record = existing.rows[0] as unknown as { count: number; reset_time: number }
+
+  // Check if window has expired
+  if (now > record.reset_time) {
+    // Window expired - reset the counter
+    await db.execute({
+      sql: 'UPDATE rate_limits SET count = 1, reset_time = ? WHERE key = ?',
+      args: [resetTime, key],
+    })
+    return { allowed: true, remaining: limit - 1, resetIn: windowMs }
+  }
+
+  // Window still active - check if limit exceeded
+  if (record.count >= limit) {
+    return {
+      allowed: false,
+      remaining: 0,
+      resetIn: record.reset_time - now,
+    }
+  }
+
+  // Increment counter
+  await db.execute({
+    sql: 'UPDATE rate_limits SET count = count + 1 WHERE key = ?',
+    args: [key],
+  })
+
+  return {
+    allowed: true,
+    remaining: limit - record.count - 1,
+    resetIn: record.reset_time - now,
+  }
+}
+
+// Clean up expired rate limit records
+export async function cleanupExpiredRateLimits(): Promise<number> {
+  await ensureSchema()
+  const now = Date.now()
+  const result = await db.execute({
+    sql: 'DELETE FROM rate_limits WHERE reset_time < ?',
+    args: [now],
+  })
+  return result.rowsAffected
+}
+
+// Clean up old security events (keep last 30 days)
+export async function cleanupOldSecurityEvents(daysToKeep: number = 30): Promise<number> {
+  await ensureSchema()
+  const cutoffTime = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000).toISOString()
+  const result = await db.execute({
+    sql: 'DELETE FROM security_events WHERE created_at < ?',
+    args: [cutoffTime],
+  })
   return result.rowsAffected
 }
 

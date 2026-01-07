@@ -7,7 +7,10 @@ import {
   setAutomationMode,
   setIntervalMinutes,
   getStatus,
+  logSecurityEvent,
 } from '@/lib/db'
+import { validateRalphAuth } from '@/lib/auth'
+import { getClientIP } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,9 +32,11 @@ export async function GET() {
 
 // POST /api/ralph - Unified Ralph operations
 export async function POST(request: Request) {
-  // Validate API secret
-  const secret = request.headers.get('x-ralph-secret')
-  if (!secret || secret !== process.env.RALPH_API_SECRET) {
+  // Validate API secret with timing-safe comparison
+  if (!validateRalphAuth(request)) {
+    // Log authentication failure
+    const ip = getClientIP(request)
+    await logSecurityEvent('auth_failure', ip, '/api/ralph', 'Invalid or missing API secret')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

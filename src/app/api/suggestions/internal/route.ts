@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createSuggestionWithAuthor } from '@/lib/db'
+import { createSuggestionWithAuthor, logSecurityEvent } from '@/lib/db'
 import { sanitizeSuggestion } from '@/lib/security'
+import { validateRalphAuth } from '@/lib/auth'
+import { getClientIP } from '@/lib/utils'
 
 /**
  * Internal API endpoint for Ralph Wiggum to create suggestions
@@ -11,9 +13,10 @@ import { sanitizeSuggestion } from '@/lib/security'
  * Body: { content: string, author: 'ralph' }
  */
 export async function POST(request: Request) {
-  // Validate internal API secret
-  const secret = request.headers.get('x-ralph-secret')
-  if (!secret || secret !== process.env.RALPH_API_SECRET) {
+  // Validate internal API secret with timing-safe comparison
+  if (!validateRalphAuth(request)) {
+    const ip = getClientIP(request)
+    await logSecurityEvent('auth_failure', ip, '/api/suggestions/internal', 'Invalid or missing API secret')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

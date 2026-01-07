@@ -2,11 +2,22 @@
  * Finalize a suggestion implementation by updating database
  *
  * Usage:
- *   npm run finalize -- <suggestionId> <status> "<content>" <votes> "<aiNote>" [commitHash]
+ *   npm run finalize -- <suggestionId> <status> "<content>" <votes> "<aiNote>" [commitHash] [iconType]
  *
  * Example:
- *   npm run finalize -- 12 implemented "Add dark mode" 5 "Added dark mode toggle with CSS variables" abc1234
+ *   npm run finalize -- 12 implemented "Add dark mode" 5 "Added dark mode toggle with CSS variables" abc1234 theme
  *   npm run finalize -- 13 denied "Unsafe feature" 2 "Denied due to security concerns"
+ *
+ * Available icon types:
+ *   UI: theme, layout, image, button, form
+ *   Features: search, notification, settings, user, chat
+ *   Data: list, chart, file, link, code
+ *   Actions: add, edit, delete, share, vote
+ *   System: security, speed, mobile, terminal
+ *   Creative: animation, sound, time, magic, globe, bookmark, eye, puzzle,
+ *             trophy, heart, rocket, palette, brain, shield, compass, zap,
+ *             tag, cursor, refresh, icon
+ *   Fallbacks: star, sparkle, dot, diamond, hexagon, flower
  */
 
 // Load env vars BEFORE importing db module
@@ -17,7 +28,7 @@ async function main() {
   const args = process.argv.slice(2)
 
   if (args.length < 4) {
-    console.error('Usage: npm run finalize -- <suggestionId> <status> "<content>" <votes> "<aiNote>" [commitHash]')
+    console.error('Usage: npm run finalize -- <suggestionId> <status> "<content>" <votes> "<aiNote>" [commitHash] [iconType]')
     console.error('')
     console.error('Arguments:')
     console.error('  suggestionId  - ID of the suggestion to finalize')
@@ -26,6 +37,7 @@ async function main() {
     console.error('  votes         - Number of votes the suggestion had')
     console.error('  aiNote        - Implementation notes')
     console.error('  commitHash    - (optional) Git commit hash')
+    console.error('  iconType      - (optional) Icon type for the changelog entry')
     process.exit(1)
   }
 
@@ -35,6 +47,7 @@ async function main() {
   const votes = parseInt(args[3])
   const aiNote = args[4] || ''
   const commitHash = args[5] || null
+  const iconType = args[6] || null
 
   if (isNaN(suggestionId)) {
     console.error('Error: suggestionId must be a number')
@@ -57,8 +70,8 @@ async function main() {
 
   // Add changelog entry if implemented
   if (status === 'implemented') {
-    await addChangelogEntry(suggestionId, content, votes, commitHash, aiNote)
-    console.log('✓ Added changelog entry')
+    await addChangelogEntry(suggestionId, content, votes, commitHash, aiNote, iconType ?? undefined)
+    console.log(`✓ Added changelog entry${iconType ? ` with icon: ${iconType}` : ''}`)
 
     // Grant bonus vote (+1) to users who upvoted this suggestion
     const bonusCount = await grantBonusVoteToSupporters(suggestionId)

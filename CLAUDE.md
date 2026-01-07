@@ -49,12 +49,21 @@ When asked to implement a suggestion:
 4. Commit and push changes to trigger deployment
 5. **CRITICAL: Run the finalize script** to update the database:
    ```bash
-   npm run finalize -- <suggestionId> <status> "<content>" <votes> "<aiNote>" <commitHash>
+   npm run finalize -- <suggestionId> <status> "<content>" <votes> "<aiNote>" <commitHash> [iconType]
    ```
    Example:
    ```bash
-   npm run finalize -- 12 implemented "Add dark mode" 5 "Added toggle with CSS variables" abc1234
+   npm run finalize -- 12 implemented "Add dark mode" 5 "Added toggle with CSS variables" abc1234 theme
    ```
+
+   Available icon types for `iconType` (optional - auto-detected from content if not specified):
+   - UI: `theme`, `layout`, `image`, `button`, `form`
+   - Features: `search`, `notification`, `settings`, `user`, `chat`
+   - Data: `list`, `chart`, `file`, `link`, `code`
+   - Actions: `add`, `edit`, `delete`, `share`, `vote`
+   - System: `security`, `speed`, `mobile`, `terminal`
+   - Creative: `animation`, `sound`, `time`, `magic`, `globe`, `bookmark`, `eye`, `puzzle`, `trophy`, `heart`, `rocket`, `palette`, `brain`, `shield`, `compass`, `zap`, `tag`, `cursor`, `refresh`, `icon`
+   - Fallbacks: `star`, `sparkle`, `dot`, `diamond`, `hexagon`, `flower`
 
 The finalize script:
 - Updates suggestion status to "implemented" or "denied"

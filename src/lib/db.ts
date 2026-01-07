@@ -111,6 +111,12 @@ const initSchema = async () => {
   } catch {
     // Column already exists
   }
+  // Add icon_type column to changelog for custom icons (ignore if already exists)
+  try {
+    await db.execute('ALTER TABLE changelog ADD COLUMN icon_type TEXT DEFAULT NULL')
+  } catch {
+    // Column already exists
+  }
   // Add automation_mode column (ignore if already exists)
   try {
     await db.execute("ALTER TABLE status ADD COLUMN automation_mode TEXT DEFAULT 'manual'")
@@ -267,6 +273,7 @@ export interface ChangelogEntry {
   commit_hash: string | null
   implemented_at: string
   ai_note: string | null
+  icon_type: string | null // Custom icon type to override auto-detection
 }
 
 export interface Comment {
@@ -595,13 +602,14 @@ export async function addChangelogEntry(
   suggestionContent: string,
   votesWhenImplemented: number,
   commitHash: string | null,
-  aiNote?: string
+  aiNote?: string,
+  iconType?: string
 ): Promise<void> {
   await ensureSchema()
   await db.execute({
-    sql: `INSERT INTO changelog (suggestion_id, suggestion_content, votes_when_implemented, commit_hash, ai_note)
-          VALUES (?, ?, ?, ?, ?)`,
-    args: [suggestionId, suggestionContent, votesWhenImplemented, commitHash, aiNote ?? null],
+    sql: `INSERT INTO changelog (suggestion_id, suggestion_content, votes_when_implemented, commit_hash, ai_note, icon_type)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [suggestionId, suggestionContent, votesWhenImplemented, commitHash, aiNote ?? null, iconType ?? null],
   })
 }
 

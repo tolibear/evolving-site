@@ -12,6 +12,7 @@ interface ChangelogEntry {
   commit_hash: string | null
   implemented_at: string
   ai_note: string | null
+  icon_type: string | null
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -91,6 +92,7 @@ export default function Changelog() {
                   content={entry.suggestion_content}
                   size={20}
                   className="flex-shrink-0 mt-0.5 opacity-70"
+                  iconOverride={entry.icon_type}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground break-words">

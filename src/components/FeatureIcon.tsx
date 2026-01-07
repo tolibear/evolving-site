@@ -10,7 +10,30 @@ interface FeatureIconProps {
   content: string
   size?: number
   className?: string
+  iconOverride?: string | null // Explicit icon type to use instead of auto-detection
 }
+
+// All available icon types - can be used as iconOverride values
+export const AVAILABLE_ICON_TYPES = [
+  // UI/Visual
+  'theme', 'layout', 'image', 'button', 'form',
+  // Features
+  'search', 'notification', 'settings', 'user', 'chat',
+  // Data/Content
+  'list', 'chart', 'file', 'link', 'code',
+  // Actions
+  'add', 'edit', 'delete', 'share', 'vote',
+  // System
+  'security', 'speed', 'mobile', 'terminal',
+  // Creative
+  'animation', 'sound', 'time', 'magic', 'globe', 'bookmark', 'eye', 'puzzle',
+  'trophy', 'heart', 'rocket', 'palette', 'brain', 'shield', 'compass', 'zap',
+  'tag', 'cursor', 'refresh', 'icon',
+  // Fallbacks
+  'star', 'sparkle', 'dot', 'diamond', 'hexagon', 'flower',
+] as const
+
+export type IconType = typeof AVAILABLE_ICON_TYPES[number]
 
 // Keywords mapped to icon types - expanded for more creative symbolism
 const KEYWORD_MAP: Record<string, string[]> = {
@@ -98,8 +121,9 @@ function hashString(str: string): number {
   return Math.abs(hash)
 }
 
-export default function FeatureIcon({ content, size = 24, className = '' }: FeatureIconProps) {
-  const iconType = getIconType(content)
+export default function FeatureIcon({ content, size = 24, className = '', iconOverride }: FeatureIconProps) {
+  // Use explicit override if provided, otherwise auto-detect from content
+  const iconType = iconOverride || getIconType(content)
 
   const renderIcon = () => {
     switch (iconType) {

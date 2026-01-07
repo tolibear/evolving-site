@@ -99,8 +99,6 @@ async function runClaude(
   error?: string
 }> {
   return new Promise((resolve) => {
-    log('Starting Claude Code...', 'info')
-    console.log() // Add spacing
 
     // Use 'script' command to create a pseudo-TTY for Claude
     // This allows Claude's interactive output to display correctly

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import Ansi from 'ansi-to-react'
 import { useTerminal } from './TerminalProvider'
 import { SessionPicker } from './SessionPicker'
@@ -9,10 +9,33 @@ interface TerminalViewProps {
   className?: string
 }
 
+// Format milliseconds remaining into "Xm Ys" format
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return ''
+  const mins = Math.floor(ms / 60000)
+  const secs = Math.floor((ms % 60000) / 1000)
+  return `  Next check in: ${mins}m ${secs}s`
+}
+
 export function TerminalView({ className = '' }: TerminalViewProps) {
   const { lines, session, connectionStatus, state } = useTerminal()
   const scrollRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
+  const [, setTick] = useState(0) // Force re-render for countdown updates
+
+  // Check if there's an active countdown line
+  const hasCountdown = lines.some(l => l.isCountdown)
+
+  // Tick every second when there's a countdown to update display
+  useEffect(() => {
+    if (!hasCountdown) return
+
+    const interval = setInterval(() => {
+      setTick(t => t + 1)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [hasCountdown])
 
   // Auto-scroll to bottom when new lines are added (for flex-col-reverse, bottom is scrollTop=0)
   useEffect(() => {
@@ -97,7 +120,15 @@ export function TerminalView({ className = '' }: TerminalViewProps) {
                 key={line.id}
                 className="whitespace-pre-wrap text-terminal-text"
               >
-                <Ansi>{line.content}</Ansi>
+                {line.isCountdown && line.targetTime ? (
+                  // Countdown line - render dynamically
+                  <span className="opacity-50">
+                    {formatCountdown(line.targetTime - Date.now())}
+                  </span>
+                ) : (
+                  // Regular line - render with ANSI parsing
+                  <Ansi>{line.content}</Ansi>
+                )}
               </div>
             ))}
           </div>

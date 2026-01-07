@@ -6,7 +6,12 @@ export interface TerminalLine {
   id: string
   content: string
   timestamp: number
+  isCountdown?: boolean    // Marks this as an updatable countdown line
+  targetTime?: number      // Target timestamp (ms) for countdown
 }
+
+// Maximum number of lines to keep in history
+const MAX_LINES = 500
 
 export interface SessionInfo {
   id: string
@@ -142,15 +147,20 @@ export function useTerminalSSE(options: UseTerminalSSEOptions = {}): UseTerminal
           Uint8Array.from(atob(content), c => c.charCodeAt(0))
         )
 
-        // Add new line
-        setLines((prev) => [
-          ...prev,
-          {
-            id: `${data.sessionId}-${sequence}`,
-            content: decodedContent,
-            timestamp: Date.now(),
-          },
-        ])
+        // Add new line (filter out countdown line, enforce MAX_LINES limit)
+        setLines((prev) => {
+          const filtered = prev.filter(l => !l.isCountdown)
+          const newLines = [
+            ...filtered,
+            {
+              id: `${data.sessionId}-${sequence}`,
+              content: decodedContent,
+              timestamp: Date.now(),
+            },
+          ]
+          // Keep only the last MAX_LINES
+          return newLines.slice(-MAX_LINES)
+        })
       } catch (error) {
         console.error('Failed to parse chunk event:', error)
       }
@@ -190,6 +200,36 @@ export function useTerminalSSE(options: UseTerminalSSEOptions = {}): UseTerminal
     // Handle heartbeat (just to keep connection alive, no action needed)
     eventSource.addEventListener('heartbeat', () => {
       // Connection is alive
+    })
+
+    // Handle countdown event - add/update countdown line at end
+    eventSource.addEventListener('countdown', (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        const targetTime = new Date(data.targetTime).getTime()
+
+        setLines((prev) => {
+          // Remove existing countdown line if any
+          const filtered = prev.filter(l => !l.isCountdown)
+          return [
+            ...filtered,
+            {
+              id: 'countdown',
+              content: '', // Content is calculated client-side
+              timestamp: Date.now(),
+              isCountdown: true,
+              targetTime,
+            },
+          ]
+        })
+      } catch (error) {
+        console.error('Failed to parse countdown event:', error)
+      }
+    })
+
+    // Handle countdown clear event - remove countdown line
+    eventSource.addEventListener('countdown_clear', () => {
+      setLines((prev) => prev.filter(l => !l.isCountdown))
     })
 
     // Handle timeout

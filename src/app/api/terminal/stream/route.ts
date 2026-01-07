@@ -5,6 +5,7 @@ import {
   getLatestTerminalSession,
   getTerminalSession,
   getAllTerminalChunks,
+  getStatus,
 } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -95,9 +96,26 @@ export async function GET(request: Request) {
         // Start polling for new chunks
         let lastSequence = fromSequence
         let heartbeatCount = 0
+        let lastCountdownSent: string | null = null // Track last sent countdown to avoid duplicates
         const POLL_INTERVAL = 200 // 200ms
         const HEARTBEAT_INTERVAL = 30000 / POLL_INTERVAL // Every 30 seconds
+        const COUNTDOWN_CHECK_INTERVAL = 5000 / POLL_INTERVAL // Check countdown every 5 seconds
         const MAX_DURATION = 5 * 60 * 1000 / POLL_INTERVAL // 5 minutes max
+        let countdownCheckCount = 0
+
+        // Send initial countdown status
+        try {
+          const initialStatus = await getStatus()
+          if (initialStatus.next_check_at) {
+            sendEvent('countdown', {
+              targetTime: initialStatus.next_check_at,
+              message: initialStatus.message || 'Waiting...',
+            })
+            lastCountdownSent = initialStatus.next_check_at
+          }
+        } catch {
+          // Ignore status fetch errors
+        }
 
         for (let i = 0; i < MAX_DURATION; i++) {
           // Check if client disconnected
@@ -156,6 +174,28 @@ export async function GET(request: Request) {
               activeSessionId: sessionId,
             })
             heartbeatCount = 0
+          }
+
+          // Check countdown status periodically (every 5 seconds)
+          countdownCheckCount++
+          if (countdownCheckCount >= COUNTDOWN_CHECK_INTERVAL) {
+            countdownCheckCount = 0
+            try {
+              const status = await getStatus()
+              if (status.next_check_at !== lastCountdownSent) {
+                if (status.next_check_at) {
+                  sendEvent('countdown', {
+                    targetTime: status.next_check_at,
+                    message: status.message || 'Waiting...',
+                  })
+                } else {
+                  sendEvent('countdown_clear', {})
+                }
+                lastCountdownSent = status.next_check_at
+              }
+            } catch {
+              // Ignore status fetch errors
+            }
           }
 
           await sleep(POLL_INTERVAL)

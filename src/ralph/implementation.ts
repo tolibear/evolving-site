@@ -106,14 +106,14 @@ async function runClaude(
     const claude = spawn(
       'claude',
       [
+        '--dangerously-skip-permissions',
+        '-p',
         prompt,
-        '--allowedTools',
-        'Bash(npm run build:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Read,Write,Edit,Glob,Grep',
       ],
       {
         cwd,
-        // Inherit all stdio for full interactive mode with TTY
-        stdio: 'inherit',
+        // Close stdin so Claude exits after prompt, but show output
+        stdio: ['ignore', 'inherit', 'inherit'],
         env: { ...process.env },
       }
     )

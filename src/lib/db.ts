@@ -73,6 +73,29 @@ const initSchema = async () => {
       last_grant_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    -- Terminal sessions table (one per implementation)
+    CREATE TABLE IF NOT EXISTS terminal_sessions (
+      id TEXT PRIMARY KEY,
+      suggestion_id INTEGER NOT NULL,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      ended_at DATETIME,
+      status TEXT DEFAULT 'active',
+      FOREIGN KEY (suggestion_id) REFERENCES suggestions(id)
+    );
+
+    -- Terminal output chunks (streamed incrementally)
+    CREATE TABLE IF NOT EXISTS terminal_chunks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL,
+      sequence INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (session_id) REFERENCES terminal_sessions(id)
+    );
+
+    -- Index for efficient chunk retrieval
+    CREATE INDEX IF NOT EXISTS idx_chunks_session_seq ON terminal_chunks(session_id, sequence);
+
     -- Initialize status row if not exists
     INSERT OR IGNORE INTO status (id, state, message) VALUES (1, 'idle', 'Awaiting next suggestion...');
   `)
@@ -258,6 +281,22 @@ export interface VoteAllowance {
   voter_hash: string
   remaining_votes: number
   last_grant_at: string
+}
+
+export interface TerminalSession {
+  id: string
+  suggestion_id: number
+  started_at: string
+  ended_at: string | null
+  status: 'active' | 'completed' | 'failed'
+}
+
+export interface TerminalChunk {
+  id: number
+  session_id: string
+  sequence: number
+  content: string // Base64-encoded raw terminal output
+  created_at: string
 }
 
 // Ensure schema is ready before queries
@@ -702,6 +741,142 @@ export async function grantBonusVoteToSupporters(suggestionId: number): Promise<
     count++
   }
   return count
+}
+
+// Terminal session queries
+export async function createTerminalSession(suggestionId: number): Promise<string> {
+  await ensureSchema()
+  const sessionId = crypto.randomUUID()
+  await db.execute({
+    sql: 'INSERT INTO terminal_sessions (id, suggestion_id) VALUES (?, ?)',
+    args: [sessionId, suggestionId],
+  })
+  return sessionId
+}
+
+export async function getTerminalSession(sessionId: string): Promise<TerminalSession | null> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT * FROM terminal_sessions WHERE id = ?',
+    args: [sessionId],
+  })
+  return (result.rows[0] as unknown as TerminalSession) || null
+}
+
+export async function getLatestTerminalSession(): Promise<TerminalSession | null> {
+  await ensureSchema()
+  const result = await db.execute(
+    'SELECT * FROM terminal_sessions ORDER BY started_at DESC LIMIT 1'
+  )
+  return (result.rows[0] as unknown as TerminalSession) || null
+}
+
+export async function getActiveTerminalSession(): Promise<TerminalSession | null> {
+  await ensureSchema()
+  const result = await db.execute(
+    "SELECT * FROM terminal_sessions WHERE status = 'active' ORDER BY started_at DESC LIMIT 1"
+  )
+  return (result.rows[0] as unknown as TerminalSession) || null
+}
+
+export async function endTerminalSession(
+  sessionId: string,
+  status: 'completed' | 'failed'
+): Promise<void> {
+  await ensureSchema()
+  await db.execute({
+    sql: `UPDATE terminal_sessions SET status = ?, ended_at = datetime('now') WHERE id = ?`,
+    args: [status, sessionId],
+  })
+}
+
+export async function getTerminalSessions(limit: number = 20): Promise<TerminalSession[]> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT * FROM terminal_sessions ORDER BY started_at DESC LIMIT ?',
+    args: [limit],
+  })
+  return result.rows as unknown as TerminalSession[]
+}
+
+// Terminal chunk queries
+export async function appendTerminalChunk(
+  sessionId: string,
+  sequence: number,
+  content: string
+): Promise<void> {
+  await ensureSchema()
+  await db.execute({
+    sql: 'INSERT INTO terminal_chunks (session_id, sequence, content) VALUES (?, ?, ?)',
+    args: [sessionId, sequence, content],
+  })
+}
+
+export async function getTerminalChunks(
+  sessionId: string,
+  fromSequence: number = 0
+): Promise<TerminalChunk[]> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT * FROM terminal_chunks WHERE session_id = ? AND sequence > ? ORDER BY sequence ASC',
+    args: [sessionId, fromSequence],
+  })
+  return result.rows as unknown as TerminalChunk[]
+}
+
+export async function getAllTerminalChunks(sessionId: string): Promise<TerminalChunk[]> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT * FROM terminal_chunks WHERE session_id = ? ORDER BY sequence ASC',
+    args: [sessionId],
+  })
+  return result.rows as unknown as TerminalChunk[]
+}
+
+export async function getTerminalChunkCount(sessionId: string): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT COUNT(*) as count FROM terminal_chunks WHERE session_id = ?',
+    args: [sessionId],
+  })
+  return (result.rows[0] as unknown as { count: number }).count
+}
+
+export async function getLatestChunkSequence(sessionId: string): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT MAX(sequence) as max_seq FROM terminal_chunks WHERE session_id = ?',
+    args: [sessionId],
+  })
+  const maxSeq = (result.rows[0] as unknown as { max_seq: number | null }).max_seq
+  return maxSeq ?? -1
+}
+
+export async function cleanupOldTerminalSessions(keepCount: number = 20): Promise<number> {
+  await ensureSchema()
+  // Get IDs of sessions to keep (most recent N)
+  const keepResult = await db.execute({
+    sql: 'SELECT id FROM terminal_sessions ORDER BY started_at DESC LIMIT ?',
+    args: [keepCount],
+  })
+  const keepIds = keepResult.rows.map((row) => (row as unknown as { id: string }).id)
+
+  if (keepIds.length === 0) return 0
+
+  // Delete chunks from old sessions
+  const placeholders = keepIds.map(() => '?').join(',')
+  await db.execute({
+    sql: `DELETE FROM terminal_chunks WHERE session_id NOT IN (${placeholders})`,
+    args: keepIds,
+  })
+
+  // Delete old sessions
+  const result = await db.execute({
+    sql: `DELETE FROM terminal_sessions WHERE id NOT IN (${placeholders})`,
+    args: keepIds,
+  })
+
+  return result.rowsAffected
 }
 
 export default db

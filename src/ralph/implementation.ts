@@ -1,6 +1,20 @@
 import { spawn } from 'child_process'
 import { log, printImplementing, printResult, printVercelStatus, printRefreshPrompt } from './ui'
 import type { Suggestion, ImplementationResult } from './types'
+import { StreamBuffer } from './stream-buffer'
+import { TerminalClient } from './terminal-client'
+import { getRalphConfig } from './config'
+
+// Global terminal client instance
+let terminalClient: TerminalClient | null = null
+
+function getTerminalClient(): TerminalClient {
+  if (!terminalClient) {
+    const config = getRalphConfig()
+    terminalClient = new TerminalClient(config)
+  }
+  return terminalClient
+}
 
 export async function implementSuggestion(
   suggestion: Suggestion,
@@ -12,13 +26,35 @@ export async function implementSuggestion(
 
   const prompt = buildImplementationPrompt(suggestion)
 
+  // Start terminal streaming session
+  let sessionId: string | null = null
+  const client = getTerminalClient()
+
+  try {
+    sessionId = await client.startSession(suggestion.id)
+    log(`Terminal session started: ${sessionId.slice(0, 8)}...`, 'info')
+  } catch (error) {
+    log(`Failed to start terminal session: ${error}`, 'warn')
+    // Continue without streaming - don't fail the whole implementation
+  }
+
   try {
     // Run Claude Code with the implementation prompt (interactive mode)
-    const result = await runClaude(prompt, projectDir)
+    const result = await runClaude(prompt, projectDir, sessionId, client)
 
     if (result.success) {
       const commitHash = await getLatestCommitHash(projectDir)
       printResult(true, result.aiNote || 'Implementation completed successfully')
+
+      // End terminal session with success
+      if (sessionId) {
+        try {
+          await client.endSession(sessionId, 'completed')
+          log(`Terminal session ended: completed`, 'info')
+        } catch (error) {
+          log(`Failed to end terminal session: ${error}`, 'warn')
+        }
+      }
 
       // Watch Vercel deployment
       log('Watching Vercel deployment...', 'info')
@@ -37,6 +73,16 @@ export async function implementSuggestion(
       }
     } else {
       printResult(false, result.aiNote || result.error || 'Implementation failed')
+
+      // End terminal session with appropriate status
+      if (sessionId) {
+        try {
+          await client.endSession(sessionId, result.denied || result.needsInput ? 'completed' : 'failed')
+          log(`Terminal session ended`, 'info')
+        } catch (error) {
+          log(`Failed to end terminal session: ${error}`, 'warn')
+        }
+      }
 
       // Determine the status based on result flags
       let status: 'denied' | 'needs_input' | 'failed' = 'failed'
@@ -58,6 +104,16 @@ export async function implementSuggestion(
     const errorMsg = error instanceof Error ? error.message : String(error)
     log(`Implementation error: ${errorMsg}`, 'error')
     printResult(false, `Error: ${errorMsg}`)
+
+    // End terminal session with failure
+    if (sessionId) {
+      try {
+        await client.endSession(sessionId, 'failed')
+      } catch {
+        // Ignore errors ending session
+      }
+    }
+
     return {
       success: false,
       suggestionId: suggestion.id,
@@ -104,7 +160,9 @@ IMPORTANT: Output the JSON result on a single line at the end.`
 
 async function runClaude(
   prompt: string,
-  cwd: string
+  cwd: string,
+  sessionId: string | null,
+  client: TerminalClient
 ): Promise<{
   success: boolean
   denied?: boolean
@@ -125,23 +183,43 @@ async function runClaude(
 
     let output = ''
 
-    // Stream stdout to terminal in real-time
+    // Create stream buffer for sending output to API (if session exists)
+    let streamBuffer: StreamBuffer | null = null
+    if (sessionId) {
+      streamBuffer = new StreamBuffer(async (sequence, content) => {
+        try {
+          await client.pushChunk(sessionId, sequence, content)
+        } catch (error) {
+          // Log but continue - streaming failures shouldn't stop implementation
+          console.error('Failed to push chunk:', error)
+        }
+      })
+    }
+
+    // Stream stdout to terminal in real-time and to stream buffer
     claude.stdout?.on('data', (data: Buffer) => {
       const text = data.toString()
       process.stdout.write(text)
       output += text
+      streamBuffer?.write(data)
     })
 
-    // Stream stderr to terminal in real-time
+    // Stream stderr to terminal in real-time and to stream buffer
     claude.stderr?.on('data', (data: Buffer) => {
       const text = data.toString()
       process.stderr.write(text)
       output += text
+      streamBuffer?.write(data)
     })
 
-    claude.on('close', (exitCode) => {
+    claude.on('close', async (exitCode) => {
       console.log() // Add spacing after Claude output
       log('Claude Code finished', 'info')
+
+      // Close stream buffer to flush remaining content
+      if (streamBuffer) {
+        await streamBuffer.close()
+      }
 
       // Try to parse JSON result from output
       const jsonMatch = output.match(/\{"success":\s*(true|false)[^}]*\}/)
@@ -175,8 +253,11 @@ async function runClaude(
       })
     })
 
-    claude.on('error', (err) => {
+    claude.on('error', async (err) => {
       log(`Failed to spawn Claude: ${err.message}`, 'error')
+      if (streamBuffer) {
+        await streamBuffer.close()
+      }
       resolve({
         success: false,
         error: `Failed to spawn Claude: ${err.message}`,

@@ -1,11 +1,11 @@
 'use client'
 
 /**
- * NanoBanana - Generates consistent, unique mini icons for each suggestion
+ * SimpleIcon - Generates consistent, unique minimal icons for each suggestion
  * Uses a deterministic hash of the content to create visually distinct icons
  */
 
-interface NanoBananaProps {
+interface SimpleIconProps {
   seed: string
   size?: number
   className?: string
@@ -22,108 +22,89 @@ function hashString(str: string): number {
   return Math.abs(hash)
 }
 
-// Generate a seeded random number
-function seededRandom(seed: number, index: number): number {
-  const x = Math.sin(seed + index * 9999) * 10000
-  return x - Math.floor(x)
-}
-
-// Color palette - vibrant but harmonious
+// Muted, simple color palette
 const COLORS = [
-  '#FFD93D', // Yellow (banana!)
-  '#6BCB77', // Green
-  '#4D96FF', // Blue
-  '#FF6B6B', // Coral
-  '#C9B1FF', // Lavender
-  '#FF9F45', // Orange
-  '#00D9FF', // Cyan
-  '#FF85B3', // Pink
+  '#6b7280', // Gray
+  '#3b82f6', // Blue
+  '#10b981', // Green
+  '#8b5cf6', // Purple
+  '#f59e0b', // Amber
+  '#ef4444', // Red
+  '#06b6d4', // Cyan
+  '#ec4899', // Pink
 ]
 
-// Shape types
-type ShapeType = 'circle' | 'square' | 'triangle' | 'diamond' | 'crescent'
-
-const SHAPES: ShapeType[] = ['circle', 'square', 'triangle', 'diamond', 'crescent']
-
-export default function NanoBanana({ seed, size = 24, className = '' }: NanoBananaProps) {
+export default function NanoBanana({ seed, size = 24, className = '' }: SimpleIconProps) {
   const hash = hashString(seed)
 
   // Generate deterministic properties from hash
-  const bgColorIndex = hash % COLORS.length
-  const fgColorIndex = (hash * 7) % COLORS.length
-  const shapeIndex = (hash * 3) % SHAPES.length
-  const rotation = seededRandom(hash, 1) * 360
-  const hasSecondShape = seededRandom(hash, 2) > 0.5
-  const secondShapeIndex = (hash * 5) % SHAPES.length
-  const patternType = hash % 4 // 0: solid, 1: split, 2: corner, 3: center
+  const colorIndex = hash % COLORS.length
+  const patternType = (hash >> 4) % 6 // 6 simple patterns
+  const color = COLORS[colorIndex]
 
-  const bgColor = COLORS[bgColorIndex]
-  const fgColor = COLORS[fgColorIndex === bgColorIndex ? (fgColorIndex + 1) % COLORS.length : fgColorIndex]
-  const shape = SHAPES[shapeIndex]
-  const secondShape = SHAPES[secondShapeIndex]
+  const viewBox = 24
+  const center = viewBox / 2
+  const strokeWidth = 2
 
-  const renderShape = (shapeType: ShapeType, x: number, y: number, shapeSize: number, color: string, rot: number = 0) => {
-    const transform = `rotate(${rot} ${x} ${y})`
-
-    switch (shapeType) {
-      case 'circle':
+  const renderPattern = () => {
+    switch (patternType) {
+      case 0: // Circle
         return (
           <circle
-            cx={x}
-            cy={y}
-            r={shapeSize / 2}
-            fill={color}
-            transform={transform}
+            cx={center}
+            cy={center}
+            r={8}
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
           />
         )
-      case 'square':
+      case 1: // Square
         return (
           <rect
-            x={x - shapeSize / 2}
-            y={y - shapeSize / 2}
-            width={shapeSize}
-            height={shapeSize}
-            fill={color}
-            transform={transform}
+            x={4}
+            y={4}
+            width={16}
+            height={16}
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            rx={2}
           />
         )
-      case 'triangle':
-        const triPoints = [
-          [x, y - shapeSize / 2],
-          [x - shapeSize / 2, y + shapeSize / 2],
-          [x + shapeSize / 2, y + shapeSize / 2],
-        ].map(p => p.join(',')).join(' ')
+      case 2: // Diamond
         return (
           <polygon
-            points={triPoints}
-            fill={color}
-            transform={transform}
+            points="12,3 21,12 12,21 3,12"
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
           />
         )
-      case 'diamond':
-        const diamondPoints = [
-          [x, y - shapeSize / 2],
-          [x + shapeSize / 2, y],
-          [x, y + shapeSize / 2],
-          [x - shapeSize / 2, y],
-        ].map(p => p.join(',')).join(' ')
+      case 3: // Triangle
         return (
           <polygon
-            points={diamondPoints}
-            fill={color}
-            transform={transform}
+            points="12,4 20,20 4,20"
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinejoin="round"
           />
         )
-      case 'crescent':
-        // A banana-like crescent shape
+      case 4: // Hexagon
         return (
-          <g transform={transform}>
-            <path
-              d={`M ${x - shapeSize/3} ${y - shapeSize/2}
-                  Q ${x + shapeSize/2} ${y} ${x - shapeSize/3} ${y + shapeSize/2}
-                  Q ${x} ${y} ${x - shapeSize/3} ${y - shapeSize/2}`}
-              fill={color}
-            />
+          <polygon
+            points="12,3 20,7 20,17 12,21 4,17 4,7"
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
+          />
+        )
+      case 5: // Plus/Cross
+        return (
+          <g stroke={color} strokeWidth={strokeWidth} strokeLinecap="round">
+            <line x1={center} y1={5} x2={center} y2={19} />
+            <line x1={5} y1={center} x2={19} y2={center} />
           </g>
         )
       default:
@@ -131,42 +112,15 @@ export default function NanoBanana({ seed, size = 24, className = '' }: NanoBana
     }
   }
 
-  const viewBox = 24
-  const center = viewBox / 2
-
   return (
     <svg
       width={size}
       height={size}
       viewBox={`0 0 ${viewBox} ${viewBox}`}
-      className={`rounded-sm ${className}`}
-      style={{ backgroundColor: bgColor }}
+      className={className}
+      aria-hidden="true"
     >
-      {/* Background pattern */}
-      {patternType === 1 && (
-        <rect x={0} y={0} width={viewBox / 2} height={viewBox} fill={fgColor} opacity={0.3} />
-      )}
-      {patternType === 2 && (
-        <polygon points={`0,0 ${viewBox},0 0,${viewBox}`} fill={fgColor} opacity={0.3} />
-      )}
-      {patternType === 3 && (
-        <circle cx={center} cy={center} r={viewBox / 3} fill={fgColor} opacity={0.2} />
-      )}
-
-      {/* Main shape */}
-      {renderShape(shape, center, center, viewBox * 0.5, fgColor, rotation)}
-
-      {/* Secondary shape (if enabled) */}
-      {hasSecondShape && secondShape !== shape && (
-        renderShape(
-          secondShape,
-          center,
-          center,
-          viewBox * 0.25,
-          bgColor,
-          rotation + 45
-        )
-      )}
+      {renderPattern()}
     </svg>
   )
 }

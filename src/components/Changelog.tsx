@@ -89,8 +89,8 @@ export default function Changelog() {
               <div className="flex items-start gap-3 flex-1 min-w-0">
                 <NanoBanana
                   seed={entry.suggestion_content}
-                  size={28}
-                  className="flex-shrink-0 mt-0.5"
+                  size={24}
+                  className="flex-shrink-0 mt-0.5 opacity-60"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground break-words">

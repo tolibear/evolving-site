@@ -11,7 +11,7 @@
     </array>
 
     <key>StartInterval</key>
-    <integer>900</integer>
+    <integer>300</integer>
 
     <key>WorkingDirectory</key>
     <string>/Users/toli/Ralph</string>
@@ -19,7 +19,7 @@
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+        <string>/Users/toli/.local/bin:/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
     </dict>
 
     <key>StandardOutPath</key>

@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:verify": "next build && echo '✓ Build successful'",
+    "build:push": "git push origin master && echo '✓ Pushed to production'",
     "start": "next start",
     "lint": "next lint",
     "db:init": "node scripts/init-db.js"

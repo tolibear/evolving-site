@@ -4,6 +4,7 @@ import { getRalphConfig, validateConfig } from './config'
 import { RalphApiClient } from './api-client'
 import { implementSuggestion, gitPull } from './implementation'
 import { printBanner, printStatus, printHelp, log, clearLine, printCountdown } from './ui'
+import { initializeStream, closeStream } from './stream-manager'
 
 // Parse command line arguments
 const args = process.argv.slice(2)
@@ -131,12 +132,20 @@ async function main(): Promise<void> {
 
       log(`Found suggestion #${suggestion.id} with ${suggestion.votes} votes`, 'success')
 
+      // Initialize terminal streaming session BEFORE any implementation work
+      // This ensures all output (git pull, implementation, etc.) is streamed
+      const sessionId = await initializeStream(suggestion.id)
+      if (sessionId) {
+        log(`Terminal streaming started: ${sessionId.slice(0, 8)}...`, 'info')
+      }
+
       // Git pull latest changes first
       try {
         await gitPull(config.projectDir)
       } catch (err) {
         log(`Git pull failed: ${err instanceof Error ? err.message : err}`, 'error')
         log('Switching to manual mode...', 'warn')
+        await closeStream('failed')  // Close stream on failure
         await client.updateStatus({ automationMode: 'manual' })
         const shouldContinue = await sleepWithCountdown(60 * 1000, client)
         if (!shouldContinue) break
@@ -150,7 +159,7 @@ async function main(): Promise<void> {
         currentSuggestionId: suggestion.id,
       })
 
-      // Implement the suggestion
+      // Implement the suggestion (stream will be closed inside implementSuggestion)
       const result = await implementSuggestion(suggestion, config.projectDir)
 
       // Finalize the result

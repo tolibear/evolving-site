@@ -1,5 +1,7 @@
 // Terminal UI utilities for Ralph
 
+import { writeToStream } from './stream-manager'
+
 // ANSI color codes for cross-platform terminal output
 const colors = {
   reset: '\x1b[0m',
@@ -14,7 +16,7 @@ const colors = {
 }
 
 export function printBanner(): void {
-  console.log(`
+  const banner = `
 ${colors.cyan}${colors.bright}
   ╔═══════════════════════════════════════════════════════╗
   ║                                                       ║
@@ -27,7 +29,9 @@ ${colors.cyan}${colors.bright}
   ║                                                       ║
   ║        Evolving Site Implementation Agent             ║
   ╚═══════════════════════════════════════════════════════╝
-${colors.reset}`)
+${colors.reset}`
+  console.log(banner)
+  writeToStream(banner + '\n')
 }
 
 export function log(
@@ -41,7 +45,9 @@ export function log(
     warn: `${colors.yellow}[${timestamp}] ⚠${colors.reset}`,
     error: `${colors.red}[${timestamp}] ✗${colors.reset}`,
   }
-  console.log(`${prefixes[level]} ${msg}`)
+  const line = `${prefixes[level]} ${msg}`
+  console.log(line)
+  writeToStream(line + '\n')
 }
 
 export function printStatus(
@@ -50,13 +56,18 @@ export function printStatus(
   nextRun?: Date
 ): void {
   const modeColor = mode === 'automated' ? colors.green : colors.yellow
-  console.log(`\n${colors.bright}Status:${colors.reset}`)
-  console.log(`  Mode: ${modeColor}${mode.toUpperCase()}${colors.reset}`)
-  console.log(`  Interval: ${interval} minutes`)
+  const lines = [
+    `\n${colors.bright}Status:${colors.reset}`,
+    `  Mode: ${modeColor}${mode.toUpperCase()}${colors.reset}`,
+    `  Interval: ${interval} minutes`,
+  ]
   if (nextRun) {
-    console.log(`  Next check: ${nextRun.toLocaleTimeString()}`)
+    lines.push(`  Next check: ${nextRun.toLocaleTimeString()}`)
   }
-  console.log()
+  lines.push('')
+  const output = lines.join('\n')
+  console.log(output)
+  writeToStream(output + '\n')
 }
 
 export function printHelp(): void {
@@ -88,17 +99,20 @@ export function printCountdown(remaining: number): void {
 
 export function printImplementing(content: string): void {
   const truncated = content.length > 60 ? content.slice(0, 57) + '...' : content
-  console.log(`\n${colors.bright}${colors.blue}═══ IMPLEMENTING ═══${colors.reset}`)
-  console.log(`${colors.cyan}${truncated}${colors.reset}\n`)
+  const output = `\n${colors.bright}${colors.blue}═══ IMPLEMENTING ═══${colors.reset}\n${colors.cyan}${truncated}${colors.reset}\n`
+  console.log(output)
+  writeToStream(output + '\n')
 }
 
 export function printResult(success: boolean, aiNote: string): void {
+  let output: string
   if (success) {
-    console.log(`\n${colors.green}${colors.bright}═══ SUCCESS ═══${colors.reset}`)
+    output = `\n${colors.green}${colors.bright}═══ SUCCESS ═══${colors.reset}\n${colors.dim}${aiNote}${colors.reset}\n`
   } else {
-    console.log(`\n${colors.yellow}${colors.bright}═══ COMPLETED ═══${colors.reset}`)
+    output = `\n${colors.yellow}${colors.bright}═══ COMPLETED ═══${colors.reset}\n${colors.dim}${aiNote}${colors.reset}\n`
   }
-  console.log(`${colors.dim}${aiNote}${colors.reset}\n`)
+  console.log(output)
+  writeToStream(output + '\n')
 }
 
 export function printVercelStatus(state: string, url: string): void {
@@ -110,24 +124,32 @@ export function printVercelStatus(state: string, url: string): void {
   }
   const color = stateColors[state] || colors.dim
 
+  let output: string
   if (state === 'BUILDING') {
-    process.stdout.write(`\r${colors.cyan}▶ Vercel:${colors.reset} ${color}Building...${colors.reset}   `)
+    output = `\r${colors.cyan}▶ Vercel:${colors.reset} ${color}Building...${colors.reset}   `
+    process.stdout.write(output)
+    writeToStream(output)
   } else if (state === 'READY') {
-    console.log(`\r${colors.cyan}▶ Vercel:${colors.reset} ${color}Deployed!${colors.reset}     `)
-    console.log(`  ${colors.dim}${url}${colors.reset}`)
+    output = `\r${colors.cyan}▶ Vercel:${colors.reset} ${color}Deployed!${colors.reset}     \n  ${colors.dim}${url}${colors.reset}`
+    console.log(output)
+    writeToStream(output + '\n')
   } else {
-    console.log(`\r${colors.cyan}▶ Vercel:${colors.reset} ${color}${state}${colors.reset}`)
+    output = `\r${colors.cyan}▶ Vercel:${colors.reset} ${color}${state}${colors.reset}`
+    console.log(output)
+    writeToStream(output + '\n')
   }
 }
 
 export function printRefreshPrompt(): void {
-  console.log()
-  console.log(`${colors.bright}${colors.green}╔═══════════════════════════════════════════════════════╗${colors.reset}`)
-  console.log(`${colors.bright}${colors.green}║                                                       ║${colors.reset}`)
-  console.log(`${colors.bright}${colors.green}║   🎉  FEATURE DEPLOYED!  Refresh the site to see it  ║${colors.reset}`)
-  console.log(`${colors.bright}${colors.green}║                                                       ║${colors.reset}`)
-  console.log(`${colors.bright}${colors.green}║   https://evolving-site.vercel.app                   ║${colors.reset}`)
-  console.log(`${colors.bright}${colors.green}║                                                       ║${colors.reset}`)
-  console.log(`${colors.bright}${colors.green}╚═══════════════════════════════════════════════════════╝${colors.reset}`)
-  console.log()
+  const output = `
+${colors.bright}${colors.green}╔═══════════════════════════════════════════════════════╗${colors.reset}
+${colors.bright}${colors.green}║                                                       ║${colors.reset}
+${colors.bright}${colors.green}║   🎉  FEATURE DEPLOYED!  Refresh the site to see it  ║${colors.reset}
+${colors.bright}${colors.green}║                                                       ║${colors.reset}
+${colors.bright}${colors.green}║   https://evolving-site.vercel.app                   ║${colors.reset}
+${colors.bright}${colors.green}║                                                       ║${colors.reset}
+${colors.bright}${colors.green}╚═══════════════════════════════════════════════════════╝${colors.reset}
+`
+  console.log(output)
+  writeToStream(output + '\n')
 }

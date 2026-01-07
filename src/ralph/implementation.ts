@@ -170,8 +170,10 @@ async function runClaude(
     const claudePath = process.env.CLAUDE_PATH || '/Users/toli/.local/bin/claude'
 
     // Use stream-json format to get ALL events (tool calls, edits, etc.)
+    // IMPORTANT: -p is a boolean flag (--print), NOT -p <prompt>
+    // The prompt must be piped via stdin
     const claude = spawn(claudePath, [
-      '-p', prompt,
+      '-p',
       '--output-format', 'stream-json',
       '--verbose',
       '--include-partial-messages',
@@ -181,6 +183,10 @@ async function runClaude(
       env: process.env,
       stdio: ['pipe', 'pipe', 'pipe'],
     })
+
+    // Pipe prompt via stdin (safer for long prompts than command-line args)
+    claude.stdin?.write(prompt)
+    claude.stdin?.end()
 
     let fullOutput = ''
     let currentText = ''

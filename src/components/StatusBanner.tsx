@@ -33,6 +33,7 @@ export default function StatusBanner() {
   const [countdown, setCountdown] = useState('')
   const [showRefreshPrompt, setShowRefreshPrompt] = useState(false)
   const [lastState, setLastState] = useState<string>('')
+  const [elapsedTime, setElapsedTime] = useState(0)
 
   const intervalMinutes = status?.interval_minutes || 10
 
@@ -48,6 +49,22 @@ export default function StatusBanner() {
       setLastState(status.state)
     }
   }, [status?.state, lastState])
+
+  // Track elapsed time when working or deploying
+  useEffect(() => {
+    if (status?.state === 'working' || status?.state === 'deploying') {
+      const startTime = new Date(status.updated_at).getTime()
+      const updateElapsed = () => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000)
+        setElapsedTime(elapsed)
+      }
+      updateElapsed()
+      const interval = setInterval(updateElapsed, 1000)
+      return () => clearInterval(interval)
+    } else {
+      setElapsedTime(0)
+    }
+  }, [status?.state, status?.updated_at])
 
   // Live countdown synced with server
   useEffect(() => {
@@ -95,50 +112,51 @@ export default function StatusBanner() {
     return null // Silently fail - not critical
   }
 
-  const getStateColor = (state: string) => {
-    switch (state) {
-      case 'working':
-        return 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200'
-      case 'deploying':
-        return 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200'
-      case 'completed':
-        return 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700 text-green-800 dark:text-green-200'
-      default:
-        return 'bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300'
+  const formatElapsedTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    if (mins > 0) {
+      return `${mins}m ${secs}s`
     }
-  }
-
-  const getStateIcon = (state: string) => {
-    switch (state) {
-      case 'working':
-        return (
-          <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
-          </span>
-        )
-      case 'deploying':
-        return (
-          <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-          </span>
-        )
-      case 'completed':
-        return (
-          <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-        )
-      default:
-        return (
-          <span className="inline-flex rounded-full h-3 w-3 bg-neutral-300 dark:bg-neutral-500 pulse-dot"></span>
-        )
-    }
+    return `${secs}s`
   }
 
   const isAutomated = status?.automation_mode === 'automated'
+  const isActive = status?.state === 'working' || status?.state === 'deploying'
+  const isCompleted = status?.state === 'completed'
 
+  // When idle, show minimal inline status
+  if (!isActive && !isCompleted) {
+    return (
+      <div className="flex items-center justify-between mb-4 px-1">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex rounded-full h-2 w-2 bg-neutral-300 dark:bg-neutral-500 animate-pulse"></span>
+          <span className="text-xs text-muted">
+            {status?.message || 'Awaiting next suggestion...'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+              isAutomated
+                ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300'
+                : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
+            }`}
+            title={isAutomated ? 'Autonomous mode: implementing automatically' : 'Manual mode: owner approval required'}
+          >
+            {isAutomated ? 'AUTO' : 'MANUAL'}
+          </span>
+          {isAutomated && countdown && (
+            <span className="text-xs text-muted">
+              {countdown}
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Active implementation or just completed - show prominent card
   return (
     <>
       {/* Refresh prompt overlay */}
@@ -163,32 +181,124 @@ export default function StatusBanner() {
         </div>
       )}
 
-      {/* Status banner */}
-      <div className={`rounded-lg border px-4 py-3 mb-8 flex items-center gap-3 ${getStateColor(status?.state || 'idle')}`}>
-        {getStateIcon(status?.state || 'idle')}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">
-            {status?.message || 'Loading status...'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-              isAutomated
-                ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300'
-                : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
+      {/* Active implementation card - replaces the form area */}
+      <div className={`card mb-8 overflow-hidden ${
+        status?.state === 'working'
+          ? 'border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/20'
+          : status?.state === 'deploying'
+            ? 'border-2 border-blue-400 dark:border-blue-500 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/20'
+            : 'border-2 border-green-400 dark:border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/20'
+      }`}>
+        {/* Progress bar */}
+        <div className="h-1 bg-neutral-200 dark:bg-neutral-700">
+          <div
+            className={`h-full transition-all duration-1000 ${
+              status?.state === 'working'
+                ? 'bg-amber-500 animate-progress-working'
+                : status?.state === 'deploying'
+                  ? 'bg-blue-500 animate-progress-deploying'
+                  : 'bg-green-500 w-full'
             }`}
-            title={isAutomated ? 'Autonomous mode: implementing automatically' : 'Manual mode: owner approval required'}
-          >
-            {isAutomated ? 'AUTO' : 'MANUAL'}
-          </span>
-          {isAutomated && countdown && status?.state === 'idle' && (
-            <span className="text-xs opacity-60">
-              {countdown}
+          />
+        </div>
+
+        <div className="p-6">
+          {/* Status header */}
+          <div className="flex items-center gap-3 mb-4">
+            {status?.state === 'working' && (
+              <>
+                <span className="relative flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-500"></span>
+                </span>
+                <span className="text-lg font-semibold text-amber-700 dark:text-amber-300">Claude is working...</span>
+              </>
+            )}
+            {status?.state === 'deploying' && (
+              <>
+                <span className="relative flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-blue-500"></span>
+                </span>
+                <span className="text-lg font-semibold text-blue-700 dark:text-blue-300">Deploying to Vercel...</span>
+              </>
+            )}
+            {status?.state === 'completed' && (
+              <>
+                <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-lg font-semibold text-green-700 dark:text-green-300">Feature Deployed!</span>
+              </>
+            )}
+            <span className="ml-auto text-sm text-muted">
+              {elapsedTime > 0 && formatElapsedTime(elapsedTime)}
             </span>
-          )}
+          </div>
+
+          {/* Status message */}
+          <p className="text-sm mb-4">
+            {status?.message || 'Processing...'}
+          </p>
+
+          {/* Phase indicators */}
+          <div className="flex items-center gap-2 text-xs">
+            <PhaseIndicator
+              label="Starting"
+              active={status?.state === 'working' && elapsedTime < 5}
+              completed={status?.state === 'working' && elapsedTime >= 5 || status?.state === 'deploying' || status?.state === 'completed'}
+            />
+            <PhaseConnector completed={status?.state === 'working' && elapsedTime >= 5 || status?.state === 'deploying' || status?.state === 'completed'} />
+            <PhaseIndicator
+              label="Implementing"
+              active={status?.state === 'working' && elapsedTime >= 5}
+              completed={status?.state === 'deploying' || status?.state === 'completed'}
+            />
+            <PhaseConnector completed={status?.state === 'deploying' || status?.state === 'completed'} />
+            <PhaseIndicator
+              label="Deploying"
+              active={status?.state === 'deploying'}
+              completed={status?.state === 'completed'}
+            />
+            <PhaseConnector completed={status?.state === 'completed'} />
+            <PhaseIndicator
+              label="Done"
+              active={status?.state === 'completed'}
+              completed={false}
+            />
+          </div>
         </div>
       </div>
     </>
+  )
+}
+
+function PhaseIndicator({ label, active, completed }: { label: string; active: boolean; completed: boolean }) {
+  return (
+    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full transition-all ${
+      active
+        ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 font-medium'
+        : completed
+          ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300'
+          : 'bg-neutral-100 dark:bg-neutral-800 text-muted'
+    }`}>
+      {completed && (
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
+      )}
+      {active && !completed && (
+        <span className="w-2 h-2 rounded-full bg-current animate-pulse"></span>
+      )}
+      {label}
+    </div>
+  )
+}
+
+function PhaseConnector({ completed }: { completed: boolean }) {
+  return (
+    <div className={`w-4 h-0.5 transition-colors ${
+      completed ? 'bg-green-400 dark:bg-green-600' : 'bg-neutral-200 dark:bg-neutral-700'
+    }`} />
   )
 }

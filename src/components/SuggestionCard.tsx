@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import useSWR, { mutate } from 'swr'
 import VoteButton from './VoteButton'
+import ExpediteButton from './ExpediteButton'
 
 interface Comment {
   id: number
@@ -26,6 +27,7 @@ interface SuggestionCardProps {
   author?: string | null
   isOwner?: boolean
   userVoteType?: 'up' | 'down' | null
+  isExpedited?: boolean
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -39,7 +41,8 @@ export default function SuggestionCard({
   commentCount = 0,
   author,
   isOwner = false,
-  userVoteType = null
+  userVoteType = null,
+  isExpedited = false
 }: SuggestionCardProps) {
   const [showComments, setShowComments] = useState(false)
   const [commentText, setCommentText] = useState('')
@@ -157,13 +160,18 @@ export default function SuggestionCard({
             </div>
           )}
           <p className="text-foreground break-words">{content}</p>
-          <div className="flex items-center gap-3 mt-2">
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
             {author === 'ralph' && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200">
                 <img src="/ralph-avatar.svg" alt="" className="w-4 h-4" />
                 Ralph
               </span>
             )}
+            <ExpediteButton
+              suggestionId={id}
+              isExpedited={isExpedited}
+              disabled={isInProgress}
+            />
             <span className="text-xs text-muted">
               {formatDate(createdAt)}
             </span>

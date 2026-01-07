@@ -157,6 +157,22 @@ body {
   animation: wiggle 0.5s ease-in-out;
 }
 
+/* Fade in animation for success messages */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
 /* Brown mode overrides for common dark: variants */
 .brown .bg-neutral-100 { @apply bg-amber-900/50; }
 .brown .bg-neutral-200 { @apply bg-amber-800/50; }

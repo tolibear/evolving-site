@@ -13,6 +13,7 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
   const [isVoting, setIsVoting] = useState(false)
   const [voteType, setVoteType] = useState<'up' | 'down' | null>(initialVoteType)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
   const [isWiggling, setIsWiggling] = useState(false)
 
   // Update vote type when initialVoteType changes
@@ -51,6 +52,9 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
       setVoteType(data.voteType)
       // Trigger wiggle animation to indicate vote receipt
       setIsWiggling(true)
+      // Show success feedback briefly
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 1500)
       // Refresh suggestions to update vote counts and vote allowance
       mutate('/api/suggestions')
       mutate('/api/vote-allowance')
@@ -77,13 +81,15 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
           }
           active:scale-95 disabled:cursor-not-allowed
         `}
-        title={voteType === 'up' ? 'Click to remove upvote' : 'Upvote'}
+        aria-label={voteType === 'up' ? 'Remove upvote' : 'Upvote this suggestion'}
+        aria-pressed={voteType === 'up'}
       >
         <svg
           className={`w-5 h-5 ${isVoting ? 'animate-pulse' : ''} ${isWiggling && voteType === 'up' ? 'animate-wiggle' : ''}`}
           fill={voteType === 'up' ? 'currentColor' : 'none'}
           stroke="currentColor"
           viewBox="0 0 24 24"
+          aria-hidden="true"
         >
           <path
             strokeLinecap="round"
@@ -112,13 +118,15 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
           }
           active:scale-95 disabled:cursor-not-allowed
         `}
-        title={voteType === 'down' ? 'Click to remove downvote' : 'Downvote'}
+        aria-label={voteType === 'down' ? 'Remove downvote' : 'Downvote this suggestion'}
+        aria-pressed={voteType === 'down'}
       >
         <svg
           className={`w-5 h-5 ${isVoting ? 'animate-pulse' : ''} ${isWiggling && voteType === 'down' ? 'animate-wiggle' : ''}`}
           fill={voteType === 'down' ? 'currentColor' : 'none'}
           stroke="currentColor"
           viewBox="0 0 24 24"
+          aria-hidden="true"
         >
           <path
             strokeLinecap="round"
@@ -129,8 +137,14 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
         </svg>
       </button>
 
+      {success && (
+        <span className="text-xs text-green-600 dark:text-green-400 mt-1 animate-fade-in" role="status">
+          Voted!
+        </span>
+      )}
+
       {error && (
-        <span className="text-xs text-red-500 mt-1 max-w-[80px] text-center">{error}</span>
+        <span className="text-xs text-red-500 mt-1 max-w-[80px] text-center" role="alert">{error}</span>
       )}
     </div>
   )

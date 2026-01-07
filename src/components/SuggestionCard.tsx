@@ -175,7 +175,7 @@ export default function SuggestionCard({
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             {author === 'ralph' && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200">
-                <img src="/ralph-avatar.svg" alt="" className="w-4 h-4" />
+                <img src="/ralph-avatar.svg" alt="" className="w-4 h-4" width={16} height={16} />
                 Ralph
               </span>
             )}
@@ -185,8 +185,10 @@ export default function SuggestionCard({
             <button
               onClick={() => setShowComments(!showComments)}
               className="text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
+              aria-label={showComments ? 'Hide comments' : commentCount > 0 ? `Show ${commentCount} comment${commentCount > 1 ? 's' : ''}` : 'Add a comment'}
+              aria-expanded={showComments}
             >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
               {showComments ? 'Hide' : commentCount > 0 ? `${commentCount}` : 'Comment'}
@@ -195,9 +197,9 @@ export default function SuggestionCard({
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors flex items-center gap-1"
-                title="Delete your suggestion"
+                aria-label="Delete your suggestion"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
                 Delete

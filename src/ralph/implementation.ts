@@ -102,27 +102,21 @@ async function runClaude(
     log('Starting Claude Code...', 'info')
     console.log() // Add spacing
 
-    // Spawn claude with fully inherited stdio for real-time interaction
-    // Use stdin to pass the prompt, stdout/stderr inherited for streaming
+    // Pass prompt as positional argument with full TTY inheritance
     const claude = spawn(
       'claude',
       [
+        prompt,
         '--allowedTools',
         'Bash(npm run build:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Read,Write,Edit,Glob,Grep',
       ],
       {
         cwd,
-        // Inherit all stdio for full interactive mode
-        stdio: ['pipe', 'inherit', 'inherit'],
+        // Inherit all stdio for full interactive mode with TTY
+        stdio: 'inherit',
         env: { ...process.env },
       }
     )
-
-    // Write the prompt to stdin and close it
-    if (claude.stdin) {
-      claude.stdin.write(prompt)
-      claude.stdin.end()
-    }
 
     claude.on('close', (code) => {
       console.log() // Add spacing after Claude output

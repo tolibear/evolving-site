@@ -496,32 +496,60 @@ async function getLatestCommitHash(cwd: string): Promise<string> {
   })
 }
 
-export async function gitPull(cwd: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    log('Pulling latest changes...', 'info')
-    const git = spawn('git', ['pull', '--rebase', 'origin', 'master'], {
-      cwd,
-      stdio: ['inherit', 'pipe', 'pipe'],
-    })
-
+/**
+ * Run a git command and return stdout
+ */
+async function runGitCommand(args: string[], cwd: string): Promise<{ code: number; stdout: string; stderr: string }> {
+  return new Promise((resolve) => {
+    const git = spawn('git', args, { cwd, stdio: ['inherit', 'pipe', 'pipe'] })
+    let stdout = ''
     let stderr = ''
-    git.stderr?.on('data', (data: Buffer) => {
-      stderr += data.toString()
-    })
-
-    git.on('close', (code) => {
-      if (code === 0) {
-        log('Git pull successful', 'success')
-        resolve()
-      } else {
-        reject(new Error(`git pull failed: ${stderr || `exit code ${code}`}`))
-      }
-    })
-
-    git.on('error', (err) => {
-      reject(new Error(`Failed to spawn git: ${err.message}`))
-    })
+    git.stdout?.on('data', (data: Buffer) => { stdout += data.toString() })
+    git.stderr?.on('data', (data: Buffer) => { stderr += data.toString() })
+    git.on('close', (code) => resolve({ code: code ?? 1, stdout, stderr }))
+    git.on('error', (err) => resolve({ code: 1, stdout: '', stderr: err.message }))
   })
+}
+
+export async function gitPull(cwd: string): Promise<void> {
+  log('Pulling latest changes...', 'info')
+
+  // Check if there are any local changes that need to be stashed
+  const statusResult = await runGitCommand(['status', '--porcelain'], cwd)
+  const hasLocalChanges = statusResult.stdout.trim().length > 0
+
+  if (hasLocalChanges) {
+    log('Stashing local changes before pull...', 'info')
+    const stashResult = await runGitCommand(['stash', 'push', '-m', 'ralph-auto-stash'], cwd)
+    if (stashResult.code !== 0) {
+      // If stash fails, try to reset hard (discard changes) as fallback
+      log('Stash failed, resetting local changes...', 'warn')
+      await runGitCommand(['reset', '--hard', 'HEAD'], cwd)
+      await runGitCommand(['clean', '-fd'], cwd)
+    }
+  }
+
+  // Now pull
+  const pullResult = await runGitCommand(['pull', '--rebase', 'origin', 'master'], cwd)
+
+  if (pullResult.code !== 0) {
+    // If pull still fails, try to abort rebase and force reset
+    log('Pull failed, attempting recovery...', 'warn')
+    await runGitCommand(['rebase', '--abort'], cwd)
+    await runGitCommand(['fetch', 'origin', 'master'], cwd)
+    await runGitCommand(['reset', '--hard', 'origin/master'], cwd)
+    log('Recovered by resetting to origin/master', 'info')
+  } else {
+    log('Git pull successful', 'success')
+  }
+
+  // Pop stash if we stashed earlier (ignore errors - stash might be empty)
+  if (hasLocalChanges) {
+    const popResult = await runGitCommand(['stash', 'pop'], cwd)
+    if (popResult.code === 0) {
+      log('Restored stashed changes', 'info')
+    }
+  }
 }
 
 async function watchVercelDeployment(): Promise<boolean> {

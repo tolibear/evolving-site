@@ -26,6 +26,7 @@ interface SuggestionCardProps {
   author?: string | null
   isOwner?: boolean
   userVoteType?: 'up' | 'down' | null
+  suggestionNumber?: number
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -40,6 +41,7 @@ export default function SuggestionCard({
   author,
   isOwner = false,
   userVoteType = null,
+  suggestionNumber,
 }: SuggestionCardProps) {
   const [showComments, setShowComments] = useState(false)
   const [commentText, setCommentText] = useState('')
@@ -141,7 +143,12 @@ export default function SuggestionCard({
   }
 
   return (
-    <div className={`card ${isInProgress ? 'border-2 border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-900/20' : ''}`}>
+    <div className={`card relative ${isInProgress ? 'border-2 border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-900/20' : ''}`}>
+      {suggestionNumber && (
+        <span className="absolute top-2 right-2 text-xs text-neutral-300 dark:text-neutral-600 font-mono select-none">
+          #{suggestionNumber}
+        </span>
+      )}
       <div className="flex gap-4">
         <VoteButton suggestionId={id} votes={votes} initialVoteType={userVoteType} />
         <div className="flex-1 min-w-0">

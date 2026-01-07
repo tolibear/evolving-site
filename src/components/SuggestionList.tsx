@@ -106,7 +106,7 @@ export default function SuggestionList() {
         </h2>
         <VoteAllowanceDisplay />
       </div>
-      {displayedSuggestions.map((suggestion) => (
+      {displayedSuggestions.map((suggestion, index) => (
         <SuggestionCard
           key={suggestion.id}
           id={suggestion.id}
@@ -117,6 +117,7 @@ export default function SuggestionList() {
           author={suggestion.author}
           isOwner={suggestion.isOwner}
           userVoteType={userVotes[suggestion.id] || null}
+          suggestionNumber={index + 1}
           isInProgress={
             status?.state === 'working' &&
             status?.current_suggestion_id === suggestion.id

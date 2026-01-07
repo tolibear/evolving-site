@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server'
 import { updateSuggestionStatus, addChangelogEntry, updateStatus, grantVotesToAllUsers } from '@/lib/db'
 import db from '@/lib/db'
 
-// Force dynamic - no caching (v3 - finalize suggestion #13)
+// Force dynamic - no caching (v4 - finalize suggestion #13 - timestamp: 2026-01-06T23:00)
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
 // GET /api/migrate - Run pending migrations (finalize suggestion #13: brown mode)
 export async function GET() {
@@ -28,7 +29,7 @@ export async function GET() {
       return NextResponse.json({
         success: false,
         message: `Suggestion ${suggestionId} not found`,
-        version: 'v3'
+        version: 'v4'
       })
     }
 
@@ -36,7 +37,7 @@ export async function GET() {
       return NextResponse.json({
         success: true,
         message: `Suggestion ${suggestionId} already implemented`,
-        version: 'v3'
+        version: 'v4'
       })
     }
 

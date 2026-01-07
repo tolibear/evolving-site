@@ -1,47 +1,41 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@libsql/client'
+import { updateSuggestionStatus, addChangelogEntry, updateStatus, grantVotesToAllUsers } from '@/lib/db'
 
 // Force dynamic - no caching
 export const dynamic = 'force-dynamic'
 
-const db = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
-})
-
-// GET /api/migrate - Run pending migrations
+// GET /api/migrate - Run pending migrations (finalize suggestion #13: brown mode)
 export async function GET() {
   try {
-    const aiNote = 'Added vote allowance system. New users start with 2 votes. Voting costs 1 vote, un-voting refunds it. All users receive 2 new votes when a feature is implemented.'
+    const results: string[] = []
 
-    // Check current status
-    const beforeResult = await db.execute({
-      sql: `SELECT id, status, implemented_at FROM suggestions WHERE id = 12`,
-      args: [],
-    })
-    const before = beforeResult.rows[0]
+    // Migration for suggestion #13: Brown mode
+    const suggestionId = 13
+    const content = 'In addition to light and dark mode, add brown mode'
+    const votes = 1
+    const aiNote = 'Added brown mode as a third theme option. Click the theme toggle to cycle through light, dark, and brown. Uses warm earth tones with amber/brown color palette.'
+    const commitHash = '4ec78b8'
 
-    // Update suggestion #12 to implemented if still pending
-    const updateResult = await db.execute({
-      sql: `UPDATE suggestions SET status = 'implemented', implemented_at = COALESCE(implemented_at, datetime('now')), ai_note = COALESCE(ai_note, ?) WHERE id = 12 AND status = 'pending'`,
-      args: [aiNote],
-    })
+    // Update suggestion status
+    await updateSuggestionStatus(suggestionId, 'implemented', aiNote)
+    results.push(`Updated suggestion ${suggestionId} to implemented`)
 
-    // Check after status
-    const afterResult = await db.execute({
-      sql: `SELECT id, status, implemented_at FROM suggestions WHERE id = 12`,
-      args: [],
-    })
-    const after = afterResult.rows[0]
+    // Add changelog entry
+    await addChangelogEntry(suggestionId, content, votes, commitHash, aiNote)
+    results.push('Added changelog entry')
+
+    // Grant 2 votes to all users
+    await grantVotesToAllUsers(2)
+    results.push('Granted 2 votes to all users')
+
+    // Set status back to idle
+    await updateStatus(null, 'idle', 'Awaiting next suggestion...')
+    results.push('Set status to idle')
 
     return NextResponse.json({
       success: true,
-      before,
-      after,
-      rowsAffected: updateResult.rowsAffected,
-      message: updateResult.rowsAffected > 0
-        ? 'Migration completed: suggestion #12 marked as implemented'
-        : 'No changes needed: suggestion #12 already implemented or not found'
+      message: `Suggestion ${suggestionId} finalized as implemented`,
+      results
     })
   } catch (error) {
     console.error('Migration error:', error)

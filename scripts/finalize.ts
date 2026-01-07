@@ -47,7 +47,7 @@ async function main() {
   }
 
   // Dynamic import AFTER env vars are loaded
-  const { updateSuggestionStatus, addChangelogEntry, updateStatus, grantVotesToAllUsers } = await import('../src/lib/db.js')
+  const { updateSuggestionStatus, addChangelogEntry, updateStatus, grantVotesToAllUsers, grantBonusVoteToSupporters } = await import('../src/lib/db.js')
 
   console.log(`Finalizing suggestion ${suggestionId} as ${status}...`)
 
@@ -60,9 +60,13 @@ async function main() {
     await addChangelogEntry(suggestionId, content, votes, commitHash, aiNote)
     console.log('✓ Added changelog entry')
 
-    // Grant 2 votes to all users when a feature is implemented
+    // Grant bonus vote (+1) to users who upvoted this suggestion
+    const bonusCount = await grantBonusVoteToSupporters(suggestionId)
+    console.log(`✓ Granted +1 bonus vote to ${bonusCount} supporters`)
+
+    // Reset all users' votes to 2 (the cap)
     await grantVotesToAllUsers(2)
-    console.log('✓ Granted 2 votes to all users')
+    console.log('✓ Reset all users to 2 votes')
   }
 
   // Set status back to idle

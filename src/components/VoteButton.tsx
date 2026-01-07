@@ -6,13 +6,19 @@ import { mutate } from 'swr'
 interface VoteButtonProps {
   suggestionId: number
   votes: number
+  initialVoteType?: 'up' | 'down' | null
 }
 
-export default function VoteButton({ suggestionId, votes }: VoteButtonProps) {
+export default function VoteButton({ suggestionId, votes, initialVoteType = null }: VoteButtonProps) {
   const [isVoting, setIsVoting] = useState(false)
-  const [hasVoted, setHasVoted] = useState(false)
+  const [voteType, setVoteType] = useState<'up' | 'down' | null>(initialVoteType)
   const [error, setError] = useState<string | null>(null)
   const [isWiggling, setIsWiggling] = useState(false)
+
+  // Update vote type when initialVoteType changes
+  useEffect(() => {
+    setVoteType(initialVoteType)
+  }, [initialVoteType])
 
   // Clear wiggle animation after it completes
   useEffect(() => {
@@ -22,7 +28,7 @@ export default function VoteButton({ suggestionId, votes }: VoteButtonProps) {
     }
   }, [isWiggling])
 
-  const handleVote = async () => {
+  const handleVote = async (newVoteType: 'up' | 'down') => {
     if (isVoting) return
 
     setIsVoting(true)
@@ -32,7 +38,7 @@ export default function VoteButton({ suggestionId, votes }: VoteButtonProps) {
       const response = await fetch('/api/vote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ suggestionId })
+        body: JSON.stringify({ suggestionId, voteType: newVoteType })
       })
 
       const data = await response.json()
@@ -41,8 +47,8 @@ export default function VoteButton({ suggestionId, votes }: VoteButtonProps) {
         throw new Error(data.error || 'Failed to vote')
       }
 
-      // Toggle vote state based on action
-      setHasVoted(data.action === 'added')
+      // Update vote state based on response
+      setVoteType(data.voteType)
       // Trigger wiggle animation to indicate vote receipt
       setIsWiggling(true)
       // Refresh suggestions to update vote counts and vote allowance
@@ -58,23 +64,24 @@ export default function VoteButton({ suggestionId, votes }: VoteButtonProps) {
   }
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center gap-0.5">
+      {/* Upvote button */}
       <button
-        onClick={handleVote}
+        onClick={() => handleVote('up')}
         disabled={isVoting}
         className={`
-          flex flex-col items-center justify-center p-2 rounded-lg transition-all
-          ${hasVoted
-            ? 'text-accent bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 active:scale-95'
-            : 'text-muted hover:text-accent hover:bg-blue-50 dark:hover:bg-blue-900/30 active:scale-95'
+          flex items-center justify-center p-1.5 rounded-md transition-all
+          ${voteType === 'up'
+            ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50'
+            : 'text-muted hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30'
           }
-          disabled:cursor-not-allowed
+          active:scale-95 disabled:cursor-not-allowed
         `}
-        title={hasVoted ? 'Click to remove your vote' : 'Vote for this suggestion'}
+        title={voteType === 'up' ? 'Click to remove upvote' : 'Upvote'}
       >
         <svg
-          className={`w-6 h-6 ${isVoting ? 'animate-pulse' : ''} ${isWiggling ? 'animate-wiggle' : ''}`}
-          fill={hasVoted ? 'currentColor' : 'none'}
+          className={`w-5 h-5 ${isVoting ? 'animate-pulse' : ''} ${isWiggling && voteType === 'up' ? 'animate-wiggle' : ''}`}
+          fill={voteType === 'up' ? 'currentColor' : 'none'}
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
@@ -85,10 +92,45 @@ export default function VoteButton({ suggestionId, votes }: VoteButtonProps) {
             d="M5 15l7-7 7 7"
           />
         </svg>
-        <span className="text-sm font-semibold">{votes}</span>
       </button>
+
+      {/* Vote count */}
+      <span className={`text-sm font-semibold ${
+        voteType === 'up' ? 'text-green-600 dark:text-green-400' :
+        voteType === 'down' ? 'text-red-500 dark:text-red-400' : 'text-muted'
+      }`}>{votes}</span>
+
+      {/* Downvote button */}
+      <button
+        onClick={() => handleVote('down')}
+        disabled={isVoting}
+        className={`
+          flex items-center justify-center p-1.5 rounded-md transition-all
+          ${voteType === 'down'
+            ? 'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50'
+            : 'text-muted hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30'
+          }
+          active:scale-95 disabled:cursor-not-allowed
+        `}
+        title={voteType === 'down' ? 'Click to remove downvote' : 'Downvote'}
+      >
+        <svg
+          className={`w-5 h-5 ${isVoting ? 'animate-pulse' : ''} ${isWiggling && voteType === 'down' ? 'animate-wiggle' : ''}`}
+          fill={voteType === 'down' ? 'currentColor' : 'none'}
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </button>
+
       {error && (
-        <span className="text-xs text-red-500 mt-1">{error}</span>
+        <span className="text-xs text-red-500 mt-1 max-w-[80px] text-center">{error}</span>
       )}
     </div>
   )

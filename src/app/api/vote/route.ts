@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
-import { hasVoted, addVote, removeVote, getVoteAllowance, decrementVoteAllowance, incrementVoteAllowance } from '@/lib/db'
+import { hasVoted, addVote, removeVote, getVoteAllowance, decrementVoteAllowance, incrementVoteAllowance, getVoteType, changeVote } from '@/lib/db'
 import { getClientIP, createVoterHash, checkRateLimit } from '@/lib/utils'
 import { isValidId } from '@/lib/security'
 
 // POST /api/vote - Toggle vote for a suggestion
+// Body: { suggestionId: number, voteType?: 'up' | 'down' }
 export async function POST(request: Request) {
   try {
     const ip = getClientIP(request)
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { suggestionId } = body
+    const { suggestionId, voteType = 'up' } = body
 
     // Validate suggestionId using security utility
     if (!isValidId(suggestionId)) {
@@ -32,19 +33,43 @@ export async function POST(request: Request) {
       )
     }
 
+    // Validate voteType
+    if (voteType !== 'up' && voteType !== 'down') {
+      return NextResponse.json(
+        { error: 'voteType must be "up" or "down"' },
+        { status: 400 }
+      )
+    }
+
     // Create voter hash for deduplication
     const voterHash = createVoterHash(ip, userAgent)
 
-    // Check if already voted - toggle behavior
+    // Check if already voted
     const alreadyVoted = await hasVoted(suggestionId, voterHash)
     if (alreadyVoted) {
-      // Remove the vote and refund the vote allowance
-      await removeVote(suggestionId, voterHash)
-      await incrementVoteAllowance(voterHash)
+      const currentVoteType = await getVoteType(suggestionId, voterHash)
+
+      // If clicking the same vote type, remove the vote (toggle off)
+      if (currentVoteType === voteType) {
+        await removeVote(suggestionId, voterHash)
+        await incrementVoteAllowance(voterHash)
+        const remainingVotes = await getVoteAllowance(voterHash)
+        return NextResponse.json({
+          message: 'Vote removed successfully',
+          action: 'removed',
+          voteType: null,
+          remaining: rateLimit.remaining,
+          remainingVotes
+        })
+      }
+
+      // If clicking different vote type, change the vote (no allowance cost)
+      await changeVote(suggestionId, voterHash, voteType)
       const remainingVotes = await getVoteAllowance(voterHash)
       return NextResponse.json({
-        message: 'Vote removed successfully',
-        action: 'removed',
+        message: `Vote changed to ${voteType}`,
+        action: 'changed',
+        voteType,
         remaining: rateLimit.remaining,
         remainingVotes
       })
@@ -64,12 +89,13 @@ export async function POST(request: Request) {
 
     // Decrement allowance and record the vote
     await decrementVoteAllowance(voterHash)
-    await addVote(suggestionId, voterHash)
+    await addVote(suggestionId, voterHash, voteType)
     const remainingVotes = await getVoteAllowance(voterHash)
 
     return NextResponse.json({
       message: 'Vote recorded successfully',
       action: 'added',
+      voteType,
       remaining: rateLimit.remaining,
       remainingVotes
     })

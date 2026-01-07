@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import useSWR from 'swr'
 import SuggestionCard from './SuggestionCard'
 import VoteAllowanceDisplay from './VoteAllowanceDisplay'
@@ -22,6 +22,10 @@ interface Status {
   message: string
 }
 
+interface UserVotesResponse {
+  votes: Record<number, 'up' | 'down' | null>
+}
+
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 const ITEMS_TO_SHOW = 5
@@ -39,6 +43,21 @@ export default function SuggestionList() {
     fetcher,
     { refreshInterval: 5000 }
   )
+
+  // Build the suggestionIds query parameter
+  const suggestionIdsParam = useMemo(() => {
+    if (!suggestions || suggestions.length === 0) return ''
+    return suggestions.map(s => s.id).join(',')
+  }, [suggestions])
+
+  // Fetch user votes for all suggestions
+  const { data: userVotesData } = useSWR<UserVotesResponse>(
+    suggestionIdsParam ? `/api/user-votes?suggestionIds=${suggestionIdsParam}` : null,
+    fetcher,
+    { refreshInterval: 5000 }
+  )
+
+  const userVotes = userVotesData?.votes || {}
 
   if (isLoading) {
     return (
@@ -96,6 +115,7 @@ export default function SuggestionList() {
           commentCount={suggestion.comment_count}
           author={suggestion.author}
           isOwner={suggestion.isOwner}
+          userVoteType={userVotes[suggestion.id] || null}
           isInProgress={
             status?.state === 'working' &&
             status?.current_suggestion_id === suggestion.id

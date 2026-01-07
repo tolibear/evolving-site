@@ -25,6 +25,7 @@ interface SuggestionCardProps {
   commentCount?: number
   author?: string | null
   isOwner?: boolean
+  userVoteType?: 'up' | 'down' | null
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -37,7 +38,8 @@ export default function SuggestionCard({
   isInProgress,
   commentCount = 0,
   author,
-  isOwner = false
+  isOwner = false,
+  userVoteType = null
 }: SuggestionCardProps) {
   const [showComments, setShowComments] = useState(false)
   const [commentText, setCommentText] = useState('')
@@ -141,7 +143,7 @@ export default function SuggestionCard({
   return (
     <div className={`card ${isInProgress ? 'border-2 border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-900/20' : ''}`}>
       <div className="flex gap-4">
-        <VoteButton suggestionId={id} votes={votes} />
+        <VoteButton suggestionId={id} votes={votes} initialVoteType={userVoteType} />
         <div className="flex-1 min-w-0">
           {isInProgress && (
             <div className="flex items-center gap-2 mb-2">

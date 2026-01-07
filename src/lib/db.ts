@@ -30,6 +30,7 @@ const initSchema = async () => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       suggestion_id INTEGER NOT NULL,
       voter_hash TEXT NOT NULL,
+      vote_type TEXT DEFAULT 'up',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(suggestion_id, voter_hash),
       FOREIGN KEY (suggestion_id) REFERENCES suggestions(id)
@@ -114,6 +115,12 @@ const initSchema = async () => {
   // Add submitter_hash column for tracking who submitted each suggestion (ignore if already exists)
   try {
     await db.execute('ALTER TABLE suggestions ADD COLUMN submitter_hash TEXT DEFAULT NULL')
+  } catch {
+    // Column already exists
+  }
+  // Add vote_type column for tracking upvotes vs downvotes (ignore if already exists)
+  try {
+    await db.execute("ALTER TABLE votes ADD COLUMN vote_type TEXT DEFAULT 'up'")
   } catch {
     // Column already exists
   }
@@ -388,34 +395,104 @@ export async function hasVoted(
   return (result.rows[0] as unknown as { count: number }).count > 0
 }
 
-export async function addVote(
+export async function getVoteType(
   suggestionId: number,
   voterHash: string
+): Promise<'up' | 'down' | null> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT vote_type FROM votes WHERE suggestion_id = ? AND voter_hash = ?',
+    args: [suggestionId, voterHash],
+  })
+  if (result.rows.length === 0) return null
+  return (result.rows[0] as unknown as { vote_type: 'up' | 'down' }).vote_type
+}
+
+export async function addVote(
+  suggestionId: number,
+  voterHash: string,
+  voteType: 'up' | 'down' = 'up'
 ): Promise<void> {
   await ensureSchema()
   await db.execute({
-    sql: 'INSERT INTO votes (suggestion_id, voter_hash) VALUES (?, ?)',
-    args: [suggestionId, voterHash],
+    sql: 'INSERT INTO votes (suggestion_id, voter_hash, vote_type) VALUES (?, ?, ?)',
+    args: [suggestionId, voterHash, voteType],
   })
-  await db.execute({
-    sql: 'UPDATE suggestions SET votes = votes + 1 WHERE id = ?',
-    args: [suggestionId],
-  })
+  if (voteType === 'up') {
+    await db.execute({
+      sql: 'UPDATE suggestions SET votes = votes + 1 WHERE id = ?',
+      args: [suggestionId],
+    })
+  } else {
+    // Downvote - decrease but don't go below 0
+    await db.execute({
+      sql: 'UPDATE suggestions SET votes = MAX(0, votes - 1) WHERE id = ?',
+      args: [suggestionId],
+    })
+  }
 }
 
 export async function removeVote(
   suggestionId: number,
   voterHash: string
-): Promise<void> {
+): Promise<'up' | 'down' | null> {
   await ensureSchema()
+  // Get the vote type before removing
+  const voteType = await getVoteType(suggestionId, voterHash)
+  if (!voteType) return null
+
   await db.execute({
     sql: 'DELETE FROM votes WHERE suggestion_id = ? AND voter_hash = ?',
     args: [suggestionId, voterHash],
   })
+
+  if (voteType === 'up') {
+    // Removing upvote decreases the count
+    await db.execute({
+      sql: 'UPDATE suggestions SET votes = MAX(0, votes - 1) WHERE id = ?',
+      args: [suggestionId],
+    })
+  } else {
+    // Removing downvote increases the count
+    await db.execute({
+      sql: 'UPDATE suggestions SET votes = votes + 1 WHERE id = ?',
+      args: [suggestionId],
+    })
+  }
+
+  return voteType
+}
+
+export async function changeVote(
+  suggestionId: number,
+  voterHash: string,
+  newVoteType: 'up' | 'down'
+): Promise<void> {
+  await ensureSchema()
+  const currentVoteType = await getVoteType(suggestionId, voterHash)
+  if (!currentVoteType || currentVoteType === newVoteType) return
+
+  // Update the vote type
   await db.execute({
-    sql: 'UPDATE suggestions SET votes = votes - 1 WHERE id = ? AND votes > 0',
-    args: [suggestionId],
+    sql: 'UPDATE votes SET vote_type = ? WHERE suggestion_id = ? AND voter_hash = ?',
+    args: [newVoteType, suggestionId, voterHash],
   })
+
+  // Adjust the vote count: changing from up to down loses 2 (one for removing upvote, one for adding downvote)
+  // and vice versa
+  if (newVoteType === 'up') {
+    // Changed from down to up: +2 total change
+    await db.execute({
+      sql: 'UPDATE suggestions SET votes = votes + 2 WHERE id = ?',
+      args: [suggestionId],
+    })
+  } else {
+    // Changed from up to down: -2 total change, but not below 0
+    await db.execute({
+      sql: 'UPDATE suggestions SET votes = MAX(0, votes - 2) WHERE id = ?',
+      args: [suggestionId],
+    })
+  }
 }
 
 // Status queries
@@ -590,11 +667,41 @@ export async function incrementVoteAllowance(voterHash: string): Promise<void> {
 
 export async function grantVotesToAllUsers(votesPerUser: number): Promise<number> {
   await ensureSchema()
+  // Reset votes to the cap instead of adding to existing votes
   const result = await db.execute({
-    sql: `UPDATE vote_allowance SET remaining_votes = remaining_votes + ?, last_grant_at = datetime('now')`,
+    sql: `UPDATE vote_allowance SET remaining_votes = ?, last_grant_at = datetime('now')`,
     args: [votesPerUser],
   })
   return result.rowsAffected
+}
+
+export async function getUpvoterHashes(suggestionId: number): Promise<string[]> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: "SELECT voter_hash FROM votes WHERE suggestion_id = ? AND vote_type = 'up'",
+    args: [suggestionId],
+  })
+  return result.rows.map((row) => (row as unknown as { voter_hash: string }).voter_hash)
+}
+
+export async function grantBonusVoteToSupporters(suggestionId: number): Promise<number> {
+  await ensureSchema()
+  // Get all users who upvoted this suggestion
+  const upvoterHashes = await getUpvoterHashes(suggestionId)
+  if (upvoterHashes.length === 0) return 0
+
+  // Grant +1 bonus vote to each supporter
+  let count = 0
+  for (const voterHash of upvoterHashes) {
+    // Get current vote allowance (ensures user exists)
+    await getVoteAllowance(voterHash)
+    await db.execute({
+      sql: 'UPDATE vote_allowance SET remaining_votes = remaining_votes + 1 WHERE voter_hash = ?',
+      args: [voterHash],
+    })
+    count++
+  }
+  return count
 }
 
 export default db

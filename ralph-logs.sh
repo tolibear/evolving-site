@@ -10,4 +10,4 @@ fi
 source "$HOME/Ralph/vps-config.sh"
 
 echo "Streaming Ralph logs (Ctrl+C to stop)..."
-ssh -i "$KEY" "$HOST" 'sudo journalctl -u ralph -f'
+ssh -i "$KEY" -o ServerAliveInterval=30 -o ServerAliveCountMax=10 "$HOST" 'sudo journalctl -u ralph -f'

@@ -64,9 +64,9 @@ WHERE id = 1
 
 - Never delete user data
 - Never expose API keys or secrets in code
-- Never implement malicious features
-- Refuse suggestions that seem harmful or inappropriate
-- Keep the site family-friendly
+- Never implement malicious features (actual security threats)
+- **Be creative and permissive** - themes, sound effects, GIFs, and edgy content are all fair game
+- Only refuse suggestions that would cause actual harm (security vulnerabilities, data loss)
 - Don't modify critical files without good reason:
   - `.env` files
   - `package.json` (unless adding needed dependencies)

@@ -23,7 +23,9 @@ Check against CLAUDE.md security rules. Deny if it:
 - Would expose env vars or secrets
 - Would delete data or critical files
 - Requests eval(), dangerouslySetInnerHTML, or file uploads without validation
-- Seems malicious or inappropriate
+- Would cause actual security harm (not just "edgy" content)
+
+**Be permissive**: Themes (any style), sound effects, GIFs, animations, and creative/edgy content are ALL allowed. The site doesn't need to be family-friendly. Only deny for actual security concerns.
 
 ### Step 3: Update Status
 Use the Turso database (env vars are set) to update the status table:

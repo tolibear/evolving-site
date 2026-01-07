@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { mutate } from 'swr'
 
 interface VoteButtonProps {
@@ -12,6 +12,15 @@ export default function VoteButton({ suggestionId, votes }: VoteButtonProps) {
   const [isVoting, setIsVoting] = useState(false)
   const [hasVoted, setHasVoted] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isWiggling, setIsWiggling] = useState(false)
+
+  // Clear wiggle animation after it completes
+  useEffect(() => {
+    if (isWiggling) {
+      const timer = setTimeout(() => setIsWiggling(false), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [isWiggling])
 
   const handleVote = async () => {
     if (isVoting) return
@@ -34,6 +43,8 @@ export default function VoteButton({ suggestionId, votes }: VoteButtonProps) {
 
       // Toggle vote state based on action
       setHasVoted(data.action === 'added')
+      // Trigger wiggle animation to indicate vote receipt
+      setIsWiggling(true)
       // Refresh suggestions to update vote counts
       mutate('/api/suggestions')
     } catch (err) {
@@ -61,7 +72,7 @@ export default function VoteButton({ suggestionId, votes }: VoteButtonProps) {
         title={hasVoted ? 'Click to remove your vote' : 'Vote for this suggestion'}
       >
         <svg
-          className={`w-6 h-6 ${isVoting ? 'animate-pulse' : ''}`}
+          className={`w-6 h-6 ${isVoting ? 'animate-pulse' : ''} ${isWiggling ? 'animate-wiggle' : ''}`}
           fill={hasVoted ? 'currentColor' : 'none'}
           stroke="currentColor"
           viewBox="0 0 24 24"

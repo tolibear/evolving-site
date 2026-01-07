@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import useSWR from 'swr'
-import NanoBanana from './NanoBanana'
+import FeatureIcon from './FeatureIcon'
 
 interface ChangelogEntry {
   id: number
@@ -87,10 +87,10 @@ export default function Changelog() {
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3 flex-1 min-w-0">
-                <NanoBanana
-                  seed={entry.suggestion_content}
-                  size={24}
-                  className="flex-shrink-0 mt-0.5 opacity-60"
+                <FeatureIcon
+                  content={entry.suggestion_content}
+                  size={20}
+                  className="flex-shrink-0 mt-0.5 opacity-70"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground break-words">

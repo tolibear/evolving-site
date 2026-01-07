@@ -117,7 +117,6 @@ export default function SuggestionList() {
           author={suggestion.author}
           isOwner={suggestion.isOwner}
           userVoteType={userVotes[suggestion.id] || null}
-          isExpedited={suggestion.is_expedited === 1}
           isInProgress={
             status?.state === 'working' &&
             status?.current_suggestion_id === suggestion.id

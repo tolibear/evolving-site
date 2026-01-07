@@ -73,20 +73,6 @@ const initSchema = async () => {
       last_grant_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
-    -- Expedite payments table (tracks Stripe payments for expediting suggestions)
-    CREATE TABLE IF NOT EXISTS expedite_payments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      suggestion_id INTEGER NOT NULL,
-      user_hash TEXT NOT NULL,
-      stripe_session_id TEXT UNIQUE NOT NULL,
-      stripe_payment_intent_id TEXT,
-      amount_cents INTEGER DEFAULT 900,
-      status TEXT DEFAULT 'pending',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      completed_at DATETIME,
-      FOREIGN KEY (suggestion_id) REFERENCES suggestions(id)
-    );
-
     -- Initialize status row if not exists
     INSERT OR IGNORE INTO status (id, state, message) VALUES (1, 'idle', 'Awaiting next suggestion...');
   `)
@@ -135,12 +121,6 @@ const initSchema = async () => {
   // Add vote_type column for tracking upvotes vs downvotes (ignore if already exists)
   try {
     await db.execute("ALTER TABLE votes ADD COLUMN vote_type TEXT DEFAULT 'up'")
-  } catch {
-    // Column already exists
-  }
-  // Add is_expedited column to track expedited suggestions (ignore if already exists)
-  try {
-    await db.execute('ALTER TABLE suggestions ADD COLUMN is_expedited INTEGER DEFAULT 0')
   } catch {
     // Column already exists
   }
@@ -244,19 +224,6 @@ export interface Suggestion {
   author: string | null // null = anonymous user, 'ralph' = Ralph Wiggum
   submitter_hash: string | null // hash of IP+UserAgent for identifying the submitter
   comment_count?: number
-  is_expedited?: number // 1 if expedited, 0 otherwise
-}
-
-export interface ExpeditePayment {
-  id: number
-  suggestion_id: number
-  user_hash: string
-  stripe_session_id: string
-  stripe_payment_intent_id: string | null
-  amount_cents: number
-  status: 'pending' | 'completed' | 'failed'
-  created_at: string
-  completed_at: string | null
 }
 
 export interface Status {
@@ -310,7 +277,7 @@ export async function getSuggestions(): Promise<Suggestion[]> {
       GROUP BY suggestion_id
     ) c ON s.id = c.suggestion_id
     WHERE s.status = 'pending'
-    ORDER BY COALESCE(s.is_expedited, 0) DESC, s.votes DESC, s.created_at ASC
+    ORDER BY s.votes DESC, s.created_at ASC
   `)
   return result.rows as unknown as Suggestion[]
 }
@@ -735,80 +702,6 @@ export async function grantBonusVoteToSupporters(suggestionId: number): Promise<
     count++
   }
   return count
-}
-
-// Expedite payment queries
-export async function createExpeditePayment(
-  suggestionId: number,
-  userHash: string,
-  stripeSessionId: string
-): Promise<number> {
-  await ensureSchema()
-  const result = await db.execute({
-    sql: 'INSERT INTO expedite_payments (suggestion_id, user_hash, stripe_session_id) VALUES (?, ?, ?)',
-    args: [suggestionId, userHash, stripeSessionId],
-  })
-  return Number(result.lastInsertRowid)
-}
-
-export async function getExpeditePaymentBySessionId(
-  stripeSessionId: string
-): Promise<ExpeditePayment | null> {
-  await ensureSchema()
-  const result = await db.execute({
-    sql: 'SELECT * FROM expedite_payments WHERE stripe_session_id = ?',
-    args: [stripeSessionId],
-  })
-  return (result.rows[0] as unknown as ExpeditePayment) || null
-}
-
-export async function completeExpeditePayment(
-  stripeSessionId: string,
-  paymentIntentId: string
-): Promise<void> {
-  await ensureSchema()
-  // Get the payment to find the suggestion ID
-  const payment = await getExpeditePaymentBySessionId(stripeSessionId)
-  if (!payment) return
-
-  // Update the payment status
-  await db.execute({
-    sql: `UPDATE expedite_payments
-          SET status = 'completed',
-              stripe_payment_intent_id = ?,
-              completed_at = datetime('now')
-          WHERE stripe_session_id = ?`,
-    args: [paymentIntentId, stripeSessionId],
-  })
-
-  // Mark the suggestion as expedited
-  await db.execute({
-    sql: 'UPDATE suggestions SET is_expedited = 1 WHERE id = ?',
-    args: [payment.suggestion_id],
-  })
-}
-
-export async function hasUserExpeditedSuggestion(
-  suggestionId: number,
-  userHash: string
-): Promise<boolean> {
-  await ensureSchema()
-  const result = await db.execute({
-    sql: `SELECT COUNT(*) as count FROM expedite_payments
-          WHERE suggestion_id = ? AND user_hash = ? AND status = 'completed'`,
-    args: [suggestionId, userHash],
-  })
-  return (result.rows[0] as unknown as { count: number }).count > 0
-}
-
-export async function isSuggestionExpedited(suggestionId: number): Promise<boolean> {
-  await ensureSchema()
-  const result = await db.execute({
-    sql: 'SELECT is_expedited FROM suggestions WHERE id = ?',
-    args: [suggestionId],
-  })
-  if (result.rows.length === 0) return false
-  return (result.rows[0] as unknown as { is_expedited: number }).is_expedited === 1
 }
 
 export default db

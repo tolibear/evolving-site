@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import useSWR, { mutate } from 'swr'
 import VoteButton from './VoteButton'
-import ExpediteButton from './ExpediteButton'
 
 interface Comment {
   id: number
@@ -27,7 +26,6 @@ interface SuggestionCardProps {
   author?: string | null
   isOwner?: boolean
   userVoteType?: 'up' | 'down' | null
-  isExpedited?: boolean
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -42,7 +40,6 @@ export default function SuggestionCard({
   author,
   isOwner = false,
   userVoteType = null,
-  isExpedited = false
 }: SuggestionCardProps) {
   const [showComments, setShowComments] = useState(false)
   const [commentText, setCommentText] = useState('')
@@ -167,11 +164,6 @@ export default function SuggestionCard({
                 Ralph
               </span>
             )}
-            <ExpediteButton
-              suggestionId={id}
-              isExpedited={isExpedited}
-              disabled={isInProgress}
-            />
             <span className="text-xs text-muted">
               {formatDate(createdAt)}
             </span>

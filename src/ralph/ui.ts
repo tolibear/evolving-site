@@ -100,3 +100,34 @@ export function printResult(success: boolean, aiNote: string): void {
   }
   console.log(`${colors.dim}${aiNote}${colors.reset}\n`)
 }
+
+export function printVercelStatus(state: string, url: string): void {
+  const stateColors: Record<string, string> = {
+    BUILDING: colors.yellow,
+    READY: colors.green,
+    ERROR: colors.red,
+    CANCELED: colors.red,
+  }
+  const color = stateColors[state] || colors.dim
+
+  if (state === 'BUILDING') {
+    process.stdout.write(`\r${colors.cyan}▶ Vercel:${colors.reset} ${color}Building...${colors.reset}   `)
+  } else if (state === 'READY') {
+    console.log(`\r${colors.cyan}▶ Vercel:${colors.reset} ${color}Deployed!${colors.reset}     `)
+    console.log(`  ${colors.dim}${url}${colors.reset}`)
+  } else {
+    console.log(`\r${colors.cyan}▶ Vercel:${colors.reset} ${color}${state}${colors.reset}`)
+  }
+}
+
+export function printRefreshPrompt(): void {
+  console.log()
+  console.log(`${colors.bright}${colors.green}╔═══════════════════════════════════════════════════════╗${colors.reset}`)
+  console.log(`${colors.bright}${colors.green}║                                                       ║${colors.reset}`)
+  console.log(`${colors.bright}${colors.green}║   🎉  FEATURE DEPLOYED!  Refresh the site to see it  ║${colors.reset}`)
+  console.log(`${colors.bright}${colors.green}║                                                       ║${colors.reset}`)
+  console.log(`${colors.bright}${colors.green}║   https://evolving-site.vercel.app                   ║${colors.reset}`)
+  console.log(`${colors.bright}${colors.green}║                                                       ║${colors.reset}`)
+  console.log(`${colors.bright}${colors.green}╚═══════════════════════════════════════════════════════╝${colors.reset}`)
+  console.log()
+}

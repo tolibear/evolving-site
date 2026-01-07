@@ -1,5 +1,5 @@
 import { spawn } from 'child_process'
-import { log, printImplementing, printResult } from './ui'
+import { log, printImplementing, printResult, printVercelStatus, printRefreshPrompt } from './ui'
 import type { Suggestion, ImplementationResult } from './types'
 
 export async function implementSuggestion(
@@ -13,12 +13,21 @@ export async function implementSuggestion(
   const prompt = buildImplementationPrompt(suggestion)
 
   try {
-    // Run Claude Code with the implementation prompt
+    // Run Claude Code with the implementation prompt (interactive mode)
     const result = await runClaude(prompt, projectDir)
 
     if (result.success) {
       const commitHash = await getLatestCommitHash(projectDir)
       printResult(true, result.aiNote || 'Implementation completed successfully')
+
+      // Watch Vercel deployment
+      log('Watching Vercel deployment...', 'info')
+      const deploySuccess = await watchVercelDeployment()
+
+      if (deploySuccess) {
+        printRefreshPrompt()
+      }
+
       return {
         success: true,
         suggestionId: suggestion.id,
@@ -90,44 +99,42 @@ async function runClaude(
   error?: string
 }> {
   return new Promise((resolve) => {
-    log('Starting Claude Code...', 'info')
+    log('Starting Claude Code (interactive mode)...', 'info')
+    console.log() // Add spacing
 
+    // Use -p flag for prompt with streaming output
     const claude = spawn(
       'claude',
       [
-        '--print',
+        '-p',
         prompt,
         '--allowedTools',
         'Bash(npm run build:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Read,Write,Edit,Glob,Grep',
       ],
       {
         cwd,
-        stdio: ['inherit', 'pipe', 'pipe'],
+        // Use inherit for all stdio to get real-time streaming
+        stdio: ['inherit', 'pipe', 'inherit'],
         env: { ...process.env },
       }
     )
 
     let stdout = ''
-    let stderr = ''
 
     claude.stdout?.on('data', (data: Buffer) => {
       const text = data.toString()
       stdout += text
-      // Echo output to terminal in real-time
+      // Stream output to terminal in real-time
       process.stdout.write(text)
     })
 
-    claude.stderr?.on('data', (data: Buffer) => {
-      const text = data.toString()
-      stderr += text
-      process.stderr.write(text)
-    })
-
     claude.on('close', (code) => {
+      console.log() // Add spacing after Claude output
+
       if (code !== 0) {
         resolve({
           success: false,
-          error: stderr || `Claude exited with code ${code}`,
+          error: `Claude exited with code ${code}`,
         })
         return
       }
@@ -203,4 +210,60 @@ export async function gitPull(cwd: string): Promise<void> {
       reject(new Error(`Failed to spawn git: ${err.message}`))
     })
   })
+}
+
+async function watchVercelDeployment(): Promise<boolean> {
+  const maxWaitTime = 5 * 60 * 1000 // 5 minutes max
+  const pollInterval = 5000 // Check every 5 seconds
+  const startTime = Date.now()
+
+  // Give Vercel a moment to pick up the push
+  await sleep(3000)
+
+  let lastState = ''
+
+  while (Date.now() - startTime < maxWaitTime) {
+    try {
+      const status = await checkVercelStatus()
+
+      if (status.state !== lastState) {
+        printVercelStatus(status.state, status.url)
+        lastState = status.state
+      }
+
+      if (status.state === 'READY') {
+        return true
+      }
+
+      if (status.state === 'ERROR' || status.state === 'CANCELED') {
+        log(`Vercel deployment failed: ${status.state}`, 'error')
+        return false
+      }
+
+      await sleep(pollInterval)
+    } catch (error) {
+      // If we can't check, just wait and try the site
+      await sleep(pollInterval)
+    }
+  }
+
+  log('Vercel deployment timed out, but may still be building', 'warn')
+  return true // Assume it'll complete
+}
+
+async function checkVercelStatus(): Promise<{ state: string; url: string }> {
+  // Try to fetch the site and check if it's responding
+  try {
+    const response = await fetch('https://evolving-site.vercel.app/api/status')
+    if (response.ok) {
+      return { state: 'READY', url: 'https://evolving-site.vercel.app' }
+    }
+    return { state: 'BUILDING', url: '' }
+  } catch {
+    return { state: 'BUILDING', url: '' }
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }

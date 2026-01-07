@@ -46,9 +46,9 @@ export async function POST(request: Request) {
     }
 
     // Validate state
-    if (state && !['idle', 'working', 'completed'].includes(state)) {
+    if (state && !['idle', 'working', 'deploying', 'completed'].includes(state)) {
       return NextResponse.json(
-        { error: 'Invalid state. Must be: idle, working, or completed' },
+        { error: 'Invalid state. Must be: idle, working, deploying, or completed' },
         { status: 400 }
       )
     }

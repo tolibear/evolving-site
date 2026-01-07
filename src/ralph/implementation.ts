@@ -217,6 +217,9 @@ async function watchVercelDeployment(): Promise<boolean> {
   const pollInterval = 5000 // Check every 5 seconds
   const startTime = Date.now()
 
+  // Update status to deploying so users see it on the website
+  await updateRemoteStatus('deploying', 'Deploying to Vercel...')
+
   // Give Vercel a moment to pick up the push
   await sleep(3000)
 
@@ -232,11 +235,14 @@ async function watchVercelDeployment(): Promise<boolean> {
       }
 
       if (status.state === 'READY') {
+        // Update status to completed so users get the refresh prompt
+        await updateRemoteStatus('completed', 'Feature deployed! Refresh to see it.')
         return true
       }
 
       if (status.state === 'ERROR' || status.state === 'CANCELED') {
         log(`Vercel deployment failed: ${status.state}`, 'error')
+        await updateRemoteStatus('idle', 'Deployment failed')
         return false
       }
 
@@ -248,6 +254,7 @@ async function watchVercelDeployment(): Promise<boolean> {
   }
 
   log('Vercel deployment timed out, but may still be building', 'warn')
+  await updateRemoteStatus('completed', 'Feature deployed! Refresh to see it.')
   return true // Assume it'll complete
 }
 
@@ -266,4 +273,22 @@ async function checkVercelStatus(): Promise<{ state: string; url: string }> {
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function updateRemoteStatus(state: string, message: string): Promise<void> {
+  try {
+    const apiUrl = process.env.RALPH_API_URL || 'https://evolving-site.vercel.app'
+    const apiSecret = process.env.RALPH_API_SECRET || ''
+
+    await fetch(`${apiUrl}/api/status`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-ralph-secret': apiSecret,
+      },
+      body: JSON.stringify({ state, message }),
+    })
+  } catch (error) {
+    // Silently fail - not critical for deployment watching
+  }
 }

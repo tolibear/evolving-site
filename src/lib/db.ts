@@ -208,7 +208,7 @@ export interface Suggestion {
 
 export interface Status {
   current_suggestion_id: number | null
-  state: 'idle' | 'working' | 'completed'
+  state: 'idle' | 'working' | 'deploying' | 'completed'
   message: string
   updated_at: string
   automation_mode: 'manual' | 'automated'

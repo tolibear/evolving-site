@@ -5,7 +5,7 @@ import useSWR from 'swr'
 
 interface Status {
   current_suggestion_id: number | null
-  state: 'idle' | 'working' | 'completed'
+  state: 'idle' | 'working' | 'deploying' | 'completed'
   message: string
   updated_at: string
   automation_mode: 'manual' | 'automated'
@@ -18,27 +18,42 @@ export default function StatusBanner() {
   const { data: status, error } = useSWR<Status>(
     '/api/status',
     fetcher,
-    { refreshInterval: 10000 } // Refresh every 10 seconds
+    {
+      // Poll faster when working/deploying, slower when idle
+      refreshInterval: (data) => {
+        if (data?.state === 'working' || data?.state === 'deploying') {
+          return 2000 // Every 2 seconds during active work
+        }
+        return 10000 // Every 10 seconds when idle
+      }
+    }
   )
 
   const [countdown, setCountdown] = useState('')
-  const [isStarting, setIsStarting] = useState(false)
+  const [showRefreshPrompt, setShowRefreshPrompt] = useState(false)
+  const [lastState, setLastState] = useState<string>('')
 
   const intervalMinutes = status?.interval_minutes || 10
 
-  // Show starting state when working
+  // Track state changes to show refresh prompt
   useEffect(() => {
-    if (status?.state === 'working') {
-      setIsStarting(true)
-      setCountdown('')
+    if (status?.state === 'completed' && lastState === 'deploying') {
+      setShowRefreshPrompt(true)
+      // Hide after 30 seconds
+      const timer = setTimeout(() => setShowRefreshPrompt(false), 30000)
+      return () => clearTimeout(timer)
+    }
+    if (status?.state) {
+      setLastState(status.state)
+    }
+  }, [status?.state, lastState])
+
+  // Show interval info when automated and idle
+  useEffect(() => {
+    if (status?.state === 'idle' && status?.automation_mode === 'automated') {
+      setCountdown(`every ${intervalMinutes}m`)
     } else {
-      setIsStarting(false)
-      // Show interval info when automated and idle
-      if (status?.automation_mode === 'automated') {
-        setCountdown(`every ${intervalMinutes}m`)
-      } else {
-        setCountdown('')
-      }
+      setCountdown('')
     }
   }, [status?.automation_mode, status?.state, intervalMinutes])
 
@@ -46,13 +61,12 @@ export default function StatusBanner() {
     return null // Silently fail - not critical
   }
 
-  const getStateColor = (state: string, starting: boolean) => {
-    if (starting) {
-      return 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200'
-    }
+  const getStateColor = (state: string) => {
     switch (state) {
       case 'working':
         return 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200'
+      case 'deploying':
+        return 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200'
       case 'completed':
         return 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700 text-green-800 dark:text-green-200'
       default:
@@ -60,21 +74,20 @@ export default function StatusBanner() {
     }
   }
 
-  const getStateIcon = (state: string, starting: boolean) => {
-    if (starting) {
-      return (
-        <span className="relative flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-        </span>
-      )
-    }
+  const getStateIcon = (state: string) => {
     switch (state) {
       case 'working':
         return (
           <span className="relative flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+          </span>
+        )
+      case 'deploying':
+        return (
+          <span className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
           </span>
         )
       case 'completed':
@@ -92,35 +105,56 @@ export default function StatusBanner() {
 
   const isAutomated = status?.automation_mode === 'automated'
 
-  const displayMessage = isStarting
-    ? 'Starting implementation...'
-    : (status?.message || 'Loading status...')
-
   return (
-    <div className={`rounded-lg border px-4 py-3 mb-8 flex items-center gap-3 ${getStateColor(status?.state || 'idle', isStarting)}`}>
-      {getStateIcon(status?.state || 'idle', isStarting)}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">
-          {displayMessage}
-        </p>
-      </div>
-      <div className="flex items-center gap-2">
-        <span
-          className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-            isAutomated
-              ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300'
-              : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
-          }`}
-          title={isAutomated ? 'Autonomous mode: implementing hourly' : 'Manual mode: owner approval required'}
-        >
-          {isAutomated ? 'AUTO' : 'MANUAL'}
-        </span>
-        {isAutomated && countdown && !isStarting && (
-          <span className="text-xs opacity-60">
-            {countdown}
+    <>
+      {/* Refresh prompt overlay */}
+      {showRefreshPrompt && (
+        <div className="fixed inset-x-0 top-4 z-50 flex justify-center px-4">
+          <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-bounce">
+            <span className="text-xl">🎉</span>
+            <span className="font-medium">New feature deployed!</span>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-white text-green-600 px-3 py-1 rounded font-medium hover:bg-green-50 transition-colors"
+            >
+              Refresh Now
+            </button>
+            <button
+              onClick={() => setShowRefreshPrompt(false)}
+              className="ml-2 text-green-200 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Status banner */}
+      <div className={`rounded-lg border px-4 py-3 mb-8 flex items-center gap-3 ${getStateColor(status?.state || 'idle')}`}>
+        {getStateIcon(status?.state || 'idle')}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">
+            {status?.message || 'Loading status...'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+              isAutomated
+                ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300'
+                : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
+            }`}
+            title={isAutomated ? 'Autonomous mode: implementing automatically' : 'Manual mode: owner approval required'}
+          >
+            {isAutomated ? 'AUTO' : 'MANUAL'}
           </span>
-        )}
+          {isAutomated && countdown && status?.state === 'idle' && (
+            <span className="text-xs opacity-60">
+              {countdown}
+            </span>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }

@@ -251,48 +251,42 @@ body {
 
 /* Terminal styling - CSS custom properties */
 :root {
-  --terminal-bg: rgba(23, 23, 23, 0.95);
-  --terminal-text: #e5e5e5;
-  --terminal-header: rgba(38, 38, 38, 0.9);
-  --terminal-border: rgba(64, 64, 64, 0.5);
-}
-
-/* Light mode terminal - use dark terminal for contrast */
-:root .terminal-output {
-  --terminal-bg: rgba(23, 23, 23, 0.95);
-  --terminal-text: #e5e5e5;
+  --terminal-bg: #0d1117;
+  --terminal-text: #c9d1d9;
+  --terminal-header: #161b22;
+  --terminal-border: #30363d;
 }
 
 /* Dark mode terminal */
 .dark {
-  --terminal-bg: rgba(23, 23, 23, 0.95);
-  --terminal-text: #fafafa;
-  --terminal-header: rgba(38, 38, 38, 0.9);
-  --terminal-border: rgba(64, 64, 64, 0.5);
+  --terminal-bg: #0d1117;
+  --terminal-text: #e6edf3;
+  --terminal-header: #161b22;
+  --terminal-border: #30363d;
 }
 
 /* Brown mode terminal */
 .brown {
-  --terminal-bg: rgba(44, 24, 16, 0.95);
+  --terminal-bg: #1a0f0a;
   --terminal-text: #f5e6d3;
-  --terminal-header: rgba(58, 32, 21, 0.9);
-  --terminal-border: rgba(120, 53, 15, 0.5);
+  --terminal-header: #241610;
+  --terminal-border: #4a2c1a;
 }
 
 /* Lemon mode terminal */
 .lemon {
-  --terminal-bg: rgba(23, 23, 23, 0.95);
-  --terminal-text: #fef3c7;
-  --terminal-header: rgba(38, 38, 38, 0.9);
-  --terminal-border: rgba(253, 224, 71, 0.3);
+  --terminal-bg: #0d1117;
+  --terminal-text: #fef9c3;
+  --terminal-header: #161b22;
+  --terminal-border: #854d0e;
 }
 
 /* Leaf mode terminal */
 .leaf {
-  --terminal-bg: rgba(6, 78, 59, 0.95);
+  --terminal-bg: #022c22;
   --terminal-text: #d1fae5;
-  --terminal-header: rgba(4, 120, 87, 0.9);
-  --terminal-border: rgba(16, 185, 129, 0.4);
+  --terminal-header: #064e3b;
+  --terminal-border: #065f46;
 }
 
 /* Terminal component styles */
@@ -314,20 +308,35 @@ body {
 
 /* Terminal output specific styles */
 .terminal-output {
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Fira Code', monospace;
-  font-size: 13px;
-  line-height: 1.5;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Fira Code', 'Menlo', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
 }
 
-/* ANSI color overrides for themes */
-.terminal-output .ansi-black { color: #1e1e1e; }
-.terminal-output .ansi-red { color: #ef4444; }
-.terminal-output .ansi-green { color: var(--success); }
-.terminal-output .ansi-yellow { color: #eab308; }
-.terminal-output .ansi-blue { color: var(--accent); }
-.terminal-output .ansi-magenta { color: #a855f7; }
-.terminal-output .ansi-cyan { color: #06b6d4; }
+/* ANSI color overrides - GitHub-style colors */
+.terminal-output .ansi-black { color: #484f58; }
+.terminal-output .ansi-red { color: #ff7b72; }
+.terminal-output .ansi-green { color: #7ee787; }
+.terminal-output .ansi-yellow { color: #ffa657; }
+.terminal-output .ansi-blue { color: #79c0ff; }
+.terminal-output .ansi-magenta { color: #d2a8ff; }
+.terminal-output .ansi-cyan { color: #a5d6ff; }
 .terminal-output .ansi-white { color: var(--terminal-text); }
+
+/* Bright ANSI colors */
+.terminal-output .ansi-bright-black { color: #6e7681; }
+.terminal-output .ansi-bright-red { color: #ffa198; }
+.terminal-output .ansi-bright-green { color: #a5f3a6; }
+.terminal-output .ansi-bright-yellow { color: #ffdf5d; }
+.terminal-output .ansi-bright-blue { color: #a8d5ff; }
+.terminal-output .ansi-bright-magenta { color: #e5c5ff; }
+.terminal-output .ansi-bright-cyan { color: #c1e6ff; }
+.terminal-output .ansi-bright-white { color: #ffffff; }
+
+/* Bold text styling */
+.terminal-output .ansi-bold { font-weight: 600; }
+.terminal-output .ansi-dim { opacity: 0.7; }
 
 /* Terminal scrollbar styling */
 .terminal-output::-webkit-scrollbar {

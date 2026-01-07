@@ -73,17 +73,17 @@ export function TerminalView({ className = '' }: TerminalViewProps) {
         )}
       </div>
 
-      {/* Terminal content - stacks from bottom to top */}
+      {/* Terminal content */}
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto overflow-x-hidden p-2 font-mono text-sm"
+        className="flex-1 overflow-y-auto overflow-x-hidden p-4 font-mono text-[13px] leading-relaxed"
         role="log"
         aria-label="Terminal output"
         aria-live="polite"
       >
         {lines.length === 0 ? (
-          <div className="text-terminal-text opacity-30 text-center py-8">
+          <div className="text-terminal-text opacity-50 text-center py-12 text-sm">
             {connectionStatus === 'connecting'
               ? 'Connecting...'
               : session
@@ -91,11 +91,11 @@ export function TerminalView({ className = '' }: TerminalViewProps) {
               : 'No terminal session available'}
           </div>
         ) : (
-          <div className="terminal-output">
+          <div className="terminal-output space-y-0.5">
             {lines.map((line) => (
               <div
                 key={line.id}
-                className="whitespace-pre-wrap break-all text-terminal-text leading-relaxed"
+                className="whitespace-pre-wrap break-words text-terminal-text"
               >
                 <Ansi>{line.content}</Ansi>
               </div>

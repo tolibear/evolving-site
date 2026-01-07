@@ -24,29 +24,29 @@ export function TerminalContainer({ children }: TerminalContainerProps) {
 
   return (
     <>
-      {/* Main content wrapper with terminal in background */}
+      {/* Main content wrapper with terminal on right side */}
       <div className="relative min-h-screen">
-        {/* Terminal background layer - faded on right side */}
+        {/* Terminal panel - fixed on right side */}
         <div
           className={`
             fixed top-0 right-0 bottom-0 w-full md:w-[400px] lg:w-[500px]
-            transition-opacity duration-200
-            ${state.isVisible ? 'opacity-15 hover:opacity-40' : 'opacity-0 pointer-events-none'}
-            z-0
+            transition-all duration-300 ease-out
+            ${state.isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}
+            z-30 shadow-2xl
           `}
         >
           <TerminalView className="h-full" />
         </div>
 
-        {/* Main body content - overlays terminal on mobile, side-by-side on desktop */}
+        {/* Main body content */}
         <div
           className={`
             relative z-10
-            transition-opacity duration-200
+            transition-all duration-200
             ${state.isFullScreen ? 'hidden' : ''}
           `}
         >
-          <div className="md:mr-[400px] lg:mr-[500px]">
+          <div className={`${state.isVisible ? 'md:mr-[400px] lg:mr-[500px]' : ''}`}>
             {children}
           </div>
         </div>

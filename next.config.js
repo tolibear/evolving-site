@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Build timestamp: 2026-01-07T01:30:00Z - forcing redeployment
 const nextConfig = {
   // Enable server actions for form handling
   experimental: {

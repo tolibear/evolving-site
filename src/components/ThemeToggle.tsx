@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-type Theme = 'light' | 'dark' | 'brown' | 'lemon'
+type Theme = 'light' | 'dark' | 'brown' | 'lemon' | 'leaf'
 
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>('light')
@@ -18,14 +18,14 @@ export default function ThemeToggle() {
   }, [])
 
   const applyTheme = (newTheme: Theme) => {
-    document.documentElement.classList.remove('dark', 'brown', 'lemon')
+    document.documentElement.classList.remove('dark', 'brown', 'lemon', 'leaf')
     if (newTheme !== 'light') {
       document.documentElement.classList.add(newTheme)
     }
   }
 
   const cycleTheme = () => {
-    const themeOrder: Theme[] = ['light', 'dark', 'brown', 'lemon']
+    const themeOrder: Theme[] = ['light', 'dark', 'brown', 'lemon', 'leaf']
     const currentIndex = themeOrder.indexOf(theme)
     const nextTheme = themeOrder[(currentIndex + 1) % themeOrder.length]
     setTheme(nextTheme)
@@ -42,7 +42,8 @@ export default function ThemeToggle() {
       case 'light': return 'Switch to dark mode'
       case 'dark': return 'Switch to brown mode'
       case 'brown': return 'Switch to lemon mode'
-      case 'lemon': return 'Switch to light mode'
+      case 'lemon': return 'Switch to leaf mode'
+      case 'leaf': return 'Switch to light mode'
     }
   }
 
@@ -54,6 +55,8 @@ export default function ThemeToggle() {
           ? 'hover:bg-amber-900'
           : theme === 'lemon'
           ? 'hover:bg-yellow-200'
+          : theme === 'leaf'
+          ? 'hover:bg-emerald-200'
           : 'hover:bg-neutral-200 dark:hover:bg-neutral-700'
       }`}
       aria-label={getAriaLabel()}
@@ -81,6 +84,12 @@ export default function ThemeToggle() {
         <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
           <ellipse cx="10" cy="10" rx="6" ry="8" transform="rotate(-30 10 10)" />
           <ellipse cx="10" cy="10" rx="4" ry="6" transform="rotate(-30 10 10)" fill="#fef08a" />
+        </svg>
+      )}
+      {theme === 'leaf' && (
+        <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M15.5 2.5c-3 0-6 1.5-8 4.5-1.5 2.5-2 5-1.5 7.5.5 2.5 2 4.5 4 5.5.5-1 1-2 1.5-3 .5-1 1.5-2 2.5-2.5 1-.5 2.5-1 3.5-1 1 0 2 0 3 .5-1-3-3-5.5-5-7.5 2 0 4 .5 5.5 1.5-1-2.5-3-4-5.5-5z" />
+          <path d="M4.5 17.5c0-1 .5-2 1-3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
         </svg>
       )}
     </button>

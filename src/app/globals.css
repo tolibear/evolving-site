@@ -34,6 +34,14 @@
   --muted: #a16207;
 }
 
+.leaf {
+  --background: #ecfdf5;
+  --foreground: #064e3b;
+  --accent: #059669;
+  --success: #10b981;
+  --muted: #6b7280;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
@@ -61,6 +69,10 @@ body {
   @apply bg-yellow-50 border-yellow-300;
 }
 
+.leaf .card {
+  @apply bg-emerald-50 border-emerald-200;
+}
+
 .card:hover {
   @apply shadow-md dark:shadow-neutral-900/50;
 }
@@ -71,6 +83,10 @@ body {
 
 .lemon .card:hover {
   @apply shadow-yellow-400/50;
+}
+
+.leaf .card:hover {
+  @apply shadow-emerald-300/50;
 }
 
 /* Button base styles */
@@ -92,6 +108,10 @@ body {
 
 .lemon .btn-secondary {
   @apply bg-yellow-200 text-yellow-900 hover:bg-yellow-300;
+}
+
+.leaf .btn-secondary {
+  @apply bg-emerald-100 text-emerald-900 hover:bg-emerald-200;
 }
 
 /* Status indicator pulse animation */
@@ -200,6 +220,35 @@ body {
 .lemon .bg-amber-50 { background-color: rgba(254, 243, 199, 0.7); }
 .lemon [class*="border-amber-200"] { border-color: rgb(253, 230, 138); }
 
+/* Leaf mode overrides for common variants */
+.leaf .bg-neutral-100 { @apply bg-emerald-100; }
+.leaf .bg-neutral-200 { @apply bg-emerald-200; }
+.leaf .bg-neutral-800 { @apply bg-emerald-100; }
+.leaf .bg-white { @apply bg-emerald-50; }
+.leaf .border-neutral-200 { @apply border-emerald-200; }
+.leaf .border-neutral-300 { @apply border-emerald-300; }
+.leaf .border-neutral-600 { @apply border-emerald-400; }
+.leaf .border-neutral-700 { @apply border-emerald-300; }
+.leaf .text-neutral-700 { @apply text-emerald-900; }
+.leaf .text-neutral-600 { @apply text-emerald-800; }
+.leaf .text-neutral-500 { @apply text-emerald-700; }
+.leaf .text-neutral-400 { @apply text-emerald-600; }
+
+/* Leaf mode status variants */
+.leaf .bg-blue-50 { background-color: rgba(167, 243, 208, 0.5); }
+.leaf .border-blue-200 { @apply border-emerald-300; }
+.leaf .text-blue-800 { @apply text-emerald-900; }
+
+.leaf .bg-green-50 { background-color: rgba(167, 243, 208, 0.5); }
+.leaf .border-green-100, .leaf .border-green-300 { @apply border-emerald-300; }
+.leaf .text-green-800 { @apply text-emerald-800; }
+
+.leaf .bg-red-50 { background-color: rgba(254, 202, 202, 0.5); }
+.leaf [class*="border-red-100"], .leaf [class*="border-red-300"] { border-color: rgb(252, 165, 165); }
+
+.leaf .bg-amber-50 { background-color: rgba(254, 243, 199, 0.5); }
+.leaf [class*="border-amber-200"] { border-color: rgb(253, 230, 138); }
+
 /* Terminal styling - CSS custom properties */
 :root {
   --terminal-bg: rgba(23, 23, 23, 0.95);
@@ -236,6 +285,14 @@ body {
   --terminal-text: #fef3c7;
   --terminal-header: rgba(38, 38, 38, 0.9);
   --terminal-border: rgba(253, 224, 71, 0.3);
+}
+
+/* Leaf mode terminal */
+.leaf {
+  --terminal-bg: rgba(6, 78, 59, 0.95);
+  --terminal-text: #d1fae5;
+  --terminal-header: rgba(4, 120, 87, 0.9);
+  --terminal-border: rgba(16, 185, 129, 0.4);
 }
 
 /* Terminal component styles */

@@ -137,8 +137,10 @@ export function useTerminalSSE(options: UseTerminalSSEOptions = {}): UseTerminal
         // Update last sequence
         lastSequenceRef.current = Math.max(lastSequenceRef.current, sequence)
 
-        // Decode base64 content
-        const decodedContent = atob(content)
+        // Decode base64 content with proper UTF-8 support (for emojis etc)
+        const decodedContent = new TextDecoder().decode(
+          Uint8Array.from(atob(content), c => c.charCodeAt(0))
+        )
 
         // Add new line
         setLines((prev) => [

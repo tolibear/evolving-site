@@ -14,14 +14,14 @@ export function TerminalView({ className = '' }: TerminalViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
 
-  // Auto-scroll to bottom when new lines are added
+  // Auto-scroll to bottom when new lines are added (for flex-col-reverse, bottom is scrollTop=0)
   useEffect(() => {
     if (autoScrollRef.current && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [lines.length])
 
-  // Detect manual scroll
+  // Detect manual scroll (user scrolling up disables auto-scroll)
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget
     const isAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 50
@@ -73,11 +73,11 @@ export function TerminalView({ className = '' }: TerminalViewProps) {
         )}
       </div>
 
-      {/* Terminal content */}
+      {/* Terminal content - flex-col with justify-end for bottom-anchored content */}
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto overflow-x-hidden p-4 font-mono text-[13px] leading-relaxed"
+        className="flex-1 flex flex-col justify-end overflow-y-auto overflow-x-hidden p-4 font-mono text-[13px] leading-relaxed"
         role="log"
         aria-label="Terminal output"
         aria-live="polite"
@@ -91,11 +91,11 @@ export function TerminalView({ className = '' }: TerminalViewProps) {
               : 'No terminal session available'}
           </div>
         ) : (
-          <div className="terminal-output space-y-0.5">
+          <div className="terminal-output">
             {lines.map((line) => (
               <div
                 key={line.id}
-                className="whitespace-pre-wrap break-words text-terminal-text"
+                className="whitespace-pre-wrap text-terminal-text"
               >
                 <Ansi>{line.content}</Ansi>
               </div>

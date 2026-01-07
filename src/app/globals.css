@@ -309,9 +309,11 @@ body {
 /* Terminal output specific styles */
 .terminal-output {
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Fira Code', 'Menlo', monospace;
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.5;
   letter-spacing: -0.01em;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 /* ANSI color overrides - GitHub-style colors */

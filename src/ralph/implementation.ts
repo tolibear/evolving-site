@@ -105,7 +105,9 @@ async function runClaude(
 
     // Use node-pty to create a proper pseudo-terminal
     // This gives Claude full TTY support so output renders correctly
-    const claude = pty.spawn('claude', ['--dangerously-skip-permissions', '-p', prompt], {
+    // Use full path since node-pty may not inherit PATH correctly
+    const claudePath = process.env.CLAUDE_PATH || '/Users/toli/.local/bin/claude'
+    const claude = pty.spawn(claudePath, ['--dangerously-skip-permissions', '-p', prompt], {
       name: 'xterm-256color',
       cols: process.stdout.columns || 120,
       rows: process.stdout.rows || 30,

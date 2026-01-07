@@ -150,33 +150,3 @@ body {
 
 .brown .bg-yellow-100, .brown .bg-yellow-900\/50 { background-color: rgba(202, 138, 4, 0.3); }
 .brown [class*="text-yellow-800"], .brown [class*="text-yellow-200"] { color: rgb(254, 240, 138); }
-
-/* Progress bar animations for implementation status */
-@keyframes progress-working {
-  0% {
-    width: 10%;
-  }
-  50% {
-    width: 60%;
-  }
-  100% {
-    width: 85%;
-  }
-}
-
-@keyframes progress-deploying {
-  0% {
-    width: 85%;
-  }
-  100% {
-    width: 95%;
-  }
-}
-
-.animate-progress-working {
-  animation: progress-working 30s ease-out forwards;
-}
-
-.animate-progress-deploying {
-  animation: progress-deploying 60s ease-out forwards;
-}

@@ -32,7 +32,7 @@ export interface RalphStatus {
 export interface ImplementationResult {
   success: boolean
   suggestionId: number
-  status: 'implemented' | 'denied' | 'failed'
+  status: 'implemented' | 'denied' | 'needs_input' | 'failed'
   commitHash?: string
   aiNote: string
   error?: string
@@ -41,7 +41,7 @@ export interface ImplementationResult {
 export interface FinalizeRequest {
   action: 'finalize'
   suggestionId: number
-  status: 'implemented' | 'denied'
+  status: 'implemented' | 'denied' | 'needs_input'
   content: string
   votes: number
   aiNote: string

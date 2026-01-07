@@ -37,10 +37,19 @@ export async function implementSuggestion(
       }
     } else {
       printResult(false, result.aiNote || result.error || 'Implementation failed')
+
+      // Determine the status based on result flags
+      let status: 'denied' | 'needs_input' | 'failed' = 'failed'
+      if (result.denied) {
+        status = 'denied'
+      } else if (result.needsInput) {
+        status = 'needs_input'
+      }
+
       return {
         success: false,
         suggestionId: suggestion.id,
-        status: result.denied ? 'denied' : 'failed',
+        status,
         aiNote: result.aiNote || result.error || 'Implementation failed',
         error: result.error,
       }
@@ -72,16 +81,20 @@ ${suggestion.votes}
 1. Follow all security rules in CLAUDE.md
 2. If the suggestion is safe and feasible, implement it
 3. If the suggestion violates security rules or is not feasible, deny it
-4. Run \`npm run build\` to verify no errors
-5. Commit with a descriptive message
-6. Push to origin/master
-7. After completing, output a JSON result on its own line:
+4. If you need human help (API keys, credentials, external setup, design decisions), mark as needs_input
+5. Run \`npm run build\` to verify no errors
+6. Commit with a descriptive message
+7. Push to origin/master
+8. After completing, output a JSON result on its own line:
 
 For implemented features:
 {"success": true, "aiNote": "Brief description of what was implemented"}
 
-For denied suggestions:
+For denied suggestions (security issues, impossible, bad idea):
 {"success": false, "denied": true, "aiNote": "Reason for denial"}
+
+For needs human input (API keys, credentials, external services, design decisions):
+{"success": false, "needsInput": true, "aiNote": "What the human needs to do/provide"}
 
 For failures:
 {"success": false, "aiNote": "What went wrong"}
@@ -95,6 +108,7 @@ async function runClaude(
 ): Promise<{
   success: boolean
   denied?: boolean
+  needsInput?: boolean
   aiNote?: string
   error?: string
 }> {
@@ -137,6 +151,7 @@ async function runClaude(
           resolve({
             success: result.success,
             denied: result.denied,
+            needsInput: result.needsInput,
             aiNote: result.aiNote,
           })
           return

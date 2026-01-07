@@ -44,7 +44,7 @@ export class RalphApiClient {
 
   async finalize(data: {
     suggestionId: number
-    status: 'implemented' | 'denied'
+    status: 'implemented' | 'denied' | 'needs_input'
     content: string
     votes: number
     aiNote: string

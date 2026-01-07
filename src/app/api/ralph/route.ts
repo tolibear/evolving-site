@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
 async function handleFinalize(body: {
   suggestionId: number
-  status: 'implemented' | 'denied'
+  status: 'implemented' | 'denied' | 'needs_input'
   content: string
   votes: number
   aiNote: string
@@ -81,9 +81,9 @@ async function handleFinalize(body: {
     )
   }
 
-  if (!['implemented', 'denied'].includes(status)) {
+  if (!['implemented', 'denied', 'needs_input'].includes(status)) {
     return NextResponse.json(
-      { error: 'status must be "implemented" or "denied"' },
+      { error: 'status must be "implemented", "denied", or "needs_input"' },
       { status: 400 }
     )
   }

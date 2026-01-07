@@ -158,7 +158,7 @@ async function main(): Promise<void> {
       try {
         await client.finalize({
           suggestionId: result.suggestionId,
-          status: result.status === 'failed' ? 'denied' : result.status,
+          status: result.status === 'failed' ? 'denied' : result.status as 'implemented' | 'denied' | 'needs_input',
           content: suggestion.content,
           votes: suggestion.votes,
           aiNote: result.aiNote,

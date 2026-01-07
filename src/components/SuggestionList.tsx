@@ -5,6 +5,20 @@ import useSWR from 'swr'
 import SuggestionCard from './SuggestionCard'
 import VoteAllowanceDisplay from './VoteAllowanceDisplay'
 
+interface Submitter {
+  id: number
+  username: string
+  avatar: string | null
+  name: string | null
+}
+
+interface Contributor {
+  id: number
+  username: string
+  avatar: string | null
+  type: 'comment' | 'vote'
+}
+
 interface Suggestion {
   id: number
   content: string
@@ -15,6 +29,9 @@ interface Suggestion {
   author: string | null
   isOwner: boolean
   is_expedited?: number
+  submitter: Submitter | null
+  contributors: Contributor[]
+  contributorCount: number
 }
 
 interface Status {
@@ -27,28 +44,24 @@ interface UserVotesResponse {
   votes: Record<number, 'up' | 'down' | null>
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json())
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 const ITEMS_TO_SHOW = 5
 
 export default function SuggestionList() {
   const [showAll, setShowAll] = useState(false)
-  const { data: suggestions, error, isLoading } = useSWR<Suggestion[]>(
-    '/api/suggestions',
-    fetcher,
-    { refreshInterval: 5000 } // Refresh every 5 seconds
-  )
+  const {
+    data: suggestions,
+    error,
+    isLoading,
+  } = useSWR<Suggestion[]>('/api/suggestions', fetcher, { refreshInterval: 5000 })
 
-  const { data: status } = useSWR<Status>(
-    '/api/status',
-    fetcher,
-    { refreshInterval: 5000 }
-  )
+  const { data: status } = useSWR<Status>('/api/status', fetcher, { refreshInterval: 5000 })
 
   // Build the suggestionIds query parameter
   const suggestionIdsParam = useMemo(() => {
     if (!suggestions || suggestions.length === 0) return ''
-    return suggestions.map(s => s.id).join(',')
+    return suggestions.map((s) => s.id).join(',')
   }, [suggestions])
 
   // Fetch user votes for all suggestions
@@ -120,9 +133,7 @@ export default function SuggestionList() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-lg font-semibold text-foreground">
-          Suggestions ({suggestions.length})
-        </h2>
+        <h2 className="text-lg font-semibold text-foreground">Suggestions ({suggestions.length})</h2>
         <VoteAllowanceDisplay />
       </div>
       {displayedSuggestions.map((suggestion, index) => (
@@ -137,9 +148,11 @@ export default function SuggestionList() {
           isOwner={suggestion.isOwner}
           userVoteType={userVotes[suggestion.id] || null}
           suggestionNumber={index + 1}
+          submitter={suggestion.submitter}
+          contributors={suggestion.contributors}
+          contributorCount={suggestion.contributorCount}
           isInProgress={
-            status?.state === 'working' &&
-            status?.current_suggestion_id === suggestion.id
+            status?.state === 'working' && status?.current_suggestion_id === suggestion.id
           }
         />
       ))}

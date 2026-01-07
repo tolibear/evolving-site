@@ -3,6 +3,9 @@
 import { useState, useRef, FormEvent, KeyboardEvent } from 'react'
 import { mutate } from 'swr'
 import { playSound } from '@/lib/sounds'
+import { useAuth } from './AuthProvider'
+import LoginPrompt from './LoginPrompt'
+import Avatar from './Avatar'
 
 // Fetch with timeout helper
 async function fetchWithTimeout(
@@ -53,12 +56,33 @@ async function fetchWithRetry(
 }
 
 export default function SuggestionForm() {
+  const { user, isLoading, isLoggedIn } = useAuth()
   const [content, setContent] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const submitRef = useRef(false) // Prevent double-submit
+
+  // Show login prompt if not authenticated
+  if (!isLoading && !isLoggedIn) {
+    return (
+      <div className="card mb-8">
+        <label className="block text-sm font-medium mb-2">Suggest a feature</label>
+        <LoginPrompt action="submit" />
+      </div>
+    )
+  }
+
+  // Show loading skeleton
+  if (isLoading) {
+    return (
+      <div className="card mb-8 animate-pulse">
+        <div className="h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-32 mb-2"></div>
+        <div className="h-24 bg-neutral-200 dark:bg-neutral-700 rounded"></div>
+      </div>
+    )
+  }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     // Submit on Enter, allow Shift+Enter for new line
@@ -166,9 +190,14 @@ export default function SuggestionForm() {
 
   return (
     <form onSubmit={handleFormSubmit} className="card mb-8">
-      <label htmlFor="suggestion" className="block text-sm font-medium mb-2">
-        Suggest a feature
-      </label>
+      <div className="flex items-center gap-2 mb-2">
+        {user && (
+          <Avatar username={user.username} avatar={user.avatar} size="sm" showTooltip={false} />
+        )}
+        <label htmlFor="suggestion" className="block text-sm font-medium">
+          Suggest a feature
+        </label>
+      </div>
       <textarea
         id="suggestion"
         value={content}
@@ -229,9 +258,7 @@ export default function SuggestionForm() {
         </div>
       )}
 
-      {error && (
-        <p className="mt-2 text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       {success && (
         <p className="mt-2 text-sm text-success">Suggestion submitted successfully!</p>
       )}

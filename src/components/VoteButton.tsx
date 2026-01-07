@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { mutate } from 'swr'
 import { playSound } from '@/lib/sounds'
+import { useAuth } from './AuthProvider'
+import LoginPrompt from './LoginPrompt'
 
 interface VoteButtonProps {
   suggestionId: number
@@ -10,13 +12,19 @@ interface VoteButtonProps {
   initialVoteType?: 'up' | 'down' | null
 }
 
-export default function VoteButton({ suggestionId, votes, initialVoteType = null }: VoteButtonProps) {
+export default function VoteButton({
+  suggestionId,
+  votes,
+  initialVoteType = null,
+}: VoteButtonProps) {
+  const { isLoggedIn, isLoading } = useAuth()
   const [isVoting, setIsVoting] = useState(false)
   const [voteType, setVoteType] = useState<'up' | 'down' | null>(initialVoteType)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [isWiggling, setIsWiggling] = useState(false)
   const [isPop, setIsPop] = useState(false)
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
 
   // Update vote type when initialVoteType changes
   useEffect(() => {
@@ -39,17 +47,32 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
     }
   }, [isPop])
 
+  // Clear login prompt after 5 seconds
+  useEffect(() => {
+    if (showLoginPrompt) {
+      const timer = setTimeout(() => setShowLoginPrompt(false), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [showLoginPrompt])
+
   const handleVote = async (newVoteType: 'up' | 'down') => {
-    if (isVoting) return
+    if (isVoting || isLoading) return
+
+    // Check if user is logged in
+    if (!isLoggedIn) {
+      setShowLoginPrompt(true)
+      return
+    }
 
     setIsVoting(true)
     setError(null)
+    setShowLoginPrompt(false)
 
     try {
       const response = await fetch('/api/vote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ suggestionId, voteType: newVoteType })
+        body: JSON.stringify({ suggestionId, voteType: newVoteType }),
       })
 
       const data = await response.json()
@@ -89,9 +112,10 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
         disabled={isVoting}
         className={`
           flex items-center justify-center p-1.5 rounded-md transition-all
-          ${voteType === 'up'
-            ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50'
-            : 'text-muted hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30'
+          ${
+            voteType === 'up'
+              ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50'
+              : 'text-muted hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30'
           }
           active:scale-95 disabled:cursor-not-allowed
         `}
@@ -105,20 +129,22 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
           viewBox="0 0 24 24"
           aria-hidden="true"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M5 15l7-7 7 7"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
         </svg>
       </button>
 
       {/* Vote count */}
-      <span className={`text-sm font-semibold transition-transform ${
-        voteType === 'up' ? 'text-green-600 dark:text-green-400' :
-        voteType === 'down' ? 'text-red-500 dark:text-red-400' : 'text-muted'
-      } ${isPop ? 'animate-pop' : ''}`}>{votes}</span>
+      <span
+        className={`text-sm font-semibold transition-transform ${
+          voteType === 'up'
+            ? 'text-green-600 dark:text-green-400'
+            : voteType === 'down'
+              ? 'text-red-500 dark:text-red-400'
+              : 'text-muted'
+        } ${isPop ? 'animate-pop' : ''}`}
+      >
+        {votes}
+      </span>
 
       {/* Downvote button */}
       <button
@@ -126,9 +152,10 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
         disabled={isVoting}
         className={`
           flex items-center justify-center p-1.5 rounded-md transition-all
-          ${voteType === 'down'
-            ? 'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50'
-            : 'text-muted hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30'
+          ${
+            voteType === 'down'
+              ? 'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50'
+              : 'text-muted hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30'
           }
           active:scale-95 disabled:cursor-not-allowed
         `}
@@ -142,23 +169,29 @@ export default function VoteButton({ suggestionId, votes, initialVoteType = null
           viewBox="0 0 24 24"
           aria-hidden="true"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
+      {showLoginPrompt && (
+        <div className="absolute mt-16 z-10 animate-fade-in">
+          <LoginPrompt action="vote" compact />
+        </div>
+      )}
+
       {success && (
-        <span className="text-xs text-green-600 dark:text-green-400 mt-1 animate-fade-in" role="status">
+        <span
+          className="text-xs text-green-600 dark:text-green-400 mt-1 animate-fade-in"
+          role="status"
+        >
           Voted!
         </span>
       )}
 
       {error && (
-        <span className="text-xs text-red-500 mt-1 max-w-[80px] text-center" role="alert">{error}</span>
+        <span className="text-xs text-red-500 mt-1 max-w-[80px] text-center" role="alert">
+          {error}
+        </span>
       )}
     </div>
   )

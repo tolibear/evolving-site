@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import ThemeToggle from '@/components/ThemeToggle'
 import ActiveUserCounter from '@/components/ActiveUserCounter'
 import { TerminalProvider, TerminalContainer } from '@/components/terminal'
+import { AuthProvider } from '@/components/AuthProvider'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -47,8 +48,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background antialiased">
-        <TerminalProvider>
-          <TerminalContainer>
+        <AuthProvider>
+          <TerminalProvider>
+            <TerminalContainer>
             <div className="max-w-3xl mx-auto px-4 py-8">
               {/* Header */}
               <header className="text-center mb-8 relative">
@@ -74,8 +76,9 @@ export default function RootLayout({
                 </div>
               </footer>
             </div>
-          </TerminalContainer>
-        </TerminalProvider>
+            </TerminalContainer>
+          </TerminalProvider>
+        </AuthProvider>
       </body>
     </html>
   )

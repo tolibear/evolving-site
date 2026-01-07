@@ -4,17 +4,35 @@ import { useState, useEffect } from 'react'
 import useSWR, { mutate } from 'swr'
 import VoteButton from './VoteButton'
 import FeatureIcon from './FeatureIcon'
+import ContributorStack from './ContributorStack'
+import LoginPrompt from './LoginPrompt'
+import { useAuth } from './AuthProvider'
 
 interface Comment {
   id: number
   content: string
   commenter_hash: string
+  user_id: number | null
   created_at: string
 }
 
 interface CommentsResponse {
   comments: Comment[]
-  currentUserHash: string
+  currentUserId: number | null
+}
+
+interface Submitter {
+  id: number
+  username: string
+  avatar: string | null
+  name: string | null
+}
+
+interface Contributor {
+  id: number
+  username: string
+  avatar: string | null
+  type: 'comment' | 'vote'
 }
 
 interface SuggestionCardProps {
@@ -28,9 +46,12 @@ interface SuggestionCardProps {
   isOwner?: boolean
   userVoteType?: 'up' | 'down' | null
   suggestionNumber?: number
+  submitter?: Submitter | null
+  contributors?: Contributor[]
+  contributorCount?: number
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json())
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function SuggestionCard({
   id,
@@ -43,7 +64,11 @@ export default function SuggestionCard({
   isOwner = false,
   userVoteType = null,
   suggestionNumber,
+  submitter = null,
+  contributors = [],
+  contributorCount = 0,
 }: SuggestionCardProps) {
+  const { isLoggedIn, user } = useAuth()
   const [showComments, setShowComments] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -58,8 +83,8 @@ export default function SuggestionCard({
   )
 
   const comments = data?.comments || []
-  const currentUserHash = data?.currentUserHash
-  const userComment = comments.find(c => c.commenter_hash === currentUserHash)
+  const currentUserId = data?.currentUserId
+  const userComment = comments.find((c) => c.user_id === currentUserId)
 
   // When user's comment is found and not editing, pre-fill for edit mode
   useEffect(() => {
@@ -89,6 +114,11 @@ export default function SuggestionCard({
     e.preventDefault()
     if (!commentText.trim() || isSubmitting) return
 
+    if (!isLoggedIn) {
+      setError('Please sign in with Twitter to comment')
+      return
+    }
+
     setIsSubmitting(true)
     setError(null)
 
@@ -101,7 +131,7 @@ export default function SuggestionCard({
           isEditing
             ? { commentId: editingComment.id, content: commentText.trim() }
             : { suggestionId: id, content: commentText.trim() }
-        )
+        ),
       })
 
       if (!res.ok) {
@@ -126,7 +156,7 @@ export default function SuggestionCard({
       const res = await fetch('/api/suggestions', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ suggestionId: id })
+        body: JSON.stringify({ suggestionId: id }),
       })
 
       if (!res.ok) {
@@ -144,7 +174,9 @@ export default function SuggestionCard({
   }
 
   return (
-    <div className={`card relative ${isInProgress ? 'border-2 border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-900/20' : ''}`}>
+    <div
+      className={`card relative ${isInProgress ? 'border-2 border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-900/20' : ''}`}
+    >
       {suggestionNumber && (
         <span className="absolute top-2 right-2 text-xs text-neutral-300 dark:text-neutral-600 font-mono select-none">
           #{suggestionNumber}
@@ -175,21 +207,42 @@ export default function SuggestionCard({
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             {author === 'ralph' && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200">
-                <img src="/ralph-avatar.svg" alt="" className="w-4 h-4" width={16} height={16} />
+                <img
+                  src="/ralph-avatar.svg"
+                  alt=""
+                  className="w-4 h-4"
+                  width={16}
+                  height={16}
+                />
                 Ralph
               </span>
             )}
-            <span className="text-xs text-muted">
-              {formatDate(createdAt)}
-            </span>
+            <span className="text-xs text-muted">{formatDate(createdAt)}</span>
             <button
               onClick={() => setShowComments(!showComments)}
               className="text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
-              aria-label={showComments ? 'Hide comments' : commentCount > 0 ? `Show ${commentCount} comment${commentCount > 1 ? 's' : ''}` : 'Add a comment'}
+              aria-label={
+                showComments
+                  ? 'Hide comments'
+                  : commentCount > 0
+                    ? `Show ${commentCount} comment${commentCount > 1 ? 's' : ''}`
+                    : 'Add a comment'
+              }
               aria-expanded={showComments}
             >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              <svg
+                className="w-3 h-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
               </svg>
               {showComments ? 'Hide' : commentCount > 0 ? `${commentCount}` : 'Comment'}
             </button>
@@ -199,13 +252,35 @@ export default function SuggestionCard({
                 className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors flex items-center gap-1"
                 aria-label="Delete your suggestion"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
                 Delete
               </button>
             )}
           </div>
+
+          {/* Contributor avatars */}
+          {(submitter || contributors.length > 0) && (
+            <div className="mt-3">
+              <ContributorStack
+                submitter={submitter}
+                contributors={contributors}
+                totalCount={contributorCount}
+              />
+            </div>
+          )}
 
           {/* Delete confirmation */}
           {showDeleteConfirm && (
@@ -240,7 +315,7 @@ export default function SuggestionCard({
           {comments.length > 0 && (
             <div className="space-y-2 mb-3">
               {comments.map((comment) => {
-                const isOwnComment = comment.commenter_hash === currentUserHash
+                const isOwnComment = comment.user_id === currentUserId
                 return (
                   <div
                     key={comment.id}
@@ -261,30 +336,42 @@ export default function SuggestionCard({
             </div>
           )}
 
-          {/* Comment form - shows edit mode if user already has a comment */}
-          <form onSubmit={handleSubmitComment} className="flex gap-2">
-            <input
-              type="text"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder={editingComment ? "Edit your comment..." : "Add context for Claude..."}
-              maxLength={300}
-              className="flex-1 text-sm px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-background text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent"
-            />
-            <button
-              type="submit"
-              disabled={isSubmitting || !commentText.trim() || !!(editingComment && commentText === editingComment.content)}
-              className="text-sm px-2 py-1 rounded bg-accent text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-            >
-              {isSubmitting ? '...' : editingComment ? 'Save' : 'Add'}
-            </button>
-          </form>
-          {editingComment && (
-            <p className="text-xs text-muted mt-1">1 comment per person. Editing your comment.</p>
+          {/* Comment form - shows login prompt if not logged in */}
+          {!isLoggedIn ? (
+            <LoginPrompt action="comment" compact />
+          ) : (
+            <>
+              <form onSubmit={handleSubmitComment} className="flex gap-2">
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder={
+                    editingComment ? 'Edit your comment...' : 'Add context for Claude...'
+                  }
+                  maxLength={300}
+                  className="flex-1 text-sm px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-background text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+                <button
+                  type="submit"
+                  disabled={
+                    isSubmitting ||
+                    !commentText.trim() ||
+                    !!(editingComment && commentText === editingComment.content)
+                  }
+                  className="text-sm px-2 py-1 rounded bg-accent text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+                >
+                  {isSubmitting ? '...' : editingComment ? 'Save' : 'Add'}
+                </button>
+              </form>
+              {editingComment && (
+                <p className="text-xs text-muted mt-1">
+                  1 comment per person. Editing your comment.
+                </p>
+              )}
+            </>
           )}
-          {error && (
-            <p className="text-xs text-red-500 mt-1">{error}</p>
-          )}
+          {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>
       )}
     </div>

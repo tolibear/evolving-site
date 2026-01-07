@@ -121,6 +121,30 @@ const initSchema = async () => {
     -- Index for security event queries
     CREATE INDEX IF NOT EXISTS idx_security_events_type_time ON security_events(event_type, created_at);
 
+    -- Users table (Twitter OAuth)
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      twitter_id TEXT UNIQUE NOT NULL,
+      twitter_username TEXT NOT NULL,
+      twitter_avatar TEXT,
+      twitter_name TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_login DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Sessions table (auth sessions)
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      expires_at DATETIME NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    -- Index for session lookups
+    CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+
     -- Initialize status row if not exists
     INSERT OR IGNORE INTO status (id, state, message) VALUES (1, 'idle', 'Awaiting next suggestion...');
   `)
@@ -175,6 +199,22 @@ const initSchema = async () => {
   // Add vote_type column for tracking upvotes vs downvotes (ignore if already exists)
   try {
     await db.execute("ALTER TABLE votes ADD COLUMN vote_type TEXT DEFAULT 'up'")
+  } catch {
+    // Column already exists
+  }
+  // Add user_id columns for Twitter auth (ignore if already exists)
+  try {
+    await db.execute('ALTER TABLE suggestions ADD COLUMN user_id INTEGER REFERENCES users(id)')
+  } catch {
+    // Column already exists
+  }
+  try {
+    await db.execute('ALTER TABLE votes ADD COLUMN user_id INTEGER REFERENCES users(id)')
+  } catch {
+    // Column already exists
+  }
+  try {
+    await db.execute('ALTER TABLE comments ADD COLUMN user_id INTEGER REFERENCES users(id)')
   } catch {
     // Column already exists
   }
@@ -276,7 +316,8 @@ export interface Suggestion {
   implemented_at: string | null
   ai_note: string | null
   author: string | null // null = anonymous user, 'ralph' = Ralph Wiggum
-  submitter_hash: string | null // hash of IP+UserAgent for identifying the submitter
+  submitter_hash: string | null // hash of IP+UserAgent for identifying the submitter (legacy)
+  user_id: number | null // Twitter authenticated user ID
   comment_count?: number
 }
 
@@ -346,6 +387,30 @@ export interface SecurityEvent {
   endpoint: string | null
   details: string | null
   created_at: string
+}
+
+export interface User {
+  id: number
+  twitter_id: string
+  twitter_username: string
+  twitter_avatar: string | null
+  twitter_name: string | null
+  created_at: string
+  last_login: string
+}
+
+export interface Session {
+  id: string
+  user_id: number
+  expires_at: string
+  created_at: string
+}
+
+export interface Contributor {
+  id: number
+  username: string
+  avatar: string | null
+  type: 'comment' | 'vote'
 }
 
 // Ensure schema is ready before queries
@@ -1070,6 +1135,373 @@ export async function cleanupOldSecurityEvents(daysToKeep: number = 30): Promise
     args: [cutoffTime],
   })
   return result.rowsAffected
+}
+
+// User queries
+export async function getUserByTwitterId(twitterId: string): Promise<User | null> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT * FROM users WHERE twitter_id = ?',
+    args: [twitterId],
+  })
+  return (result.rows[0] as unknown as User) || null
+}
+
+export async function getUserById(id: number): Promise<User | null> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT * FROM users WHERE id = ?',
+    args: [id],
+  })
+  return (result.rows[0] as unknown as User) || null
+}
+
+export async function createUser(
+  twitterId: string,
+  twitterUsername: string,
+  twitterAvatar: string | null,
+  twitterName: string | null
+): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: `INSERT INTO users (twitter_id, twitter_username, twitter_avatar, twitter_name)
+          VALUES (?, ?, ?, ?)`,
+    args: [twitterId, twitterUsername, twitterAvatar, twitterName],
+  })
+  return Number(result.lastInsertRowid)
+}
+
+export async function updateUser(
+  id: number,
+  twitterUsername: string,
+  twitterAvatar: string | null,
+  twitterName: string | null
+): Promise<void> {
+  await ensureSchema()
+  await db.execute({
+    sql: `UPDATE users SET
+          twitter_username = ?,
+          twitter_avatar = ?,
+          twitter_name = ?,
+          last_login = datetime('now')
+          WHERE id = ?`,
+    args: [twitterUsername, twitterAvatar, twitterName, id],
+  })
+}
+
+export async function upsertUser(
+  twitterId: string,
+  twitterUsername: string,
+  twitterAvatar: string | null,
+  twitterName: string | null
+): Promise<User> {
+  await ensureSchema()
+  const existing = await getUserByTwitterId(twitterId)
+  if (existing) {
+    await updateUser(existing.id, twitterUsername, twitterAvatar, twitterName)
+    return { ...existing, twitter_username: twitterUsername, twitter_avatar: twitterAvatar, twitter_name: twitterName }
+  }
+  const id = await createUser(twitterId, twitterUsername, twitterAvatar, twitterName)
+  return {
+    id,
+    twitter_id: twitterId,
+    twitter_username: twitterUsername,
+    twitter_avatar: twitterAvatar,
+    twitter_name: twitterName,
+    created_at: new Date().toISOString(),
+    last_login: new Date().toISOString(),
+  }
+}
+
+// Session queries
+export async function createSession(userId: number, expiresInMs: number = 30 * 24 * 60 * 60 * 1000): Promise<string> {
+  await ensureSchema()
+  const sessionId = crypto.randomUUID()
+  const expiresAt = new Date(Date.now() + expiresInMs).toISOString()
+  await db.execute({
+    sql: 'INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)',
+    args: [sessionId, userId, expiresAt],
+  })
+  return sessionId
+}
+
+export async function getSession(sessionId: string): Promise<(Session & { user: User }) | null> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: `SELECT s.*, u.id as u_id, u.twitter_id, u.twitter_username, u.twitter_avatar, u.twitter_name, u.created_at as u_created_at, u.last_login
+          FROM sessions s
+          JOIN users u ON s.user_id = u.id
+          WHERE s.id = ? AND s.expires_at > datetime('now')`,
+    args: [sessionId],
+  })
+  if (result.rows.length === 0) return null
+  const row = result.rows[0] as unknown as {
+    id: string
+    user_id: number
+    expires_at: string
+    created_at: string
+    u_id: number
+    twitter_id: string
+    twitter_username: string
+    twitter_avatar: string | null
+    twitter_name: string | null
+    u_created_at: string
+    last_login: string
+  }
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    expires_at: row.expires_at,
+    created_at: row.created_at,
+    user: {
+      id: row.u_id,
+      twitter_id: row.twitter_id,
+      twitter_username: row.twitter_username,
+      twitter_avatar: row.twitter_avatar,
+      twitter_name: row.twitter_name,
+      created_at: row.u_created_at,
+      last_login: row.last_login,
+    },
+  }
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+  await ensureSchema()
+  await db.execute({
+    sql: 'DELETE FROM sessions WHERE id = ?',
+    args: [sessionId],
+  })
+}
+
+export async function deleteExpiredSessions(): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: "DELETE FROM sessions WHERE expires_at < datetime('now')",
+    args: [],
+  })
+  return result.rowsAffected
+}
+
+// Contributor queries for suggestions
+export async function getContributors(
+  suggestionId: number,
+  limit: number = 5
+): Promise<{ contributors: Contributor[]; totalCount: number }> {
+  await ensureSchema()
+
+  // Get commenters first (ordered by comment time)
+  const commentersResult = await db.execute({
+    sql: `SELECT DISTINCT u.id, u.twitter_username as username, u.twitter_avatar as avatar, 'comment' as type
+          FROM comments c
+          JOIN users u ON c.user_id = u.id
+          WHERE c.suggestion_id = ?
+          ORDER BY c.created_at ASC`,
+    args: [suggestionId],
+  })
+  const commenters = commentersResult.rows as unknown as Contributor[]
+
+  // Get voters (excluding those who already commented)
+  const commenterIds = commenters.map((c) => c.id)
+  const votersResult = await db.execute({
+    sql: `SELECT DISTINCT u.id, u.twitter_username as username, u.twitter_avatar as avatar, 'vote' as type
+          FROM votes v
+          JOIN users u ON v.user_id = u.id
+          WHERE v.suggestion_id = ? AND v.vote_type = 'up'
+          ORDER BY v.created_at ASC`,
+    args: [suggestionId],
+  })
+  const allVoters = votersResult.rows as unknown as Contributor[]
+  const voters = allVoters.filter((v) => !commenterIds.includes(v.id))
+
+  // Combine: commenters first, then voters
+  const allContributors = [...commenters, ...voters]
+  const totalCount = allContributors.length
+  const contributors = allContributors.slice(0, limit)
+
+  return { contributors, totalCount }
+}
+
+// Create suggestion with user_id
+export async function createSuggestionWithUser(content: string, userId: number): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'INSERT INTO suggestions (content, user_id) VALUES (?, ?)',
+    args: [content, userId],
+  })
+  return Number(result.lastInsertRowid)
+}
+
+// Add vote with user_id
+export async function addVoteWithUser(
+  suggestionId: number,
+  userId: number,
+  voteType: 'up' | 'down' = 'up'
+): Promise<void> {
+  await ensureSchema()
+  // Check if user already voted (by user_id)
+  const existing = await db.execute({
+    sql: 'SELECT id FROM votes WHERE suggestion_id = ? AND user_id = ?',
+    args: [suggestionId, userId],
+  })
+  if (existing.rows.length > 0) {
+    throw new Error('Already voted on this suggestion')
+  }
+  await db.execute({
+    sql: 'INSERT INTO votes (suggestion_id, user_id, vote_type, voter_hash) VALUES (?, ?, ?, ?)',
+    args: [suggestionId, userId, voteType, `user:${userId}`],
+  })
+  if (voteType === 'up') {
+    await db.execute({
+      sql: 'UPDATE suggestions SET votes = votes + 1 WHERE id = ?',
+      args: [suggestionId],
+    })
+  } else {
+    await db.execute({
+      sql: 'UPDATE suggestions SET votes = MAX(0, votes - 1) WHERE id = ?',
+      args: [suggestionId],
+    })
+  }
+}
+
+// Get vote type by user_id
+export async function getVoteTypeByUser(
+  suggestionId: number,
+  userId: number
+): Promise<'up' | 'down' | null> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT vote_type FROM votes WHERE suggestion_id = ? AND user_id = ?',
+    args: [suggestionId, userId],
+  })
+  if (result.rows.length === 0) return null
+  return (result.rows[0] as unknown as { vote_type: 'up' | 'down' }).vote_type
+}
+
+// Remove vote by user_id
+export async function removeVoteByUser(
+  suggestionId: number,
+  userId: number
+): Promise<'up' | 'down' | null> {
+  await ensureSchema()
+  const voteType = await getVoteTypeByUser(suggestionId, userId)
+  if (!voteType) return null
+
+  await db.execute({
+    sql: 'DELETE FROM votes WHERE suggestion_id = ? AND user_id = ?',
+    args: [suggestionId, userId],
+  })
+
+  if (voteType === 'up') {
+    await db.execute({
+      sql: 'UPDATE suggestions SET votes = MAX(0, votes - 1) WHERE id = ?',
+      args: [suggestionId],
+    })
+  } else {
+    await db.execute({
+      sql: 'UPDATE suggestions SET votes = votes + 1 WHERE id = ?',
+      args: [suggestionId],
+    })
+  }
+
+  return voteType
+}
+
+// Change vote by user_id
+export async function changeVoteByUser(
+  suggestionId: number,
+  userId: number,
+  newVoteType: 'up' | 'down'
+): Promise<void> {
+  await ensureSchema()
+  const currentVoteType = await getVoteTypeByUser(suggestionId, userId)
+  if (!currentVoteType || currentVoteType === newVoteType) return
+
+  await db.execute({
+    sql: 'UPDATE votes SET vote_type = ? WHERE suggestion_id = ? AND user_id = ?',
+    args: [newVoteType, suggestionId, userId],
+  })
+
+  if (newVoteType === 'up') {
+    await db.execute({
+      sql: 'UPDATE suggestions SET votes = votes + 2 WHERE id = ?',
+      args: [suggestionId],
+    })
+  } else {
+    await db.execute({
+      sql: 'UPDATE suggestions SET votes = MAX(0, votes - 2) WHERE id = ?',
+      args: [suggestionId],
+    })
+  }
+}
+
+// Add comment with user_id
+export async function addCommentWithUser(
+  suggestionId: number,
+  content: string,
+  userId: number
+): Promise<number> {
+  await ensureSchema()
+  // Check if user already commented
+  const existing = await db.execute({
+    sql: 'SELECT id FROM comments WHERE suggestion_id = ? AND user_id = ?',
+    args: [suggestionId, userId],
+  })
+  if (existing.rows.length > 0) {
+    throw new Error('Already commented on this suggestion')
+  }
+  const result = await db.execute({
+    sql: 'INSERT INTO comments (suggestion_id, content, user_id, commenter_hash) VALUES (?, ?, ?, ?)',
+    args: [suggestionId, content, userId, `user:${userId}`],
+  })
+  return Number(result.lastInsertRowid)
+}
+
+// Update comment by user_id
+export async function updateCommentByUser(
+  commentId: number,
+  content: string,
+  userId: number
+): Promise<boolean> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'UPDATE comments SET content = ? WHERE id = ? AND user_id = ?',
+    args: [content, commentId, userId],
+  })
+  return result.rowsAffected > 0
+}
+
+// Get user's comment on a suggestion
+export async function getUserCommentByUserId(
+  suggestionId: number,
+  userId: number
+): Promise<Comment | null> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT * FROM comments WHERE suggestion_id = ? AND user_id = ?',
+    args: [suggestionId, userId],
+  })
+  return (result.rows[0] as unknown as Comment) || null
+}
+
+// Delete suggestion by user_id
+export async function deleteSuggestionByUser(id: number, userId: number): Promise<boolean> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: `DELETE FROM suggestions WHERE id = ? AND user_id = ? AND status = 'pending'`,
+    args: [id, userId],
+  })
+  if (result.rowsAffected > 0) {
+    await db.execute({
+      sql: 'DELETE FROM votes WHERE suggestion_id = ?',
+      args: [id],
+    })
+    await db.execute({
+      sql: 'DELETE FROM comments WHERE suggestion_id = ?',
+      args: [id],
+    })
+    return true
+  }
+  return false
 }
 
 export default db

@@ -146,34 +146,39 @@ export async function createCreditCheckoutSession(
     return null
   }
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'payment',
-    payment_method_types: ['card'],
-    line_items: [
-      {
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: `${tier.credits} Expedite Credit${tier.credits > 1 ? 's' : ''}`,
-            description: tier.discount > 0
-              ? `${tier.discount}% discount - $${(tier.perCreditCents / 100).toFixed(2)} per credit`
-              : 'Use to boost your suggestion to the top',
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `${tier.credits} Expedite Credit${tier.credits > 1 ? 's' : ''}`,
+              description: tier.discount > 0
+                ? `${tier.discount}% discount - $${(tier.perCreditCents / 100).toFixed(2)} per credit`
+                : 'Use to boost your suggestion to the top',
+            },
+            unit_amount: tier.priceCents,
           },
-          unit_amount: tier.priceCents,
+          quantity: 1,
         },
-        quantity: 1,
+      ],
+      metadata: {
+        userId: String(userId),
+        tierId: String(tierId),
+        creditsAmount: String(tier.credits),
+        type: 'credit_purchase',
       },
-    ],
-    metadata: {
-      userId: String(userId),
-      tierId: String(tierId),
-      creditsAmount: String(tier.credits),
-      type: 'credit_purchase',
-    },
-    success_url: successUrl,
-    cancel_url: cancelUrl,
-    expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
-  })
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+    })
 
-  return session
+    return session
+  } catch (error) {
+    console.error('Stripe checkout session creation failed:', error)
+    throw error
+  }
 }

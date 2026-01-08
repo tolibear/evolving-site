@@ -4,6 +4,7 @@ import React, { useRef, useEffect, useState } from 'react'
 import Ansi from 'ansi-to-react'
 import { useTerminal } from './TerminalProvider'
 import { SessionPicker } from './SessionPicker'
+import ActiveUserCounter from '@/components/ActiveUserCounter'
 
 interface TerminalViewProps {
   className?: string
@@ -89,11 +90,14 @@ export function TerminalView({ className = '' }: TerminalViewProps) {
           <SessionPicker />
         </div>
 
-        {session && (
-          <span className="text-xs text-terminal-text opacity-50 font-mono">
-            {session.suggestionId === 0 ? '🔄 Sync' : `#${session.suggestionId}`}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {session && (
+            <span className="text-xs text-terminal-text opacity-50 font-mono">
+              {session.suggestionId === 0 ? '🔄 Sync' : `#${session.suggestionId}`}
+            </span>
+          )}
+          <ActiveUserCounter />
+        </div>
       </div>
 
       {/* Terminal content - scrollable area */}

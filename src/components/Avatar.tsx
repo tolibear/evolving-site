@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 interface AvatarProps {
   username: string
@@ -17,6 +18,37 @@ const sizeClasses = {
   lg: 'w-10 h-10',
 }
 
+function Tooltip({ username, targetRef }: { username: string; targetRef: React.RefObject<HTMLButtonElement | null> }) {
+  const [position, setPosition] = useState({ top: 0, left: 0 })
+
+  useEffect(() => {
+    if (targetRef.current) {
+      const rect = targetRef.current.getBoundingClientRect()
+      setPosition({
+        top: rect.top - 8,
+        left: rect.left + rect.width / 2,
+      })
+    }
+  }, [targetRef])
+
+  return createPortal(
+    <div
+      className="fixed z-[9999] px-2 py-1 -translate-x-1/2 -translate-y-full
+                 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900
+                 text-xs font-medium rounded shadow-lg whitespace-nowrap
+                 pointer-events-none animate-fade-in"
+      style={{ top: position.top, left: position.left }}
+    >
+      @{username}
+      <div
+        className="absolute top-full left-1/2 -translate-x-1/2 -mt-px
+                   border-4 border-transparent border-t-neutral-900 dark:border-t-neutral-100"
+      />
+    </div>,
+    document.body
+  )
+}
+
 export default function Avatar({
   username,
   avatar,
@@ -26,6 +58,7 @@ export default function Avatar({
 }: AvatarProps) {
   const [showTooltipState, setShowTooltipState] = useState(false)
   const [imgError, setImgError] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   const handleClick = () => {
     window.open(`https://twitter.com/${username}`, '_blank', 'noopener,noreferrer')
@@ -34,6 +67,7 @@ export default function Avatar({
   return (
     <div className="relative inline-block">
       <button
+        ref={buttonRef}
         onClick={handleClick}
         onMouseEnter={() => setShowTooltipState(true)}
         onMouseLeave={() => setShowTooltipState(false)}
@@ -70,21 +104,8 @@ export default function Avatar({
         )}
       </button>
 
-      {/* Tooltip */}
-      {showTooltip && showTooltipState && (
-        <div
-          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1
-                     bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900
-                     text-xs font-medium rounded shadow-lg whitespace-nowrap
-                     pointer-events-none animate-fade-in"
-        >
-          @{username}
-          <div
-            className="absolute top-full left-1/2 -translate-x-1/2 -mt-px
-                       border-4 border-transparent border-t-neutral-900 dark:border-t-neutral-100"
-          />
-        </div>
-      )}
+      {/* Tooltip - rendered via portal to escape overflow containers */}
+      {showTooltip && showTooltipState && <Tooltip username={username} targetRef={buttonRef} />}
     </div>
   )
 }

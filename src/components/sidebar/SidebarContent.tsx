@@ -3,7 +3,6 @@
 import { Suspense } from 'react'
 import SuggestionForm from '@/components/SuggestionForm'
 import SuggestionList from '@/components/SuggestionList'
-import ActiveUserCounter from '@/components/ActiveUserCounter'
 import ExpediteSuccessToast from '@/components/ExpediteSuccessToast'
 import { useCredits } from '@/components/CreditProvider'
 import { useAuth } from '@/components/AuthProvider'
@@ -82,6 +81,13 @@ export function SidebarContent() {
       {/* Boost display (only if has purchased before) */}
       <BoostDisplay />
 
+      {/* Suggestion Form - only when logged in, at top */}
+      {isLoggedIn && (
+        <div className="mb-4">
+          <SuggestionForm />
+        </div>
+      )}
+
       {/* Primary section: Suggestions */}
       <div className="flex-1 min-h-0 overflow-y-auto sidebar-scroll">
         {/* Section label */}
@@ -91,16 +97,6 @@ export function SidebarContent() {
 
         {/* Suggestions List */}
         <SuggestionList />
-
-        {/* Suggestion Form - only when logged in */}
-        {isLoggedIn && (
-          <div className="mt-6">
-            <div className="text-xs font-medium text-muted uppercase tracking-wide mb-2">
-              Suggest
-            </div>
-            <SuggestionForm />
-          </div>
-        )}
       </div>
 
       {/* Divider */}
@@ -109,11 +105,12 @@ export function SidebarContent() {
       {/* History tabs (collapsed by default) */}
       <HistoryTabs />
 
-      {/* Footer: Active users + boost badge */}
-      <div className="mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-        <ActiveUserCounter />
-        {isLoggedIn && <BoostBadge />}
-      </div>
+      {/* Footer: Boost badge */}
+      {isLoggedIn && (
+        <div className="mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-end">
+          <BoostBadge />
+        </div>
+      )}
     </div>
   )
 }

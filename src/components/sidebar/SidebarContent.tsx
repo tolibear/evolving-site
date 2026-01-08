@@ -11,6 +11,7 @@ import { BoostCheckout } from './BoostCheckout'
 import { BoostSuccessAnimation } from './BoostSuccessAnimation'
 import { CompactStatusBar } from './CompactStatusBar'
 import { HistoryTabs } from './HistoryTabs'
+import { LeaderboardSection } from './LeaderboardSection'
 import { BoostBadge } from './BoostBadge'
 
 function BoostDisplay() {
@@ -104,6 +105,9 @@ export function SidebarContent() {
 
       {/* History tabs (collapsed by default) */}
       <HistoryTabs />
+
+      {/* Leaderboard (collapsed by default) */}
+      <LeaderboardSection />
 
       {/* Footer: Boost badge */}
       {isLoggedIn && (

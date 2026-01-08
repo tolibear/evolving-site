@@ -61,6 +61,7 @@ async function main() {
 
   // Dynamic import AFTER env vars are loaded
   const { updateSuggestionStatus, addChangelogEntry, updateStatus, grantVotesToAllUsers, grantBonusVoteToSupporters } = await import('../src/lib/db.js')
+  const { distributeRepForImplementation, incrementBackedDenied } = await import('../src/lib/reputation.js')
 
   console.log(`Finalizing suggestion ${suggestionId} as ${status}...`)
 
@@ -73,6 +74,12 @@ async function main() {
     await addChangelogEntry(suggestionId, content, votes, commitHash, aiNote, iconType ?? undefined)
     console.log(`✓ Added changelog entry${iconType ? ` with icon: ${iconType}` : ''}`)
 
+    // Distribute reputation to suggester and voters
+    const repResults = await distributeRepForImplementation(suggestionId)
+    console.log(`✓ Distributed reputation:`)
+    console.log(`  - Suggester (user ${repResults.suggesterId}): +${repResults.suggesterRep} rep`)
+    console.log(`  - ${repResults.voterCount} voters received rep (total: ${repResults.totalVoterRep})`)
+
     // Grant bonus vote (+1) to users who upvoted this suggestion
     const bonusCount = await grantBonusVoteToSupporters(suggestionId)
     console.log(`✓ Granted +1 bonus vote to ${bonusCount} supporters`)
@@ -80,6 +87,10 @@ async function main() {
     // Reset all users' votes to 2 (the cap)
     await grantVotesToAllUsers(2)
     console.log('✓ Reset all users to 2 votes')
+  } else if (status === 'denied') {
+    // Track that users backed a denied suggestion (visible on profile)
+    const deniedCount = await incrementBackedDenied(suggestionId)
+    console.log(`✓ Marked ${deniedCount} users as having backed a denied suggestion`)
   }
 
   // Set status back to idle

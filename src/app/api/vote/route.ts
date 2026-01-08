@@ -9,6 +9,7 @@ import {
   removeVoteByUser,
   changeVoteByUser,
 } from '@/lib/db'
+import { updateVotingStreak, activateReferralIfEligible } from '@/lib/reputation'
 import { getClientIP, checkRateLimit } from '@/lib/utils'
 import { isValidId } from '@/lib/security'
 import { validateSessionAndGetUser, SESSION_COOKIE_NAME } from '@/lib/twitter-auth'
@@ -106,6 +107,12 @@ export async function POST(request: Request) {
     await decrementVoteAllowance(voterHash)
     await addVoteWithUser(suggestionId, user.id, voteType)
     const remainingVotes = await getVoteAllowance(voterHash)
+
+    // Update user's voting streak
+    await updateVotingStreak(user.id)
+
+    // Check if this vote activates a pending referral (7+ days + first vote)
+    await activateReferralIfEligible(user.id)
 
     return NextResponse.json({
       message: 'Vote recorded successfully',

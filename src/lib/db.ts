@@ -293,6 +293,101 @@ const initSchema = async () => {
     // Column already exists
   }
 
+  // ===== REPUTATION SYSTEM TABLES =====
+
+  // User reputation tracking
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS user_reputation (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id),
+      total_rep INTEGER DEFAULT 0,
+      weekly_rep INTEGER DEFAULT 0,
+      tier TEXT DEFAULT 'bronze',
+      current_streak INTEGER DEFAULT 0,
+      longest_streak INTEGER DEFAULT 0,
+      last_vote_date DATE,
+      suggestions_backed_denied INTEGER DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  // Referral tracking
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS referrals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      referrer_id INTEGER REFERENCES users(id),
+      referred_id INTEGER REFERENCES users(id),
+      activated BOOLEAN DEFAULT false,
+      activated_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(referred_id)
+    )
+  `)
+
+  // Achievement tracking
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS user_achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER REFERENCES users(id),
+      achievement_type TEXT NOT NULL,
+      earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, achievement_type)
+    )
+  `)
+
+  // Push notification subscriptions
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER REFERENCES users(id),
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      notify_own_shipped BOOLEAN DEFAULT true,
+      notify_voted_shipped BOOLEAN DEFAULT true,
+      notify_refill BOOLEAN DEFAULT true,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  // Weekly leaderboard snapshots
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS leaderboard_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER REFERENCES users(id),
+      week_start DATE NOT NULL,
+      weekly_rep INTEGER NOT NULL,
+      rank INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  // Add indexes for reputation tables
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_user_rep_total ON user_reputation(total_rep DESC)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_user_rep_weekly ON user_reputation(weekly_rep DESC)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_achievements_user ON user_achievements(user_id)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_leaderboard_week ON leaderboard_snapshots(week_start, rank)`)
+
+  // Add vote_order column for tracking early voters
+  try {
+    await db.execute('ALTER TABLE votes ADD COLUMN vote_order INTEGER')
+  } catch {
+    // Column already exists
+  }
+
+  // Add referral columns to users
+  try {
+    await db.execute('ALTER TABLE users ADD COLUMN referral_code TEXT UNIQUE')
+  } catch {
+    // Column already exists
+  }
+  try {
+    await db.execute('ALTER TABLE users ADD COLUMN referred_by INTEGER REFERENCES users(id)')
+  } catch {
+    // Column already exists
+  }
+
   // One-time migration: Mark suggestion #12 as implemented (vote allowance feature)
   // The feature was implemented in commit d4a0b11 but database wasn't updated
   try {
@@ -1455,9 +1550,17 @@ export async function addVoteWithUser(
   if (existing.rows.length > 0) {
     throw new Error('Already voted on this suggestion')
   }
+
+  // Get next vote order for early voter bonus tracking
+  const orderResult = await db.execute({
+    sql: 'SELECT COALESCE(MAX(vote_order), 0) + 1 as next_order FROM votes WHERE suggestion_id = ?',
+    args: [suggestionId],
+  })
+  const voteOrder = (orderResult.rows[0] as unknown as { next_order: number }).next_order
+
   await db.execute({
-    sql: 'INSERT INTO votes (suggestion_id, user_id, vote_type, voter_hash) VALUES (?, ?, ?, ?)',
-    args: [suggestionId, userId, voteType, `user:${userId}`],
+    sql: 'INSERT INTO votes (suggestion_id, user_id, vote_type, voter_hash, vote_order) VALUES (?, ?, ?, ?, ?)',
+    args: [suggestionId, userId, voteType, `user:${userId}`, voteOrder],
   })
   if (voteType === 'up') {
     await db.execute({

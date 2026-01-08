@@ -66,8 +66,7 @@ export default function SuggestionForm() {
   // Show login prompt if not authenticated
   if (!isLoading && !isLoggedIn) {
     return (
-      <div className="card mb-8">
-        <label className="block text-sm font-medium mb-2">Suggest a feature</label>
+      <div className="py-3">
         <LoginPrompt action="submit" />
       </div>
     )
@@ -76,9 +75,8 @@ export default function SuggestionForm() {
   // Show loading skeleton
   if (isLoading) {
     return (
-      <div className="card mb-8 animate-pulse">
-        <div className="h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-32 mb-2"></div>
-        <div className="h-24 bg-neutral-200 dark:bg-neutral-700 rounded"></div>
+      <div className="py-3 animate-pulse">
+        <div className="h-20 bg-neutral-200 dark:bg-neutral-700 rounded"></div>
       </div>
     )
   }
@@ -184,24 +182,22 @@ export default function SuggestionForm() {
   }
 
   return (
-    <form onSubmit={handleFormSubmit} className="card mb-8">
-      <div className="flex items-center gap-2 mb-2">
+    <form onSubmit={handleFormSubmit} className="space-y-2">
+      <div className="flex items-center gap-2">
         {user && (
-          <Avatar username={user.username} avatar={user.avatar} size="sm" showTooltip={false} />
+          <Avatar username={user.username} avatar={user.avatar} size="xs" showTooltip={false} />
         )}
-        <label htmlFor="suggestion" className="block text-sm font-medium">
-          Suggest a feature
-        </label>
+        <span className="text-xs text-muted">@{user?.username}</span>
       </div>
       <textarea
         id="suggestion"
         value={content}
         onChange={(e) => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="What feature would you like to see? Be specific..."
-        rows={3}
+        placeholder="What feature would you like to see?"
+        rows={2}
         maxLength={500}
-        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
+        className="w-full px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
         disabled={isSubmitting || showConfirm}
       />
 
@@ -239,14 +235,14 @@ export default function SuggestionForm() {
       )}
 
       {!showConfirm && (
-        <div className="flex items-center justify-between mt-3">
-          <span className="text-sm text-muted">
-            {content.length}/500 · Enter to submit, Shift+Enter for new line
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted">
+            {content.length}/500
           </span>
           <button
             type="submit"
             disabled={isSubmitting || content.trim().length < 10}
-            className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-1 text-sm rounded-lg bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Submit
           </button>

@@ -154,12 +154,11 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
         aria-hidden={!isOpen}
       >
         {/* Header with close button */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50">
-          <h2 className="font-semibold text-sm text-foreground">Control Panel</h2>
+        <div className="flex items-center justify-end px-4 py-2 border-b border-neutral-100 dark:border-neutral-800">
           <button
             onClick={() => setIsOpen(false)}
-            className="p-1.5 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-            aria-label="Close control panel"
+            className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            aria-label="Close panel"
           >
             <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

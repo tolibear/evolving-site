@@ -122,7 +122,7 @@ export default function SuggestionList() {
     return (
       <div className="card text-center text-muted">
         <p className="mb-2">No suggestions yet.</p>
-        <p className="text-sm">Be the first to suggest a feature!</p>
+        <p className="text-sm">Be the first to suggest something.!</p>
       </div>
     )
   }

@@ -5,7 +5,15 @@ import {
   hasEverPurchased,
   createCreditPurchase,
 } from '@/lib/db'
-import { createCreditCheckoutSession, CREDIT_TIERS, getCreditTier } from '@/lib/stripe'
+import {
+  createCreditCheckoutSession,
+  createBoostCheckoutSession,
+  CREDIT_TIERS,
+  getCreditTier,
+  getBoostPricing,
+  MIN_QUANTITY,
+  MAX_QUANTITY
+} from '@/lib/stripe'
 import { validateSessionAndGetUser, SESSION_COOKIE_NAME } from '@/lib/twitter-auth'
 
 // GET: Get user's credit balance and purchase status
@@ -34,7 +42,7 @@ export async function GET() {
   }
 }
 
-// POST: Create a checkout session for purchasing credits
+// POST: Create a checkout session for purchasing credits/boosts
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()
@@ -46,44 +54,77 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const tierId = body.tierId as 1 | 2 | 3
-
-    if (![1, 2, 3].includes(tierId)) {
-      return NextResponse.json({ error: 'Invalid tier' }, { status: 400 })
-    }
-
-    const tier = getCreditTier(tierId)
-    if (!tier) {
-      return NextResponse.json({ error: 'Invalid tier' }, { status: 400 })
-    }
 
     // Get base URL from environment or request
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ||
       `${request.headers.get('x-forwarded-proto') || 'https'}://${request.headers.get('host')}`
 
-    const checkoutSession = await createCreditCheckoutSession(
-      user.id,
-      tierId,
-      `${baseUrl}?credits=success`,
-      `${baseUrl}?credits=cancelled`
-    )
+    // Support both new quantity-based and legacy tier-based purchases
+    if (body.quantity !== undefined) {
+      // New quantity-based flow
+      const quantity = Math.max(MIN_QUANTITY, Math.min(MAX_QUANTITY, Number(body.quantity) || 1))
+      const pricing = getBoostPricing(quantity)
 
-    if (!checkoutSession) {
-      return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 })
+      const checkoutSession = await createBoostCheckoutSession(
+        user.id,
+        quantity,
+        `${baseUrl}?credits=success`,
+        `${baseUrl}?credits=cancelled`
+      )
+
+      if (!checkoutSession) {
+        return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 })
+      }
+
+      // Store the pending purchase
+      await createCreditPurchase(
+        user.id,
+        quantity,
+        pricing.totalCents,
+        checkoutSession.id
+      )
+
+      return NextResponse.json({
+        checkoutUrl: checkoutSession.url,
+        sessionId: checkoutSession.id,
+      })
+    } else {
+      // Legacy tier-based flow
+      const tierId = body.tierId as 1 | 2 | 3
+
+      if (![1, 2, 3].includes(tierId)) {
+        return NextResponse.json({ error: 'Invalid tier' }, { status: 400 })
+      }
+
+      const tier = getCreditTier(tierId)
+      if (!tier) {
+        return NextResponse.json({ error: 'Invalid tier' }, { status: 400 })
+      }
+
+      const checkoutSession = await createCreditCheckoutSession(
+        user.id,
+        tierId,
+        `${baseUrl}?credits=success`,
+        `${baseUrl}?credits=cancelled`
+      )
+
+      if (!checkoutSession) {
+        return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 })
+      }
+
+      // Store the pending purchase
+      await createCreditPurchase(
+        user.id,
+        tier.credits,
+        tier.priceCents,
+        checkoutSession.id
+      )
+
+      return NextResponse.json({
+        checkoutUrl: checkoutSession.url,
+        sessionId: checkoutSession.id,
+      })
     }
-
-    // Store the pending purchase
-    await createCreditPurchase(
-      user.id,
-      tier.credits,
-      tier.priceCents,
-      checkoutSession.id
-    )
-
-    return NextResponse.json({
-      checkoutUrl: checkoutSession.url,
-      sessionId: checkoutSession.id,
-    })
   } catch (error) {
     console.error('Error creating credit checkout:', error)
     const message = error instanceof Error ? error.message : 'Failed to create checkout'

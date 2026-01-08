@@ -179,16 +179,11 @@ export default function SuggestionCard({
 
   return (
     <div
-      className={`card relative ${isInProgress ? 'border-2 border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-900/20' : ''}`}
+      className={`card ${isInProgress ? 'border-2 border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-900/20' : ''}`}
     >
-      {suggestionNumber && (
-        <span className="absolute top-2 right-2 text-xs text-neutral-300 dark:text-neutral-600 font-mono select-none">
-          #{suggestionNumber}
-        </span>
-      )}
       <div className="flex gap-3">
         <VoteButton suggestionId={id} votes={votes} initialVoteType={userVoteType} />
-        <div className="flex-1 min-w-0 py-0.5">
+        <div className="flex-1 min-w-0">
           {isInProgress && (
             <div className="flex items-center gap-2 mb-2">
               <span className="relative flex h-2 w-2">
@@ -201,20 +196,41 @@ export default function SuggestionCard({
             </div>
           )}
           <p className="text-sm text-foreground break-words leading-snug">{content}</p>
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            {author === 'ralph' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200">
-                <img
-                  src="/ralph-avatar.svg"
-                  alt=""
-                  className="w-4 h-4"
-                  width={16}
-                  height={16}
+
+          {/* Byline: Avatars + metadata + number */}
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center gap-2">
+              {(submitter || contributors.length > 0) && (
+                <ContributorStack
+                  submitter={submitter}
+                  contributors={contributors}
+                  totalCount={contributorCount}
+                  compact
                 />
-                Ralph
+              )}
+              {author === 'ralph' && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100/60 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300">
+                  <img
+                    src="/ralph-avatar.svg"
+                    alt=""
+                    className="w-3 h-3"
+                    width={12}
+                    height={12}
+                  />
+                  Ralph
+                </span>
+              )}
+              <span className="text-xs text-muted">{formatDate(createdAt)}</span>
+            </div>
+            {suggestionNumber && (
+              <span className="text-xs text-neutral-300 dark:text-neutral-600 font-mono select-none">
+                #{suggestionNumber}
               </span>
             )}
-            <span className="text-xs text-muted">{formatDate(createdAt)}</span>
+          </div>
+
+          {/* Action bar */}
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
             <button
               onClick={() => setShowComments(!showComments)}
               className="text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
@@ -228,7 +244,7 @@ export default function SuggestionCard({
               aria-expanded={showComments}
             >
               <svg
-                className="w-3 h-3"
+                className="w-3.5 h-3.5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -241,50 +257,42 @@ export default function SuggestionCard({
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 />
               </svg>
-              {showComments ? 'Hide' : commentCount > 0 ? `${commentCount}` : 'Comment'}
+              {showComments ? 'Hide' : commentCount > 0 ? commentCount : 'Comment'}
             </button>
-            {isOwner && !isInProgress && (
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors flex items-center gap-1"
-                aria-label="Delete your suggestion"
-              >
-                <svg
-                  className="w-3 h-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-                Delete
-              </button>
-            )}
-            {!isInProgress && (
-              <ExpediteButton
-                suggestionId={id}
-                currentAmount={expediteAmountCents}
-                onNeedsCredits={openCheckout}
-              />
-            )}
-          </div>
 
-          {/* Contributor avatars */}
-          {(submitter || contributors.length > 0) && (
-            <div className="mt-2">
-              <ContributorStack
-                submitter={submitter}
-                contributors={contributors}
-                totalCount={contributorCount}
-              />
+            <div className="flex items-center gap-2">
+              {!isInProgress && (
+                <ExpediteButton
+                  suggestionId={id}
+                  currentAmount={expediteAmountCents}
+                  onNeedsCredits={openCheckout}
+                />
+              )}
+              {isOwner && !isInProgress && (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-1 text-muted hover:text-red-500 dark:hover:text-red-400 transition-colors rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                  aria-label="Delete your suggestion"
+                  title="Delete"
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Delete confirmation */}
           {showDeleteConfirm && (

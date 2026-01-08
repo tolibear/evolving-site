@@ -23,6 +23,10 @@ export const EXPEDITE_AMOUNT_CENTS = 400
 import { CREDIT_TIERS, getCreditTier, type CreditTier } from './credit-tiers'
 export { CREDIT_TIERS, getCreditTier, type CreditTier }
 
+// Import boost pricing for quantity-based purchases
+import { getBoostPricing, MIN_QUANTITY, MAX_QUANTITY } from './boost-pricing'
+export { getBoostPricing, MIN_QUANTITY, MAX_QUANTITY }
+
 // Refund all expedite payments for a suggestion (called when suggestion is denied)
 export async function refundExpeditePayments(suggestionId: number): Promise<{
   refunded: number
@@ -128,7 +132,7 @@ export function verifyWebhookSignature(
   }
 }
 
-// Create a Stripe Checkout session for purchasing credits
+// Create a Stripe Checkout session for purchasing credits (legacy tier-based)
 export async function createCreditCheckoutSession(
   userId: number,
   tierId: 1 | 2 | 3,
@@ -170,6 +174,58 @@ export async function createCreditCheckoutSession(
         tierId: String(tierId),
         creditsAmount: String(tier.credits),
         type: 'credit_purchase',
+      },
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+    })
+
+    return session
+  } catch (error) {
+    console.error('Stripe checkout session creation failed:', error)
+    throw error
+  }
+}
+
+// Create a Stripe Checkout session for purchasing boosts (quantity-based)
+export async function createBoostCheckoutSession(
+  userId: number,
+  quantity: number,
+  successUrl: string,
+  cancelUrl: string
+): Promise<Stripe.Checkout.Session | null> {
+  if (!stripe) {
+    console.error('Stripe not configured - cannot create checkout session')
+    return null
+  }
+
+  // Validate and clamp quantity
+  const qty = Math.max(MIN_QUANTITY, Math.min(MAX_QUANTITY, quantity))
+  const pricing = getBoostPricing(qty)
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `${qty} Boost${qty > 1 ? 's' : ''}`,
+              description: 'Move your ideas to the front of the line',
+            },
+            unit_amount: pricing.totalCents,
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        userId: String(userId),
+        quantity: String(qty),
+        creditsAmount: String(qty), // Keep for webhook compatibility
+        totalCents: String(pricing.totalCents),
+        type: 'credit_purchase', // Keep type for webhook compatibility
       },
       success_url: successUrl,
       cancel_url: cancelUrl,

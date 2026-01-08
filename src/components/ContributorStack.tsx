@@ -21,6 +21,7 @@ interface ContributorStackProps {
   contributors: Contributor[]
   totalCount: number
   maxDisplay?: number
+  compact?: boolean
 }
 
 export default function ContributorStack({
@@ -28,13 +29,16 @@ export default function ContributorStack({
   contributors,
   totalCount,
   maxDisplay = 5,
+  compact = false,
 }: ContributorStackProps) {
+  // In compact mode: smaller avatars, fewer displayed, tighter spacing
+  const effectiveMaxDisplay = compact ? 3 : maxDisplay
   // Filter out the submitter from contributors to avoid showing them twice
   const filteredContributors = submitter
     ? contributors.filter((c) => c.id !== submitter.id)
     : contributors
 
-  const displayedContributors = filteredContributors.slice(0, maxDisplay)
+  const displayedContributors = filteredContributors.slice(0, effectiveMaxDisplay)
   const remainingCount = totalCount - displayedContributors.length - (submitter ? 1 : 0)
 
   // If no submitter and no contributors, show nothing
@@ -49,19 +53,19 @@ export default function ContributorStack({
         <Avatar
           username={submitter.username}
           avatar={submitter.avatar}
-          size="sm"
+          size={compact ? 'xs' : 'sm'}
           className="relative z-10"
         />
       ) : (
         // Placeholder for anonymous/legacy suggestion
         <div
-          className="w-6 h-6 rounded-full border-2 border-white dark:border-neutral-800
+          className={`rounded-full border-2 border-white dark:border-neutral-800
                      bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center
-                     shadow-sm relative z-10"
+                     shadow-sm relative z-10 ${compact ? 'w-5 h-5' : 'w-6 h-6'}`}
           title="Anonymous user"
         >
           <svg
-            className="w-3 h-3 text-neutral-400 dark:text-neutral-500"
+            className={`text-neutral-400 dark:text-neutral-500 ${compact ? 'w-2.5 h-2.5' : 'w-3 h-3'}`}
             fill="currentColor"
             viewBox="0 0 24 24"
           >
@@ -74,7 +78,7 @@ export default function ContributorStack({
       {displayedContributors.map((contributor, index) => (
         <div
           key={contributor.id}
-          className="-ml-1.5"
+          className={compact ? '-ml-1' : '-ml-1.5'}
           style={{ zIndex: 9 - index }}
         >
           <Avatar
@@ -88,9 +92,9 @@ export default function ContributorStack({
       {/* "+N more" badge */}
       {remainingCount > 0 && (
         <div
-          className="-ml-1.5 w-5 h-5 rounded-full border-2 border-white dark:border-neutral-800
+          className={`rounded-full border-2 border-white dark:border-neutral-800
                      bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center
-                     text-[9px] font-medium text-muted shadow-sm"
+                     font-medium text-muted shadow-sm ${compact ? '-ml-1 w-4 h-4 text-[8px]' : '-ml-1.5 w-5 h-5 text-[9px]'}`}
           style={{ zIndex: 0 }}
           title={`${remainingCount} more contributor${remainingCount > 1 ? 's' : ''}`}
         >

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import { useAuth } from './AuthProvider'
 
@@ -11,6 +11,11 @@ interface CreditTier {
   priceDisplay: string
   discount: number
   perCreditCents: number
+}
+
+interface BoostAnimation {
+  from: number
+  to: number
 }
 
 interface CreditState {
@@ -26,6 +31,8 @@ interface CreditContextType extends CreditState {
   openCheckout: () => void
   closeCheckout: () => void
   refreshCredits: () => void
+  animatingBoosts: BoostAnimation | null
+  clearAnimation: () => void
 }
 
 const CreditContext = createContext<CreditContextType | null>(null)
@@ -35,6 +42,8 @@ const fetcher = (url: string) => fetch(url).then(res => res.json())
 export function CreditProvider({ children }: { children: React.ReactNode }) {
   const { isLoggedIn } = useAuth()
   const [showCheckout, setShowCheckout] = useState(false)
+  const [animatingBoosts, setAnimatingBoosts] = useState<BoostAnimation | null>(null)
+  const previousBalanceRef = useRef<number>(0)
 
   const { data, isLoading, mutate } = useSWR(
     isLoggedIn ? '/api/credits' : null,
@@ -42,13 +51,28 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
     { refreshInterval: 30000 } // Refresh every 30 seconds
   )
 
+  // Track balance for animation
+  useEffect(() => {
+    if (data?.balance !== undefined && !animatingBoosts) {
+      previousBalanceRef.current = data.balance
+    }
+  }, [data?.balance, animatingBoosts])
+
   // Check URL params for success/cancel
   useEffect(() => {
     if (typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
     if (params.get('credits') === 'success') {
+      // Store previous balance before refresh
+      const prevBalance = previousBalanceRef.current
+
       // Refresh credits after successful purchase
-      mutate()
+      mutate().then((newData) => {
+        if (newData && newData.balance > prevBalance) {
+          setAnimatingBoosts({ from: prevBalance, to: newData.balance })
+        }
+      })
+
       // Clean up URL
       const url = new URL(window.location.href)
       url.searchParams.delete('credits')
@@ -59,6 +83,7 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
   const openCheckout = useCallback(() => setShowCheckout(true), [])
   const closeCheckout = useCallback(() => setShowCheckout(false), [])
   const refreshCredits = useCallback(() => mutate(), [mutate])
+  const clearAnimation = useCallback(() => setAnimatingBoosts(null), [])
 
   const value: CreditContextType = {
     balance: data?.balance ?? 0,
@@ -70,6 +95,8 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
     openCheckout,
     closeCheckout,
     refreshCredits,
+    animatingBoosts,
+    clearAnimation,
   }
 
   return (

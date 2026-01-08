@@ -1,23 +1,33 @@
 'use client'
 
 import { Suspense } from 'react'
-import StatusBanner from '@/components/StatusBanner'
 import SuggestionForm from '@/components/SuggestionForm'
 import SuggestionList from '@/components/SuggestionList'
-import Changelog from '@/components/Changelog'
-import NeedsInputList from '@/components/NeedsInputList'
-import DeniedList from '@/components/DeniedList'
 import ActiveUserCounter from '@/components/ActiveUserCounter'
 import ExpediteSuccessToast from '@/components/ExpediteSuccessToast'
 import { useCredits } from '@/components/CreditProvider'
 import { useAuth } from '@/components/AuthProvider'
 import UserInfo from './UserInfo'
-import CollapsibleSection from './CollapsibleSection'
-import { CreditCheckout } from './CreditCheckout'
+import { BoostCheckout } from './BoostCheckout'
+import { BoostSuccessAnimation } from './BoostSuccessAnimation'
+import { CompactStatusBar } from './CompactStatusBar'
+import { HistoryTabs } from './HistoryTabs'
+import { BoostBadge } from './BoostBadge'
 
-function CreditDisplay() {
+function BoostDisplay() {
   const { isLoggedIn } = useAuth()
-  const { balance, hasEverPurchased, openCheckout, showCheckout, closeCheckout } = useCredits()
+  const { balance, hasEverPurchased, openCheckout, showCheckout, closeCheckout, animatingBoosts, clearAnimation } = useCredits()
+
+  // Show success animation if active (renders as overlay)
+  if (animatingBoosts) {
+    return (
+      <BoostSuccessAnimation
+        from={animatingBoosts.from}
+        to={animatingBoosts.to}
+        onComplete={clearAnimation}
+      />
+    )
+  }
 
   if (!isLoggedIn) return null
 
@@ -25,74 +35,84 @@ function CreditDisplay() {
   if (showCheckout) {
     return (
       <div className="card">
-        <CreditCheckout onClose={closeCheckout} />
+        <BoostCheckout onClose={closeCheckout} />
       </div>
     )
   }
 
+  // Only show inline display if user has ever purchased
+  if (!hasEverPurchased) return null
+
   return (
-    <div className="flex items-center justify-between text-sm">
+    <div className="flex items-center justify-between text-sm py-2">
       <div className="flex items-center gap-2">
-        <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
         <span className="text-muted">
-          Credits: <span className="font-medium text-foreground">{balance}</span>
+          <span className="font-medium text-foreground">{balance}</span> {balance === 1 ? 'boost' : 'boosts'}
         </span>
       </div>
-      {hasEverPurchased && (
-        <button
-          onClick={openCheckout}
-          className="text-xs px-2 py-1 rounded bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition-colors"
-        >
-          Buy Credits
-        </button>
-      )}
+      <button
+        onClick={openCheckout}
+        className="text-xs px-2 py-1 rounded bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 transition-colors"
+      >
+        Get More
+      </button>
     </div>
   )
 }
 
 export function SidebarContent() {
+  const { isLoggedIn } = useAuth()
+
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full">
       {/* Expedite success notification */}
       <Suspense fallback={null}>
         <ExpediteSuccessToast />
       </Suspense>
 
-      {/* Live Status Banner - always visible */}
-      <StatusBanner />
+      {/* Header: Compact status + user info */}
+      <div className="flex items-center justify-between mb-4">
+        <CompactStatusBar />
+        <UserInfo compact />
+      </div>
 
-      {/* User info / Login area */}
-      <UserInfo />
+      {/* Boost display (only if has purchased before) */}
+      <BoostDisplay />
 
-      {/* Credit display */}
-      <CreditDisplay />
+      {/* Primary section: Suggestions */}
+      <div className="flex-1 min-h-0 overflow-y-auto sidebar-scroll">
+        {/* Section label */}
+        <div className="text-xs font-medium text-muted uppercase tracking-wide mb-3">
+          Up for Vote
+        </div>
 
-      {/* Suggestion Form */}
-      <SuggestionForm />
+        {/* Suggestions List */}
+        <SuggestionList />
 
-      {/* Suggestions List */}
-      <SuggestionList />
+        {/* Suggestion Form - only when logged in */}
+        {isLoggedIn && (
+          <div className="mt-6">
+            <div className="text-xs font-medium text-muted uppercase tracking-wide mb-2">
+              Suggest
+            </div>
+            <SuggestionForm />
+          </div>
+        )}
+      </div>
 
-      {/* Collapsible: Changelog */}
-      <CollapsibleSection title="Changelog" defaultOpen={false}>
-        <Changelog />
-      </CollapsibleSection>
+      {/* Divider */}
+      <div className="border-t border-neutral-100 dark:border-neutral-800 my-4" />
 
-      {/* Collapsible: Needs Input */}
-      <CollapsibleSection title="Needs Developer Input" defaultOpen={false}>
-        <NeedsInputList />
-      </CollapsibleSection>
+      {/* History tabs (collapsed by default) */}
+      <HistoryTabs />
 
-      {/* Collapsible: Denied */}
-      <CollapsibleSection title="Denied Suggestions" defaultOpen={false}>
-        <DeniedList />
-      </CollapsibleSection>
-
-      {/* Active users */}
-      <div className="pt-4 border-t border-neutral-200">
+      {/* Footer: Active users + boost badge */}
+      <div className="mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
         <ActiveUserCounter />
+        {isLoggedIn && <BoostBadge />}
       </div>
     </div>
   )

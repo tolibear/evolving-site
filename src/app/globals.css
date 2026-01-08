@@ -78,6 +78,15 @@ body {
   100% { transform: scale(1); }
 }
 
+@keyframes count-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.animate-count-pulse {
+  animation: count-pulse 0.15s ease-out;
+}
+
 .animate-pop {
   animation: pop 0.3s ease-out;
 }

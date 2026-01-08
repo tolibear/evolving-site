@@ -200,7 +200,7 @@ export default function SuggestionCard({
               </span>
             </div>
           )}
-          <p className="text-foreground break-words">{content}</p>
+          <p className="text-sm text-foreground break-words leading-snug">{content}</p>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {author === 'ralph' && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200">

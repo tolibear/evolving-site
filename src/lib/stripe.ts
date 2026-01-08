@@ -19,25 +19,9 @@ export const EXPEDITE_PRODUCT_ID = 'prod_TkZwfKCkKmAPaW'
 export const EXPEDITE_PRICE_ID = 'price_1Sn4mJLCJbdyFiTaSDwKWU3K'
 export const EXPEDITE_AMOUNT_CENTS = 400
 
-// Credit tier definitions
-export interface CreditTier {
-  id: 1 | 2 | 3
-  credits: number
-  priceCents: number
-  priceDisplay: string
-  discount: number // percentage
-  perCreditCents: number
-}
-
-export const CREDIT_TIERS: CreditTier[] = [
-  { id: 1, credits: 1, priceCents: 100, priceDisplay: '$1', discount: 0, perCreditCents: 100 },
-  { id: 2, credits: 5, priceCents: 400, priceDisplay: '$4', discount: 20, perCreditCents: 80 },
-  { id: 3, credits: 10, priceCents: 700, priceDisplay: '$7', discount: 30, perCreditCents: 70 },
-]
-
-export function getCreditTier(tierId: 1 | 2 | 3): CreditTier | undefined {
-  return CREDIT_TIERS.find(t => t.id === tierId)
-}
+// Import and re-export credit tiers from shared module
+import { CREDIT_TIERS, getCreditTier, type CreditTier } from './credit-tiers'
+export { CREDIT_TIERS, getCreditTier, type CreditTier }
 
 // Refund all expedite payments for a suggestion (called when suggestion is denied)
 export async function refundExpeditePayments(suggestionId: number): Promise<{

@@ -19,7 +19,7 @@ body {
 
 /* Card styles */
 .card {
-  @apply bg-white rounded-lg shadow-sm border border-neutral-200 p-4;
+  @apply bg-white rounded-lg shadow-sm border border-neutral-200 px-3 py-2.5;
 }
 
 .card:hover {

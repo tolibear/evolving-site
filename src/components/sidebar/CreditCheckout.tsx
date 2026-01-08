@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { CREDIT_TIERS, CreditTier } from '@/lib/stripe'
+import { CREDIT_TIERS, CreditTier } from '@/lib/credit-tiers'
 
 interface CreditCheckoutProps {
   onClose: () => void

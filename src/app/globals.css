@@ -10,6 +10,14 @@
   --muted: #737373;
 }
 
+html.dark {
+  --background: #171717;
+  --foreground: #fafafa;
+  --accent: #60a5fa;
+  --success: #4ade80;
+  --muted: #a3a3a3;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
@@ -19,7 +27,7 @@ body {
 
 /* Card styles */
 .card {
-  @apply bg-white rounded-lg shadow-sm border border-neutral-200 px-3 py-2.5;
+  @apply bg-white dark:bg-neutral-800 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 px-3 py-2.5;
 }
 
 .card:hover {
@@ -36,7 +44,7 @@ body {
 }
 
 .btn-secondary {
-  @apply bg-neutral-100 text-neutral-700 hover:bg-neutral-200 active:scale-95;
+  @apply bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-600 active:scale-95;
 }
 
 /* Animations */
@@ -173,4 +181,12 @@ body {
 
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0, 0, 0, 0.3);
+}
+
+html.dark .sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+html.dark .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
 }

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { TerminalProvider, TerminalContainer, TerminalView } from '@/components/terminal'
 import { AuthProvider } from '@/components/AuthProvider'
 import { CreditProvider } from '@/components/CreditProvider'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import { SidebarDrawer, SidebarContent } from '@/components/sidebar'
 import './globals.css'
 
@@ -48,9 +49,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background antialiased">
-        <AuthProvider>
-          <CreditProvider>
-            <TerminalProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <CreditProvider>
+              <TerminalProvider>
               <TerminalContainer>
                 {/* Main body - the evolving canvas */}
                 <div className="min-h-screen">
@@ -70,8 +72,9 @@ export default function RootLayout({
                 </SidebarDrawer>
               </TerminalContainer>
             </TerminalProvider>
-          </CreditProvider>
-        </AuthProvider>
+            </CreditProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -96,11 +96,11 @@ export function TerminalView({ className = '' }: TerminalViewProps) {
         )}
       </div>
 
-      {/* Terminal content - flex-col with justify-end for bottom-anchored content */}
+      {/* Terminal content - scrollable area */}
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 flex flex-col justify-end overflow-y-auto overflow-x-hidden p-4 font-mono text-[13px] leading-relaxed"
+        className="flex-1 overflow-y-auto overflow-x-hidden p-4 font-mono text-[13px] leading-relaxed min-h-0"
         role="log"
         aria-label="Terminal output"
         aria-live="polite"

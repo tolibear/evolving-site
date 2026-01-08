@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { TierBadgeMini } from './TierBadge'
+import type { TierName } from '@/lib/reputation'
 
 interface AvatarProps {
   username: string
@@ -9,6 +11,7 @@ interface AvatarProps {
   size?: 'xs' | 'sm' | 'md' | 'lg'
   showTooltip?: boolean
   className?: string
+  tier?: TierName | null
 }
 
 const sizeClasses = {
@@ -62,6 +65,7 @@ export default function Avatar({
   size = 'md',
   showTooltip = true,
   className = '',
+  tier = null,
 }: AvatarProps) {
   const [showTooltipState, setShowTooltipState] = useState(false)
   const [imgError, setImgError] = useState(false)
@@ -110,6 +114,13 @@ export default function Avatar({
           </div>
         )}
       </button>
+
+      {/* Tier badge overlay - only for non-bronze tiers and larger sizes */}
+      {tier && tier !== 'bronze' && (size === 'sm' || size === 'md' || size === 'lg') && (
+        <div className="absolute -bottom-0.5 -right-0.5">
+          <TierBadgeMini tier={tier} />
+        </div>
+      )}
 
       {/* Tooltip - rendered via portal to escape overflow containers */}
       {showTooltip && showTooltipState && <Tooltip username={username} targetRef={buttonRef} />}

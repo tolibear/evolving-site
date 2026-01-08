@@ -4,6 +4,7 @@ import { useState } from 'react'
 import useSWR from 'swr'
 import Avatar from './Avatar'
 import TierBadge from './TierBadge'
+import { NotificationSettings } from './NotificationSettings'
 import { ACHIEVEMENTS, TierName, AchievementType } from '@/lib/reputation'
 
 interface LeaderboardEntry {
@@ -156,6 +157,11 @@ export default function Leaderboard() {
               Backed {currentUser.suggestions_backed_denied} denied suggestion{currentUser.suggestions_backed_denied !== 1 ? 's' : ''}
             </div>
           )}
+
+          {/* Notification Settings */}
+          <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-600">
+            <NotificationSettings />
+          </div>
         </div>
       )}
 

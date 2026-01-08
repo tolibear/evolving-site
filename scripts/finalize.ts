@@ -62,6 +62,8 @@ async function main() {
   // Dynamic import AFTER env vars are loaded
   const { updateSuggestionStatus, addChangelogEntry, updateStatus, grantVotesToAllUsers, grantBonusVoteToSupporters } = await import('../src/lib/db.js')
   const { distributeRepForImplementation, incrementBackedDenied } = await import('../src/lib/reputation.js')
+  const { notifySuggestionShipped, notifyVoteRefill } = await import('../src/lib/notifications.js')
+  const { tweetFeatureShipped, getFeatureShippedData, isTwitterConfigured } = await import('../src/lib/twitter-bot.js')
 
   console.log(`Finalizing suggestion ${suggestionId} as ${status}...`)
 
@@ -87,6 +89,35 @@ async function main() {
     // Reset all users' votes to 2 (the cap)
     await grantVotesToAllUsers(2)
     console.log('✓ Reset all users to 2 votes')
+
+    // Send push notifications
+    const voterIds = Array.from(repResults.distribution.keys())
+    const notifyResult = await notifySuggestionShipped(
+      suggestionId,
+      content,
+      repResults.suggesterId,
+      voterIds
+    )
+    console.log(`✓ Sent push notifications: ${notifyResult.sent} sent, ${notifyResult.failed} failed`)
+
+    // Notify about vote refill
+    const refillResult = await notifyVoteRefill()
+    console.log(`✓ Sent vote refill notifications: ${refillResult.sent} sent, ${refillResult.failed} failed`)
+
+    // Tweet about the shipped feature
+    if (isTwitterConfigured()) {
+      const tweetData = await getFeatureShippedData(suggestionId, votes)
+      if (tweetData) {
+        const tweetId = await tweetFeatureShipped(tweetData)
+        if (tweetId) {
+          console.log(`✓ Posted tweet: https://twitter.com/i/status/${tweetId}`)
+        } else {
+          console.log('⚠ Failed to post tweet')
+        }
+      }
+    } else {
+      console.log('⚠ Twitter not configured, skipping tweet')
+    }
   } else if (status === 'denied') {
     // Track that users backed a denied suggestion (visible on profile)
     const deniedCount = await incrementBackedDenied(suggestionId)

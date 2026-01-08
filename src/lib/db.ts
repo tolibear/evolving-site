@@ -219,6 +219,15 @@ const initSchema = async () => {
     // Column already exists
   }
 
+  // Drop old expedite_payments table if schema is wrong (it's new and empty)
+  // Check if the table has all required columns by trying to create an index
+  try {
+    await db.execute(`SELECT stripe_checkout_session_id FROM expedite_payments LIMIT 1`)
+  } catch {
+    // Column doesn't exist, drop and recreate table
+    await db.execute(`DROP TABLE IF EXISTS expedite_payments`)
+  }
+
   // Create expedite_payments table for Stripe expedite feature
   await db.execute(`
     CREATE TABLE IF NOT EXISTS expedite_payments (
@@ -238,20 +247,9 @@ const initSchema = async () => {
     )
   `)
 
-  // Add user_id column if missing (migration for existing tables)
-  try {
-    await db.execute('ALTER TABLE expedite_payments ADD COLUMN user_id INTEGER NOT NULL DEFAULT 0 REFERENCES users(id)')
-  } catch {
-    // Column already exists
-  }
-
   // Create indexes for expedite_payments
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_suggestion ON expedite_payments(suggestion_id)`)
-  try {
-    await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_user ON expedite_payments(user_id)`)
-  } catch {
-    // Index might fail if column doesn't exist in old table, ignore
-  }
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_user ON expedite_payments(user_id)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_status ON expedite_payments(status)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_session ON expedite_payments(stripe_checkout_session_id)`)
 

@@ -176,20 +176,17 @@ export default function StatusBanner() {
         </div>
         <div className="flex items-center gap-2">
           <span
-            className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+            className={`text-[10px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap ${
               isAutomated
                 ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300'
                 : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
             }`}
             title={isAutomated ? 'Autonomous mode: implementing automatically' : 'Manual mode: owner approval required'}
           >
-            {isAutomated ? 'AUTO' : 'MANUAL'}
+            {isAutomated
+              ? (countdown && status?.state === 'idle' ? `auto builds in ${countdown}` : 'AUTO')
+              : 'MANUAL'}
           </span>
-          {isAutomated && countdown && status?.state === 'idle' && (
-            <span className="text-xs opacity-60">
-              {countdown}
-            </span>
-          )}
         </div>
       </div>
     </>

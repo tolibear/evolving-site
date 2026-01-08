@@ -12,7 +12,10 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ||
+    `${request.headers.get('x-forwarded-proto') || 'https'}://${request.headers.get('host')}`
+
   try {
     // Generate PKCE values
     const codeVerifier = generateCodeVerifier()
@@ -32,6 +35,6 @@ export async function GET() {
     return NextResponse.redirect(authUrl)
   } catch (error) {
     console.error('Twitter auth error:', error)
-    return NextResponse.redirect(new URL('/?auth_error=failed', process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'))
+    return NextResponse.redirect(new URL('/?auth_error=failed', baseUrl))
   }
 }

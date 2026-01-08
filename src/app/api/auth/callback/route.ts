@@ -19,7 +19,8 @@ export async function GET(request: Request) {
   const error = searchParams.get('error')
   const errorDescription = searchParams.get('error_description')
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ||
+    `${request.headers.get('x-forwarded-proto') || 'https'}://${request.headers.get('host')}`
   const ip = getClientIP(request)
 
   try {

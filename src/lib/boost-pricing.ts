@@ -89,6 +89,16 @@ export function getTierInfo(quantity: number): { tier: number; nextTierAt: numbe
   }
 }
 
+/**
+ * Get milestone display text for quantity-based pricing
+ * Shows friendly text instead of "You save $X"
+ */
+export function getMilestoneDisplay(quantity: number): string | null {
+  if (quantity >= 10) return '10+ pack rate'
+  if (quantity >= 5) return '5+ pack rate'
+  return null
+}
+
 // For backwards compatibility with existing API
 export interface LegacyCreditTier {
   id: 1 | 2 | 3

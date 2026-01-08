@@ -10,10 +10,8 @@ import UserInfo from './UserInfo'
 import { BoostCheckout } from './BoostCheckout'
 import { BoostSuccessAnimation } from './BoostSuccessAnimation'
 import { CompactStatusBar } from './CompactStatusBar'
-import { HistoryTabs } from './HistoryTabs'
-import { LeaderboardSection } from './LeaderboardSection'
+import { ControlPanelTabs } from './ControlPanelTabs'
 import { BoostBadge } from './BoostBadge'
-import { NotificationBell } from '@/components/NotificationSettings'
 
 function BoostDisplay() {
   const { isLoggedIn } = useAuth()
@@ -104,16 +102,12 @@ export function SidebarContent() {
       {/* Divider */}
       <div className="border-t border-neutral-100 dark:border-neutral-800 my-4" />
 
-      {/* History tabs (collapsed by default) */}
-      <HistoryTabs />
+      {/* History + Leaderboard tabs */}
+      <ControlPanelTabs />
 
-      {/* Leaderboard (collapsed by default) */}
-      <LeaderboardSection />
-
-      {/* Footer: Notification bell + Boost badge */}
+      {/* Footer: Boost badge */}
       {isLoggedIn && (
-        <div className="mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-          <NotificationBell />
+        <div className="mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-end">
           <BoostBadge />
         </div>
       )}

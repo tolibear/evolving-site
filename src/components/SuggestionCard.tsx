@@ -6,6 +6,7 @@ import VoteButton from './VoteButton'
 import ContributorStack from './ContributorStack'
 import LoginPrompt from './LoginPrompt'
 import ExpediteButton from './ExpediteButton'
+import { InlineBoostCheckout } from './InlineBoostCheckout'
 import { useAuth } from './AuthProvider'
 import { useCredits } from './CreditProvider'
 
@@ -74,6 +75,7 @@ export default function SuggestionCard({
   const { isLoggedIn, user } = useAuth()
   const { openCheckout } = useCredits()
   const [showComments, setShowComments] = useState(false)
+  const [showBoost, setShowBoost] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -266,6 +268,8 @@ export default function SuggestionCard({
                   suggestionId={id}
                   currentAmount={expediteAmountCents}
                   onNeedsCredits={openCheckout}
+                  onToggleBoost={() => setShowBoost(!showBoost)}
+                  showingBoost={showBoost}
                 />
               )}
               {isOwner && !isInProgress && (
@@ -320,6 +324,13 @@ export default function SuggestionCard({
           )}
         </div>
       </div>
+
+      {/* Inline boost checkout */}
+      {showBoost && (
+        <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+          <InlineBoostCheckout onClose={() => setShowBoost(false)} />
+        </div>
+      )}
 
       {showComments && (
         <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { getBoostPricing, MIN_QUANTITY, MAX_QUANTITY } from '@/lib/boost-pricing'
+import { getBoostPricing, getMilestoneDisplay, MIN_QUANTITY, MAX_QUANTITY } from '@/lib/boost-pricing'
 
 interface BoostCheckoutProps {
   onClose: () => void
@@ -14,6 +14,7 @@ export function BoostCheckout({ onClose, onSuccess }: BoostCheckoutProps) {
   const [error, setError] = useState<string | null>(null)
 
   const pricing = getBoostPricing(quantity)
+  const milestoneDisplay = getMilestoneDisplay(quantity)
 
   const handleIncrement = () => {
     if (quantity < MAX_QUANTITY) {
@@ -115,9 +116,9 @@ export function BoostCheckout({ onClose, onSuccess }: BoostCheckoutProps) {
             {pricing.priceDisplay}
           </span>
         </div>
-        {pricing.savingsDisplay && (
+        {milestoneDisplay && (
           <div className="text-sm text-green-600 dark:text-green-400 mt-1">
-            You save {pricing.savingsDisplay}
+            {milestoneDisplay}
           </div>
         )}
       </div>

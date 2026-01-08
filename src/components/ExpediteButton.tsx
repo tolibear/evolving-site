@@ -9,12 +9,16 @@ interface ExpediteButtonProps {
   suggestionId: number
   currentAmount?: number // Amount already paid in cents
   onNeedsCredits?: () => void // Callback when credits are needed
+  onToggleBoost?: () => void // Callback to toggle inline boost UI
+  showingBoost?: boolean // Whether boost UI is currently shown
 }
 
 export default function ExpediteButton({
   suggestionId,
   currentAmount = 0,
   onNeedsCredits,
+  onToggleBoost,
+  showingBoost = false,
 }: ExpediteButtonProps) {
   const { isLoggedIn, isLoading } = useAuth()
   const { mutate } = useSWRConfig()
@@ -58,9 +62,11 @@ export default function ExpediteButton({
         return
       }
 
-      // Needs credits - trigger checkout
+      // Needs credits - toggle inline boost UI if available, otherwise trigger checkout
       if (data.needsCredits) {
-        if (onNeedsCredits) {
+        if (onToggleBoost) {
+          onToggleBoost()
+        } else if (onNeedsCredits) {
           onNeedsCredits()
         }
         return
@@ -78,11 +84,14 @@ export default function ExpediteButton({
       <button
         onClick={handleExpedite}
         disabled={isProcessing || showSuccess}
+        aria-expanded={showingBoost}
         className={`
           inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full
           transition-all duration-200
           ${showSuccess
             ? 'bg-green-100 text-green-700 border border-green-300'
+            : showingBoost
+            ? 'bg-amber-100 text-amber-700 border border-amber-300'
             : currentAmount > 0
             ? 'bg-amber-100 text-amber-700 border border-amber-300'
             : 'bg-neutral-100 text-muted hover:text-amber-600 hover:bg-amber-50 border border-neutral-200 hover:border-amber-300'
@@ -91,6 +100,8 @@ export default function ExpediteButton({
         `}
         title={showSuccess
           ? 'Boosted!'
+          : showingBoost
+          ? 'Hide boost options'
           : currentAmount > 0
           ? `$${(currentAmount / 100).toFixed(0)} paid to expedite. Use 1 credit to boost more.`
           : 'Use 1 credit to boost this suggestion'

@@ -25,33 +25,39 @@ export default function Changelog() {
     '/api/changelog',
     fetcher,
     {
-      refreshInterval: 30000, // Refresh every 30 seconds
-      keepPreviousData: true, // Prevent data from being undefined during revalidation
-      revalidateOnFocus: false, // Prevent revalidation on tab focus
-      dedupingInterval: 5000, // Dedupe requests within 5 seconds
+      refreshInterval: 30000,
+      keepPreviousData: true,
+      revalidateOnFocus: false,
+      dedupingInterval: 5000,
     }
   )
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffMins < 1) return 'just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString()
   }
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-2">
-        <div className="h-14 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
-        <div className="h-14 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
+      <div className="animate-pulse space-y-3">
+        <div className="h-16 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
+        <div className="h-16 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
       </div>
     )
   }
 
   if (error) {
-    return null // Silently fail
+    return null
   }
 
   if (!entries || entries.length === 0) {
@@ -67,49 +73,43 @@ export default function Changelog() {
 
   return (
     <div>
-      <p className="text-xs text-muted mb-2">{entries.length} implemented</p>
-      <div className="space-y-2">
+      <p className="text-xs text-muted mb-3">{entries.length} implemented</p>
+      <div className="space-y-3">
         {displayedEntries.map((entry) => (
           <div
             key={entry.id}
-            className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-lg px-3 py-2"
+            className="card border-l-2 border-l-green-500"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3 flex-1 min-w-0">
-                <FeatureIcon
-                  content={entry.suggestion_content}
-                  size={20}
-                  className="flex-shrink-0 mt-0.5 opacity-70"
-                  iconOverride={entry.icon_type}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-foreground break-words">
-                    {entry.suggestion_content}
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-foreground break-words leading-snug">
+                  {entry.suggestion_content}
+                </p>
+                {entry.ai_note && (
+                  <p className="text-xs text-muted italic mt-2 pl-3 border-l-2 border-green-300 dark:border-green-700">
+                    {entry.ai_note}
                   </p>
-                  {entry.ai_note && (
-                    <p className="text-sm text-muted italic mt-2 pl-3 border-l-2 border-green-300 dark:border-green-700">
-                      {entry.ai_note}
-                    </p>
+                )}
+                <div className="flex items-center gap-3 mt-2 text-xs text-muted">
+                  <span className="flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                    {entry.votes_when_implemented}
+                  </span>
+                  <span>{formatDate(entry.implemented_at)}</span>
+                  {entry.commit_hash && (
+                    <code className="bg-neutral-100 dark:bg-neutral-700 px-1 rounded text-xs">
+                      {entry.commit_hash.slice(0, 7)}
+                    </code>
                   )}
-                  <div className="flex items-center gap-3 mt-2 text-xs text-muted">
-                    <span className="flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                      </svg>
-                      {entry.votes_when_implemented} votes
-                    </span>
-                    <span>{formatDate(entry.implemented_at)}</span>
-                    {entry.commit_hash && (
-                      <code className="bg-neutral-200 dark:bg-neutral-700 px-1 rounded text-xs">
-                        {entry.commit_hash.slice(0, 7)}
-                      </code>
-                    )}
-                  </div>
                 </div>
               </div>
-              <svg className="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
             </div>
           </div>
         ))}
@@ -117,7 +117,7 @@ export default function Changelog() {
       {hasMore && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="mt-2 text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
+          className="mt-3 text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
         >
           {showAll ? (
             <>

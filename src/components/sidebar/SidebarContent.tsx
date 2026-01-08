@@ -1,17 +1,20 @@
 'use client'
 
-import { Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import SuggestionForm from '@/components/SuggestionForm'
 import SuggestionList from '@/components/SuggestionList'
 import ExpediteSuccessToast from '@/components/ExpediteSuccessToast'
+import Leaderboard from '@/components/Leaderboard'
 import { useCredits } from '@/components/CreditProvider'
 import { useAuth } from '@/components/AuthProvider'
 import UserInfo from './UserInfo'
 import { BoostCheckout } from './BoostCheckout'
 import { BoostSuccessAnimation } from './BoostSuccessAnimation'
 import { CompactStatusBar } from './CompactStatusBar'
-import { ControlPanelTabs } from './ControlPanelTabs'
+import { HistoryTabs } from './HistoryTabs'
 import { BoostBadge } from './BoostBadge'
+
+type MainTab = 'build' | 'leaderboard'
 
 function BoostDisplay() {
   const { isLoggedIn } = useAuth()
@@ -62,8 +65,32 @@ function BoostDisplay() {
   )
 }
 
+function MainTabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 py-2 text-sm font-medium transition-colors border-b-2 ${
+        active
+          ? 'border-neutral-900 dark:border-white text-foreground'
+          : 'border-transparent text-muted hover:text-foreground'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
 export function SidebarContent() {
   const { isLoggedIn } = useAuth()
+  const [mainTab, setMainTab] = useState<MainTab>('build')
 
   return (
     <div className="flex flex-col h-full">
@@ -78,37 +105,65 @@ export function SidebarContent() {
         <UserInfo compact />
       </div>
 
-      {/* Boost display (only if has purchased before) */}
-      <BoostDisplay />
-
-      {/* Suggestion Form - only when logged in, at top */}
-      {isLoggedIn && (
-        <div className="mb-4">
-          <SuggestionForm />
-        </div>
-      )}
-
-      {/* Primary section: Suggestions */}
-      <div className="flex-1 min-h-0 overflow-y-auto sidebar-scroll">
-        {/* Section label */}
-        <div className="text-xs font-medium text-muted uppercase tracking-wide mb-3">
-          Up for Vote
-        </div>
-
-        {/* Suggestions List */}
-        <SuggestionList />
+      {/* Main tab bar */}
+      <div className="flex border-b border-neutral-200 dark:border-neutral-700 mb-4">
+        <MainTabButton
+          active={mainTab === 'build'}
+          onClick={() => setMainTab('build')}
+        >
+          Build
+        </MainTabButton>
+        <MainTabButton
+          active={mainTab === 'leaderboard'}
+          onClick={() => setMainTab('leaderboard')}
+        >
+          <span className="flex items-center justify-center gap-1.5">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Leaderboard
+          </span>
+        </MainTabButton>
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-neutral-100 dark:border-neutral-800 my-4" />
+      {/* Tab content */}
+      {mainTab === 'build' ? (
+        <>
+          {/* Boost display (only if has purchased before) */}
+          <BoostDisplay />
 
-      {/* History + Leaderboard tabs */}
-      <ControlPanelTabs />
+          {/* Suggestion Form - always show, handles login internally */}
+          <div className="mb-4">
+            <SuggestionForm />
+          </div>
 
-      {/* Footer: Boost badge */}
-      {isLoggedIn && (
-        <div className="mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-end">
-          <BoostBadge />
+          {/* Primary section: Suggestions */}
+          <div className="flex-1 min-h-0 overflow-y-auto sidebar-scroll">
+            {/* Section label */}
+            <div className="text-xs font-medium text-muted uppercase tracking-wide mb-3">
+              Up for Vote
+            </div>
+
+            {/* Suggestions List */}
+            <SuggestionList />
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-neutral-100 dark:border-neutral-800 my-4" />
+
+          {/* History tabs */}
+          <HistoryTabs />
+
+          {/* Footer: Boost badge */}
+          {isLoggedIn && (
+            <div className="mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-end">
+              <BoostBadge />
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-y-auto sidebar-scroll">
+          <Leaderboard />
         </div>
       )}
     </div>

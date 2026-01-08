@@ -27,17 +27,23 @@ export default function DeniedList() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffMins < 1) return 'just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString()
   }
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-2">
-        <div className="h-14 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
+      <div className="animate-pulse space-y-3">
+        <div className="h-16 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
       </div>
     )
   }
@@ -59,20 +65,25 @@ export default function DeniedList() {
 
   return (
     <div>
-      <p className="text-xs text-muted mb-2">{suggestions.length} denied</p>
-      <div className="space-y-2">
+      <p className="text-xs text-muted mb-3">{suggestions.length} denied</p>
+      <div className="space-y-3">
         {displayedSuggestions.map((suggestion) => (
           <div
             key={suggestion.id}
-            className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg px-3 py-2"
+            className="card border-l-2 border-l-red-500"
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </div>
               <div className="flex-1 min-w-0">
-                <p className="text-foreground break-words line-through opacity-75">
+                <p className="text-sm text-foreground break-words leading-snug line-through opacity-75">
                   {suggestion.content}
                 </p>
                 {suggestion.ai_note && (
-                  <p className="text-sm text-muted italic mt-2 pl-3 border-l-2 border-red-300 dark:border-red-700">
+                  <p className="text-xs text-muted italic mt-2 pl-3 border-l-2 border-red-300 dark:border-red-700">
                     {suggestion.ai_note}
                   </p>
                 )}
@@ -81,14 +92,11 @@ export default function DeniedList() {
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                     </svg>
-                    {suggestion.votes} votes
+                    {suggestion.votes}
                   </span>
                   <span>{formatDate(suggestion.implemented_at)}</span>
                 </div>
               </div>
-              <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
             </div>
           </div>
         ))}
@@ -96,7 +104,7 @@ export default function DeniedList() {
       {hasMore && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="mt-2 text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
+          className="mt-3 text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
         >
           {showAll ? (
             <>

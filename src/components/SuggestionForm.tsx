@@ -61,16 +61,8 @@ export default function SuggestionForm() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const submitRef = useRef(false) // Prevent double-submit
-
-  // Show login prompt if not authenticated
-  if (!isLoading && !isLoggedIn) {
-    return (
-      <div className="py-3">
-        <LoginPrompt action="submit" />
-      </div>
-    )
-  }
 
   // Show loading skeleton
   if (isLoading) {
@@ -86,6 +78,10 @@ export default function SuggestionForm() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       if (content.trim().length >= 10 && !isSubmitting) {
+        if (!isLoggedIn) {
+          setShowLoginPrompt(true)
+          return
+        }
         if (showConfirm) {
           // If already confirming, submit
           handleSubmit(e as unknown as FormEvent)
@@ -105,6 +101,12 @@ export default function SuggestionForm() {
 
     // Prevent double-submit
     if (submitRef.current || isSubmitting) {
+      return
+    }
+
+    // Check login before submitting
+    if (!isLoggedIn) {
+      setShowLoginPrompt(true)
       return
     }
 
@@ -146,14 +148,13 @@ export default function SuggestionForm() {
       setContent('')
       setSuccess(true)
       setShowConfirm(false)
-      // Play success sound
-            // Refresh suggestions list
+      // Refresh suggestions list
       mutate('/api/suggestions')
 
       // Clear success message after 5 seconds (longer for better visibility)
       setTimeout(() => setSuccess(false), 5000)
     } catch (err) {
-            if (err instanceof Error) {
+      if (err instanceof Error) {
         if (err.name === 'AbortError') {
           setError('Request timed out. Please try again.')
         } else if (err.message.includes('fetch')) {
@@ -173,24 +174,23 @@ export default function SuggestionForm() {
   const handleFormSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (content.trim().length >= 10 && !isSubmitting && !showConfirm) {
-            setShowConfirm(true)
+      if (!isLoggedIn) {
+        setShowLoginPrompt(true)
+        return
+      }
+      setShowConfirm(true)
     }
   }
 
   return (
     <form onSubmit={handleFormSubmit} className="space-y-2">
-      <div className="flex items-center gap-2">
-        {user && (
-          <Avatar username={user.username} avatar={user.avatar} size="xs" showTooltip={false} />
-        )}
-        <span className="text-xs text-muted">@{user?.username}</span>
-      </div>
       <textarea
         id="suggestion"
         value={content}
         onChange={(e) => {
           setContent(e.target.value)
           if (showConfirm) setShowConfirm(false)
+          if (showLoginPrompt) setShowLoginPrompt(false)
         }}
         onKeyDown={handleKeyDown}
         placeholder="What feature would you like to see?"
@@ -208,25 +208,38 @@ export default function SuggestionForm() {
         <span className="text-xs text-muted">
           {content.length}/500
         </span>
-        {showConfirm ? (
-          <button
-            type="button"
-            onClick={(e) => handleSubmit(e as unknown as FormEvent)}
-            disabled={isSubmitting}
-            className="px-3 py-1 text-sm rounded-lg bg-green-600 dark:bg-green-500 text-white hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isSubmitting ? 'Submitting...' : 'Confirm ↵'}
-          </button>
-        ) : (
-          <button
-            type="submit"
-            disabled={isSubmitting || content.trim().length < 10}
-            className="px-3 py-1 text-sm rounded-lg bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Submit
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {isLoggedIn && user && (
+            <Avatar username={user.username} avatar={user.avatar} size="xs" showTooltip={false} />
+          )}
+          {showConfirm ? (
+            <button
+              type="button"
+              onClick={(e) => handleSubmit(e as unknown as FormEvent)}
+              disabled={isSubmitting}
+              className="px-3 py-1 text-sm rounded-lg bg-green-600 dark:bg-green-500 text-white hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isSubmitting ? 'Submitting...' : 'Confirm ↵'}
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={isSubmitting || content.trim().length < 10}
+              className="px-3 py-1 text-sm rounded-lg bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Submit
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Login prompt - shown inline when user tries to submit without being logged in */}
+      {showLoginPrompt && (
+        <div className="mt-2 p-2 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg border border-neutral-200 dark:border-neutral-700">
+          <p className="text-xs text-muted mb-2">Sign in to submit your suggestion</p>
+          <LoginPrompt action="submit" compact />
+        </div>
+      )}
 
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       {success && (

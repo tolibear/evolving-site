@@ -27,17 +27,23 @@ export default function NeedsInputList() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffMins < 1) return 'just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString()
   }
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-2">
-        <div className="h-14 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
+      <div className="animate-pulse space-y-3">
+        <div className="h-16 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
       </div>
     )
   }
@@ -59,22 +65,27 @@ export default function NeedsInputList() {
 
   return (
     <div>
-      <p className="text-xs text-muted mb-2">
-        {suggestions.length} awaiting setup (env vars, external services)
+      <p className="text-xs text-muted mb-3">
+        {suggestions.length} awaiting setup
       </p>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {displayedSuggestions.map((suggestion) => (
           <div
             key={suggestion.id}
-            className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2"
+            className="card border-l-2 border-l-amber-500"
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
               <div className="flex-1 min-w-0">
-                <p className="text-foreground break-words">
+                <p className="text-sm text-foreground break-words leading-snug">
                   {suggestion.content}
                 </p>
                 {suggestion.ai_note && (
-                  <p className="text-sm text-muted italic mt-2 pl-3 border-l-2 border-amber-300 dark:border-amber-700">
+                  <p className="text-xs text-muted italic mt-2 pl-3 border-l-2 border-amber-300 dark:border-amber-700">
                     {suggestion.ai_note}
                   </p>
                 )}
@@ -83,14 +94,11 @@ export default function NeedsInputList() {
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                     </svg>
-                    {suggestion.votes} votes
+                    {suggestion.votes}
                   </span>
                   <span>{formatDate(suggestion.created_at)}</span>
                 </div>
               </div>
-              <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
             </div>
           </div>
         ))}
@@ -98,7 +106,7 @@ export default function NeedsInputList() {
       {hasMore && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="mt-2 text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
+          className="mt-3 text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
         >
           {showAll ? (
             <>

@@ -8,6 +8,7 @@ import Leaderboard from '@/components/Leaderboard'
 import { useCredits } from '@/components/CreditProvider'
 import { useAuth } from '@/components/AuthProvider'
 import UserInfo from './UserInfo'
+import ThemeToggle from '@/components/ThemeToggle'
 import { BoostCheckout } from './BoostCheckout'
 import { BoostSuccessAnimation } from './BoostSuccessAnimation'
 import { CompactStatusBar } from './CompactStatusBar'
@@ -99,10 +100,13 @@ export function SidebarContent() {
         <ExpediteSuccessToast />
       </Suspense>
 
-      {/* Header: Compact status + user info */}
+      {/* Header: Compact status + theme toggle + user info */}
       <div className="flex items-center justify-between mb-4">
         <CompactStatusBar />
-        <UserInfo compact />
+        <div className="flex items-center gap-1">
+          <ThemeToggle size={16} className="p-1.5" />
+          <UserInfo compact />
+        </div>
       </div>
 
       {/* Main tab bar */}

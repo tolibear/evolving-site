@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
-import { useTheme } from '@/components/ThemeProvider'
 import Avatar from '@/components/Avatar'
 import LoginPrompt from '@/components/LoginPrompt'
 
@@ -15,7 +14,6 @@ export default function UserInfo({ compact = false }: UserInfoProps) {
   const { user, isLoading, isLoggedIn, logout } = useAuth()
   const [showMenu, setShowMenu] = useState(false)
   const { isSupported, isSubscribed, isLoading: notifLoading, subscribe, unsubscribe } = usePushNotifications()
-  const { theme, toggleTheme } = useTheme()
 
   // Compact mode: just avatar + dropdown
   if (compact) {
@@ -45,33 +43,6 @@ export default function UserInfo({ compact = false }: UserInfoProps) {
               onClick={() => setShowMenu(false)}
             />
             <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1 min-w-[160px]">
-              {/* Theme toggle */}
-              <button
-                onClick={toggleTheme}
-                className="w-full text-left px-3 py-1.5 text-sm text-muted hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors flex items-center gap-2"
-              >
-                {theme === 'dark' ? (
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle cx="12" cy="12" r="4" strokeWidth={2} />
-                    <path strokeWidth={2} strokeLinecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                  </svg>
-                )}
-                <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-              </button>
               {/* Notification toggle */}
               {isSupported && (
                 <button

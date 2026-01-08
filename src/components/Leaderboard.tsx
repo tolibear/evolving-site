@@ -6,6 +6,7 @@ import Avatar from './Avatar'
 import TierBadge from './TierBadge'
 import { NotificationSettings } from './NotificationSettings'
 import { ACHIEVEMENTS, TierName, AchievementType, TIERS } from '@/lib/reputation-types'
+import { RankMedalIcon, AchievementIcon, ACHIEVEMENT_TOOLTIPS } from './BadgeIcons'
 
 interface LeaderboardEntry {
   rank: number
@@ -150,14 +151,14 @@ export default function Leaderboard() {
 
           {/* Achievements */}
           {currentUser.achievements.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-3">
+            <div className="flex flex-wrap gap-1.5 mb-3">
               {currentUser.achievements.map((a) => (
                 <span
                   key={a}
-                  className="text-sm"
-                  title={ACHIEVEMENTS[a].description}
+                  className="inline-flex items-center"
+                  title={`${ACHIEVEMENT_TOOLTIPS[a].name}: ${ACHIEVEMENT_TOOLTIPS[a].description}`}
                 >
-                  {ACHIEVEMENTS[a].icon}
+                  <AchievementIcon type={a} size={18} />
                 </span>
               ))}
             </div>
@@ -230,6 +231,13 @@ export default function Leaderboard() {
         </div>
       ) : (
         <div className="space-y-1">
+          {/* Header */}
+          <div className="flex items-center gap-2 py-1 px-2 text-[10px] font-medium text-muted uppercase tracking-wider border-b border-neutral-200 dark:border-neutral-700">
+            <span className="w-5 text-center">#</span>
+            <span className="w-6"></span>
+            <span className="flex-1">User</span>
+            <span>Rep</span>
+          </div>
           {leaderboard.map((entry) => (
             <div
               key={entry.user_id}
@@ -240,13 +248,12 @@ export default function Leaderboard() {
               }`}
             >
               {/* Rank */}
-              <span className={`w-5 text-xs font-bold ${
-                entry.rank === 1 ? 'text-yellow-500' :
-                entry.rank === 2 ? 'text-neutral-400' :
-                entry.rank === 3 ? 'text-amber-600' :
-                'text-muted'
-              }`}>
-                {entry.rank <= 3 ? ['', '🥇', '🥈', '🥉'][entry.rank] : `#${entry.rank}`}
+              <span className="w-5 flex items-center justify-center">
+                {entry.rank <= 3 ? (
+                  <RankMedalIcon rank={entry.rank} size={18} />
+                ) : (
+                  <span className="text-xs font-bold text-muted">#{entry.rank}</span>
+                )}
               </span>
 
               {/* Avatar */}
@@ -265,8 +272,12 @@ export default function Leaderboard() {
                 <TierBadge tier={entry.tier} size="sm" />
                 {/* Achievement badges */}
                 {entry.achievements.slice(0, 2).map((a) => (
-                  <span key={a} className="text-[10px]" title={ACHIEVEMENTS[a].name}>
-                    {ACHIEVEMENTS[a].icon}
+                  <span
+                    key={a}
+                    className="inline-flex items-center"
+                    title={`${ACHIEVEMENT_TOOLTIPS[a].name}: ${ACHIEVEMENT_TOOLTIPS[a].description}`}
+                  >
+                    <AchievementIcon type={a} size={14} />
                   </span>
                 ))}
               </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { TIERS, TierName } from '@/lib/reputation-types'
+import { TierIcon, TIER_TOOLTIPS } from './BadgeIcons'
 
 interface TierBadgeProps {
   tier: TierName
@@ -16,9 +17,9 @@ const sizeClasses = {
 }
 
 const iconSizes = {
-  sm: 'text-[10px]',
-  md: 'text-xs',
-  lg: 'text-sm',
+  sm: 10,
+  md: 12,
+  lg: 14,
 }
 
 export default function TierBadge({
@@ -28,6 +29,7 @@ export default function TierBadge({
   className = '',
 }: TierBadgeProps) {
   const tierInfo = TIERS[tier]
+  const tooltip = TIER_TOOLTIPS[tier]
 
   return (
     <span
@@ -41,9 +43,9 @@ export default function TierBadge({
         color: tierInfo.color,
         border: `1px solid ${tierInfo.color}40`,
       }}
-      title={`${tier.charAt(0).toUpperCase() + tier.slice(1)} tier (${tierInfo.votePower}x vote power)`}
+      title={`${tooltip.name} Tier: ${tooltip.description} (${tooltip.votePower}x vote power)`}
     >
-      <span className={iconSizes[size]}>{tierInfo.icon}</span>
+      <TierIcon tier={tier} size={iconSizes[size]} />
       {showLabel && (
         <span className="capitalize">{tier}</span>
       )}
@@ -56,17 +58,18 @@ export default function TierBadge({
  */
 export function TierBadgeMini({ tier }: { tier: TierName }) {
   const tierInfo = TIERS[tier]
+  const tooltip = TIER_TOOLTIPS[tier]
 
   return (
     <span
-      className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px]"
+      className="inline-flex items-center justify-center w-4 h-4 rounded-full"
       style={{
         backgroundColor: tierInfo.color,
         boxShadow: `0 0 0 2px white, 0 0 0 3px ${tierInfo.color}40`,
       }}
-      title={`${tier.charAt(0).toUpperCase() + tier.slice(1)} tier`}
+      title={`${tooltip.name} Tier: ${tooltip.description}`}
     >
-      {tierInfo.icon}
+      <TierIcon tier={tier} size={10} />
     </span>
   )
 }

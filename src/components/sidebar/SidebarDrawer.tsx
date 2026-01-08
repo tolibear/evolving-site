@@ -131,6 +131,7 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
       <div
         className={`
           fixed inset-0 z-30
+          bg-black/50 backdrop-blur-sm
           transition-opacity duration-200
           ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
@@ -153,6 +154,17 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
         aria-label="Control panel"
         aria-hidden={!isOpen}
       >
+        {/* Close button for mobile */}
+        <button
+          onClick={() => setIsOpen(false)}
+          className="absolute top-3 right-3 md:hidden p-2 rounded-md bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          aria-label="Close sidebar"
+        >
+          <svg className="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto p-4 sidebar-scroll">
           {children}

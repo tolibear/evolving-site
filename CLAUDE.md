@@ -43,11 +43,12 @@ Uses CSS variables defined in `globals.css` with Tailwind's `darkMode: 'class'`.
 
 When asked to implement a suggestion:
 
-1. Update status to "working" via `updateStatus()` in `src/lib/db.ts`
-2. Make the changes
-3. Run `npm run build` to verify
-4. Commit and push changes to trigger deployment
-5. **CRITICAL: Run the finalize script** to update the database:
+1. **FIRST: Pull latest changes** - Always run `git pull origin master` before starting any dev work to avoid merge conflicts
+2. Update status to "working" via `updateStatus()` in `src/lib/db.ts`
+3. Make the changes
+4. Run `npm run build` to verify
+5. Commit and push changes to trigger deployment
+6. **CRITICAL: Run the finalize script** to update the database:
    ```bash
    npm run finalize -- <suggestionId> <status> "<content>" <votes> "<aiNote>" <commitHash> [iconType]
    ```

@@ -2,15 +2,13 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import {
   getSuggestionById,
-  createExpeditePayment,
   getUserCredits,
   useCredit,
-  updateSuggestionExpediteAmount,
+  incrementSuggestionExpediteAmount,
 } from '@/lib/db'
 import { checkRateLimit } from '@/lib/utils'
 import { isValidId } from '@/lib/security'
 import { validateSessionAndGetUser, SESSION_COOKIE_NAME } from '@/lib/twitter-auth'
-import { createExpediteCheckoutSession, EXPEDITE_AMOUNT_CENTS } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,7 +69,7 @@ export async function POST(request: Request) {
       const creditUsed = await useCredit(user.id)
       if (creditUsed) {
         // Increment the suggestion's expedite amount (1 credit = 100 cents = $1)
-        await updateSuggestionExpediteAmount(suggestionId)
+        await incrementSuggestionExpediteAmount(suggestionId, 100)
 
         return NextResponse.json({
           success: true,

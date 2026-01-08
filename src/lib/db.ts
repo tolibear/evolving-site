@@ -1719,6 +1719,18 @@ export async function updateSuggestionExpediteAmount(suggestionId: number): Prom
   })
 }
 
+// Increment suggestion's expedite amount directly (used when spending credits)
+export async function incrementSuggestionExpediteAmount(
+  suggestionId: number,
+  amountCents: number = 100
+): Promise<void> {
+  await ensureSchema()
+  await db.execute({
+    sql: 'UPDATE suggestions SET expedite_amount_cents = COALESCE(expedite_amount_cents, 0) + ? WHERE id = ?',
+    args: [amountCents, suggestionId],
+  })
+}
+
 export async function getExpediteAmount(suggestionId: number): Promise<number> {
   await ensureSchema()
   const result = await db.execute({

@@ -3,17 +3,25 @@
 import { useState } from 'react'
 import { useAuth } from './AuthProvider'
 import LoginPrompt from './LoginPrompt'
+import { useSWRConfig } from 'swr'
 
 interface ExpediteButtonProps {
   suggestionId: number
   currentAmount?: number // Amount already paid in cents
+  onNeedsCredits?: () => void // Callback when credits are needed
 }
 
-export default function ExpediteButton({ suggestionId, currentAmount = 0 }: ExpediteButtonProps) {
+export default function ExpediteButton({
+  suggestionId,
+  currentAmount = 0,
+  onNeedsCredits,
+}: ExpediteButtonProps) {
   const { isLoggedIn, isLoading } = useAuth()
+  const { mutate } = useSWRConfig()
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
 
   const handleExpedite = async () => {
     if (isProcessing || isLoading) return
@@ -37,12 +45,25 @@ export default function ExpediteButton({ suggestionId, currentAmount = 0 }: Expe
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout session')
+        throw new Error(data.error || 'Failed to expedite')
       }
 
-      // Redirect to Stripe Checkout
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl
+      // Credit was used successfully
+      if (data.success && data.usedCredit) {
+        setShowSuccess(true)
+        setTimeout(() => setShowSuccess(false), 2000)
+        // Refresh suggestions and credits
+        mutate('/api/suggestions')
+        mutate('/api/credits')
+        return
+      }
+
+      // Needs credits - trigger checkout
+      if (data.needsCredits) {
+        if (onNeedsCredits) {
+          onNeedsCredits()
+        }
+        return
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to expedite')
@@ -56,39 +77,54 @@ export default function ExpediteButton({ suggestionId, currentAmount = 0 }: Expe
     <div className="relative inline-flex items-center">
       <button
         onClick={handleExpedite}
-        disabled={isProcessing}
+        disabled={isProcessing || showSuccess}
         className={`
           inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full
           transition-all duration-200
-          ${currentAmount > 0
-            ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
-            : 'bg-neutral-100 dark:bg-neutral-800 text-muted hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 border border-neutral-200 dark:border-neutral-700 hover:border-amber-300 dark:hover:border-amber-700'
+          ${showSuccess
+            ? 'bg-green-100 text-green-700 border border-green-300'
+            : currentAmount > 0
+            ? 'bg-amber-100 text-amber-700 border border-amber-300'
+            : 'bg-neutral-100 text-muted hover:text-amber-600 hover:bg-amber-50 border border-neutral-200 hover:border-amber-300'
           }
           disabled:opacity-50 disabled:cursor-not-allowed
         `}
-        title={currentAmount > 0
-          ? `$${(currentAmount / 100).toFixed(0)} paid to expedite. Pay $4 more to boost priority.`
-          : 'Pay $4 to boost this suggestion to the top of the queue'
+        title={showSuccess
+          ? 'Boosted!'
+          : currentAmount > 0
+          ? `$${(currentAmount / 100).toFixed(0)} paid to expedite. Use 1 credit to boost more.`
+          : 'Use 1 credit to boost this suggestion'
         }
       >
-        <svg
-          className={`w-3 h-3 ${isProcessing ? 'animate-pulse' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 10V3L4 14h7v7l9-11h-7z"
-          />
-        </svg>
-        {currentAmount > 0 ? (
-          <span>${(currentAmount / 100).toFixed(0)}</span>
+        {showSuccess ? (
+          <>
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Boosted!</span>
+          </>
         ) : (
-          <span>$4</span>
+          <>
+            <svg
+              className={`w-3 h-3 ${isProcessing ? 'animate-pulse' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+            {currentAmount > 0 ? (
+              <span>${(currentAmount / 100).toFixed(0)}</span>
+            ) : (
+              <span>Boost</span>
+            )}
+          </>
         )}
       </button>
 

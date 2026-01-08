@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { TerminalProvider, TerminalContainer, TerminalView } from '@/components/terminal'
 import { AuthProvider } from '@/components/AuthProvider'
+import { CreditProvider } from '@/components/CreditProvider'
 import { SidebarDrawer, SidebarContent } from '@/components/sidebar'
 import './globals.css'
 
@@ -48,26 +49,28 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background antialiased">
         <AuthProvider>
-          <TerminalProvider>
-            <TerminalContainer>
-              {/* Main body - the evolving canvas */}
-              <div className="min-h-screen">
-                {/* Main content area - the blank canvas */}
-                <main className="p-4">
-                  <div className="max-w-7xl mx-auto">
-                    {children}
-                  </div>
-                </main>
-              </div>
+          <CreditProvider>
+            <TerminalProvider>
+              <TerminalContainer>
+                {/* Main body - the evolving canvas */}
+                <div className="min-h-screen">
+                  {/* Main content area - the blank canvas */}
+                  <main className="p-4">
+                    <div className="max-w-7xl mx-auto">
+                      {children}
+                    </div>
+                  </main>
+                </div>
 
-              {/* Sidebar drawer with all control panel components */}
-              <SidebarDrawer
-                terminalSlot={<TerminalView className="h-full" />}
-              >
-                <SidebarContent />
-              </SidebarDrawer>
-            </TerminalContainer>
-          </TerminalProvider>
+                {/* Sidebar drawer with all control panel components */}
+                <SidebarDrawer
+                  terminalSlot={<TerminalView className="h-full" />}
+                >
+                  <SidebarContent />
+                </SidebarDrawer>
+              </TerminalContainer>
+            </TerminalProvider>
+          </CreditProvider>
         </AuthProvider>
       </body>
     </html>

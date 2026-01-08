@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server'
-import { verifyWebhookSignature, stripe } from '@/lib/stripe'
-import { completeExpeditePayment, failExpeditePayment, getExpeditePaymentBySession } from '@/lib/db'
+import { verifyWebhookSignature } from '@/lib/stripe'
+import {
+  completeExpeditePayment,
+  failExpeditePayment,
+  getExpeditePaymentBySession,
+  completeCreditPurchase,
+  failCreditPurchase,
+  getCreditPurchaseBySession,
+} from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,46 +43,66 @@ export async function POST(request: Request) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object
-
-        // Only process expedite payments
-        if (session.metadata?.type !== 'expedite') {
-          console.log('Ignoring non-expedite checkout session')
-          return NextResponse.json({ received: true })
-        }
-
         const checkoutSessionId = session.id
         const paymentIntentId = session.payment_intent as string
+        const paymentType = session.metadata?.type
 
-        // Verify we have a record of this payment
-        const existingPayment = await getExpeditePaymentBySession(checkoutSessionId)
-        if (!existingPayment) {
-          console.error(`No payment record found for session ${checkoutSessionId}`)
-          return NextResponse.json({ received: true })
+        // Handle credit purchases
+        if (paymentType === 'credit_purchase') {
+          const existingPurchase = await getCreditPurchaseBySession(checkoutSessionId)
+          if (!existingPurchase) {
+            console.error(`No credit purchase record found for session ${checkoutSessionId}`)
+            return NextResponse.json({ received: true })
+          }
+
+          if (existingPurchase.status === 'completed') {
+            console.log(`Credit purchase ${checkoutSessionId} already completed`)
+            return NextResponse.json({ received: true })
+          }
+
+          const purchase = await completeCreditPurchase(checkoutSessionId, paymentIntentId)
+          if (purchase) {
+            console.log(`Credit purchase completed: user ${purchase.user_id}, ${purchase.credits_amount} credits, ${purchase.amount_cents} cents`)
+          }
+          break
         }
 
-        if (existingPayment.status === 'completed') {
-          console.log(`Payment ${checkoutSessionId} already completed`)
-          return NextResponse.json({ received: true })
+        // Handle legacy expedite payments
+        if (paymentType === 'expedite') {
+          const existingPayment = await getExpeditePaymentBySession(checkoutSessionId)
+          if (!existingPayment) {
+            console.error(`No payment record found for session ${checkoutSessionId}`)
+            return NextResponse.json({ received: true })
+          }
+
+          if (existingPayment.status === 'completed') {
+            console.log(`Payment ${checkoutSessionId} already completed`)
+            return NextResponse.json({ received: true })
+          }
+
+          const payment = await completeExpeditePayment(checkoutSessionId, paymentIntentId)
+          if (payment) {
+            console.log(`Expedite payment completed: suggestion ${payment.suggestion_id}, amount ${payment.amount_cents} cents`)
+          }
+          break
         }
 
-        // Complete the payment
-        const payment = await completeExpeditePayment(checkoutSessionId, paymentIntentId)
-        if (payment) {
-          console.log(`Expedite payment completed: suggestion ${payment.suggestion_id}, amount ${payment.amount_cents} cents`)
-        }
+        console.log(`Ignoring checkout session with type: ${paymentType}`)
         break
       }
 
       case 'checkout.session.expired': {
         const session = event.data.object
-
-        if (session.metadata?.type !== 'expedite') {
-          return NextResponse.json({ received: true })
-        }
-
         const checkoutSessionId = session.id
-        await failExpeditePayment(checkoutSessionId)
-        console.log(`Expedite checkout session expired: ${checkoutSessionId}`)
+        const paymentType = session.metadata?.type
+
+        if (paymentType === 'credit_purchase') {
+          await failCreditPurchase(checkoutSessionId)
+          console.log(`Credit purchase checkout session expired: ${checkoutSessionId}`)
+        } else if (paymentType === 'expedite') {
+          await failExpeditePayment(checkoutSessionId)
+          console.log(`Expedite checkout session expired: ${checkoutSessionId}`)
+        }
         break
       }
 

@@ -7,6 +7,7 @@ import ContributorStack from './ContributorStack'
 import LoginPrompt from './LoginPrompt'
 import ExpediteButton from './ExpediteButton'
 import { useAuth } from './AuthProvider'
+import { useCredits } from './CreditProvider'
 
 interface Comment {
   id: number
@@ -71,6 +72,7 @@ export default function SuggestionCard({
   expediteAmountCents = 0,
 }: SuggestionCardProps) {
   const { isLoggedIn, user } = useAuth()
+  const { openCheckout } = useCredits()
   const [showComments, setShowComments] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -265,7 +267,11 @@ export default function SuggestionCard({
               </button>
             )}
             {!isInProgress && (
-              <ExpediteButton suggestionId={id} currentAmount={expediteAmountCents} />
+              <ExpediteButton
+                suggestionId={id}
+                currentAmount={expediteAmountCents}
+                onNeedsCredits={openCheckout}
+              />
             )}
           </div>
 

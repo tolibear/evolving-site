@@ -5,6 +5,7 @@ import { CreditProvider } from '@/components/CreditProvider'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { SidebarDrawer, SidebarContent } from '@/components/sidebar'
+import { ChatWindow } from '@/components/chat'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -65,6 +66,9 @@ export default function RootLayout({
                     </div>
                   </main>
                 </div>
+
+                {/* Chat window (Windows 96 style) on left side */}
+                <ChatWindow />
 
                 {/* Sidebar drawer with all control panel components */}
                 <SidebarDrawer

@@ -256,3 +256,230 @@ html.dark .sidebar-scroll::-webkit-scrollbar-thumb:hover {
     @apply bg-background text-foreground;
   }
 }
+
+/* Windows 96 Retro Styling */
+.win96-window {
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  box-shadow: 1px 1px 0 #000000;
+  font-family: 'MS Sans Serif', 'Segoe UI', Tahoma, sans-serif;
+}
+
+.win96-titlebar {
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: white;
+  padding: 2px 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.win96-menubar {
+  background: #c0c0c0;
+  border-bottom: 1px solid #808080;
+  padding: 1px 4px;
+  display: flex;
+  gap: 8px;
+}
+
+.win96-menu-item {
+  font-size: 11px;
+  padding: 1px 4px;
+  cursor: pointer;
+}
+
+.win96-menu-item:hover {
+  background: #000080;
+  color: white;
+}
+
+.win96-content {
+  background: white;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  margin: 4px;
+  padding: 4px;
+}
+
+.win96-statusbar {
+  background: #c0c0c0;
+  border-top: 1px solid #ffffff;
+  padding: 4px;
+}
+
+.win96-btn {
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: 'MS Sans Serif', 'Segoe UI', Tahoma, sans-serif;
+  cursor: pointer;
+  min-width: 20px;
+}
+
+.win96-btn:active {
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.win96-btn:disabled {
+  color: #808080;
+  cursor: not-allowed;
+}
+
+.win96-btn-titlebar {
+  padding: 0 4px;
+  font-weight: bold;
+  font-size: 10px;
+  min-width: 16px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.win96-btn-close:hover {
+  background: #ff0000;
+  color: white;
+}
+
+.win96-btn-send {
+  padding: 2px 12px;
+}
+
+.win96-input {
+  background: white;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  padding: 2px 4px;
+  font-size: 12px;
+  font-family: 'MS Sans Serif', 'Segoe UI', Tahoma, sans-serif;
+  outline: none;
+}
+
+.win96-input:focus {
+  outline: 1px dotted #000000;
+  outline-offset: -1px;
+}
+
+.win96-message {
+  padding: 2px 4px;
+  border-bottom: 1px dotted #c0c0c0;
+}
+
+.win96-message-own {
+  background: #ffffcc;
+}
+
+.win96-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.win96-taskbar {
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  padding: 2px;
+  display: flex;
+  gap: 2px;
+}
+
+.win96-taskbar-btn {
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: 'MS Sans Serif', 'Segoe UI', Tahoma, sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.win96-taskbar-btn:active,
+.win96-taskbar-btn-active {
+  border-color: #808080 #ffffff #ffffff #808080;
+  background: #a0a0a0;
+}
+
+/* Dark mode adjustments for Win96 styles */
+html.dark .win96-window {
+  background: #404040;
+  border-color: #606060 #202020 #202020 #606060;
+}
+
+html.dark .win96-titlebar {
+  background: linear-gradient(90deg, #000060, #0060a0);
+}
+
+html.dark .win96-menubar {
+  background: #404040;
+  border-color: #303030;
+}
+
+html.dark .win96-menu-item:hover {
+  background: #000060;
+}
+
+html.dark .win96-content {
+  background: #303030;
+  border-color: #202020 #505050 #505050 #202020;
+  color: #e0e0e0;
+}
+
+html.dark .win96-statusbar {
+  background: #404040;
+  border-color: #505050;
+}
+
+html.dark .win96-btn {
+  background: #404040;
+  border-color: #606060 #202020 #202020 #606060;
+  color: #e0e0e0;
+}
+
+html.dark .win96-btn:active {
+  border-color: #202020 #606060 #606060 #202020;
+}
+
+html.dark .win96-btn:disabled {
+  color: #606060;
+}
+
+html.dark .win96-input {
+  background: #303030;
+  border-color: #202020 #505050 #505050 #202020;
+  color: #e0e0e0;
+}
+
+html.dark .win96-message {
+  border-color: #505050;
+}
+
+html.dark .win96-message-own {
+  background: #404020;
+}
+
+html.dark .win96-message .text-blue-800 {
+  color: #80b0ff;
+}
+
+html.dark .win96-taskbar {
+  background: #404040;
+  border-color: #606060 #202020 #202020 #606060;
+}
+
+html.dark .win96-taskbar-btn {
+  background: #404040;
+  border-color: #606060 #202020 #202020 #606060;
+  color: #e0e0e0;
+}
+
+html.dark .win96-taskbar-btn:active,
+html.dark .win96-taskbar-btn-active {
+  border-color: #202020 #606060 #606060 #202020;
+  background: #303030;
+}

@@ -369,6 +369,19 @@ const initSchema = async () => {
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_leaderboard_week ON leaderboard_snapshots(week_start, rank)`)
 
+  // Chat messages table
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      content TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  // Index for efficient chat retrieval
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at DESC)`)
+
   // Add vote_order column for tracking early voters
   try {
     await db.execute('ALTER TABLE votes ADD COLUMN vote_order INTEGER')
@@ -1988,6 +2001,57 @@ export async function failCreditPurchase(sessionId: string): Promise<void> {
     sql: `UPDATE credit_purchases SET status = 'failed' WHERE stripe_checkout_session_id = ?`,
     args: [sessionId],
   })
+}
+
+// Chat message interface
+export interface ChatMessage {
+  id: number
+  user_id: number
+  content: string
+  created_at: string
+  // Joined from users table
+  username?: string
+  avatar?: string
+}
+
+// Chat message functions
+export async function getChatMessages(limit: number = 50): Promise<ChatMessage[]> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: `SELECT m.id, m.user_id, m.content, m.created_at,
+                 u.twitter_username as username, u.twitter_avatar as avatar
+          FROM chat_messages m
+          JOIN users u ON m.user_id = u.id
+          ORDER BY m.created_at DESC
+          LIMIT ?`,
+    args: [limit],
+  })
+  // Reverse to get oldest first for display
+  return (result.rows as unknown as ChatMessage[]).reverse()
+}
+
+export async function addChatMessage(userId: number, content: string): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'INSERT INTO chat_messages (user_id, content) VALUES (?, ?)',
+    args: [userId, content],
+  })
+  return Number(result.lastInsertRowid)
+}
+
+export async function getChatMessagesSince(sinceId: number, limit: number = 50): Promise<ChatMessage[]> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: `SELECT m.id, m.user_id, m.content, m.created_at,
+                 u.twitter_username as username, u.twitter_avatar as avatar
+          FROM chat_messages m
+          JOIN users u ON m.user_id = u.id
+          WHERE m.id > ?
+          ORDER BY m.created_at ASC
+          LIMIT ?`,
+    args: [sinceId, limit],
+  })
+  return result.rows as unknown as ChatMessage[]
 }
 
 export { ensureSchema }

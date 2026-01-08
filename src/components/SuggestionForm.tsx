@@ -2,7 +2,6 @@
 
 import { useState, useRef, FormEvent, KeyboardEvent } from 'react'
 import { mutate } from 'swr'
-import { playSound } from '@/lib/sounds'
 import { useAuth } from './AuthProvider'
 import LoginPrompt from './LoginPrompt'
 import Avatar from './Avatar'
@@ -90,8 +89,7 @@ export default function SuggestionForm() {
       e.preventDefault()
       // Only show confirm if content is valid
       if (content.trim().length >= 10 && !isSubmitting && !showConfirm) {
-        playSound('click')
-        setShowConfirm(true)
+                setShowConfirm(true)
       }
     }
   }
@@ -155,15 +153,13 @@ export default function SuggestionForm() {
       setSuccess(true)
       setShowConfirm(false)
       // Play success sound
-      playSound('success')
-      // Refresh suggestions list
+            // Refresh suggestions list
       mutate('/api/suggestions')
 
       // Clear success message after 5 seconds (longer for better visibility)
       setTimeout(() => setSuccess(false), 5000)
     } catch (err) {
-      playSound('error')
-      if (err instanceof Error) {
+            if (err instanceof Error) {
         if (err.name === 'AbortError') {
           setError('Request timed out. Please try again.')
         } else if (err.message.includes('fetch')) {
@@ -183,8 +179,7 @@ export default function SuggestionForm() {
   const handleFormSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (content.trim().length >= 10 && !isSubmitting && !showConfirm) {
-      playSound('click')
-      setShowConfirm(true)
+            setShowConfirm(true)
     }
   }
 

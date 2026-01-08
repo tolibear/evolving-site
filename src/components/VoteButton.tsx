@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { mutate } from 'swr'
-import { playSound } from '@/lib/sounds'
 import { useAuth } from './AuthProvider'
 import LoginPrompt from './LoginPrompt'
 
@@ -87,8 +86,7 @@ export default function VoteButton({
       setIsWiggling(true)
       setIsPop(true)
       // Play vote sound
-      playSound('vote')
-      // Show success feedback briefly
+            // Show success feedback briefly
       setSuccess(true)
       setTimeout(() => setSuccess(false), 1500)
       // Refresh suggestions to update vote counts and vote allowance
@@ -96,8 +94,7 @@ export default function VoteButton({
       mutate('/api/vote-allowance')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Vote failed')
-      playSound('error')
-      // Clear error after 2 seconds
+            // Clear error after 2 seconds
       setTimeout(() => setError(null), 2000)
     } finally {
       setIsVoting(false)

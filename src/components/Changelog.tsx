@@ -43,14 +43,9 @@ export default function Changelog() {
 
   if (isLoading) {
     return (
-      <div className="mt-12">
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Changelog
-        </h2>
-        <div className="animate-pulse space-y-3">
-          <div className="h-16 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
-          <div className="h-16 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
-        </div>
+      <div className="animate-pulse space-y-2">
+        <div className="h-14 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
+        <div className="h-14 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
       </div>
     )
   }
@@ -61,14 +56,9 @@ export default function Changelog() {
 
   if (!entries || entries.length === 0) {
     return (
-      <div className="mt-12">
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Changelog
-        </h2>
-        <p className="text-muted text-sm text-center py-8 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-          No features implemented yet. Submit suggestions and vote!
-        </p>
-      </div>
+      <p className="text-muted text-sm text-center py-4">
+        No features implemented yet. Submit suggestions and vote!
+      </p>
     )
   }
 
@@ -76,15 +66,13 @@ export default function Changelog() {
   const hasMore = entries.length > ITEMS_TO_SHOW
 
   return (
-    <div className="mt-12">
-      <h2 className="text-lg font-semibold text-foreground mb-4">
-        Changelog ({entries.length} implemented)
-      </h2>
-      <div className="space-y-3">
+    <div>
+      <p className="text-xs text-muted mb-2">{entries.length} implemented</p>
+      <div className="space-y-2">
         {displayedEntries.map((entry) => (
           <div
             key={entry.id}
-            className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-lg px-4 py-3"
+            className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-lg px-3 py-2"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -129,18 +117,18 @@ export default function Changelog() {
       {hasMore && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="mt-3 text-sm text-muted hover:text-foreground transition-colors flex items-center gap-1"
+          className="mt-2 text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
         >
           {showAll ? (
             <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
               Show less
             </>
           ) : (
             <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
               View {entries.length - ITEMS_TO_SHOW} more

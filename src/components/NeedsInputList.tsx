@@ -36,13 +36,8 @@ export default function NeedsInputList() {
 
   if (isLoading) {
     return (
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Needs Developer Input
-        </h2>
-        <div className="animate-pulse space-y-3">
-          <div className="h-16 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
-        </div>
+      <div className="animate-pulse space-y-2">
+        <div className="h-14 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
       </div>
     )
   }
@@ -52,25 +47,26 @@ export default function NeedsInputList() {
   }
 
   if (!suggestions || suggestions.length === 0) {
-    return null // Don't show section if no suggestions need input
+    return (
+      <p className="text-muted text-sm text-center py-4">
+        No suggestions awaiting developer input.
+      </p>
+    )
   }
 
   const displayedSuggestions = showAll ? suggestions : suggestions.slice(0, ITEMS_TO_SHOW)
   const hasMore = suggestions.length > ITEMS_TO_SHOW
 
   return (
-    <div className="mt-8">
-      <h2 className="text-lg font-semibold text-foreground mb-4">
-        Needs Developer Input ({suggestions.length})
-      </h2>
-      <p className="text-sm text-muted mb-4">
-        These suggestions require manual setup (like environment variables or external services) before they can be implemented.
+    <div>
+      <p className="text-xs text-muted mb-2">
+        {suggestions.length} awaiting setup (env vars, external services)
       </p>
-      <div className="space-y-3">
+      <div className="space-y-2">
         {displayedSuggestions.map((suggestion) => (
           <div
             key={suggestion.id}
-            className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3"
+            className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
@@ -102,18 +98,18 @@ export default function NeedsInputList() {
       {hasMore && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="mt-3 text-sm text-muted hover:text-foreground transition-colors flex items-center gap-1"
+          className="mt-2 text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
         >
           {showAll ? (
             <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
               Show less
             </>
           ) : (
             <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
               View {suggestions.length - ITEMS_TO_SHOW} more

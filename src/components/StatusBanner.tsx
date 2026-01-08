@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import useSWR from 'swr'
-import { playSound } from '@/lib/sounds'
 
 interface Status {
   current_suggestion_id: number | null
@@ -42,8 +41,7 @@ export default function StatusBanner() {
     if (status?.state === 'completed' && lastState === 'deploying') {
       setShowRefreshPrompt(true)
       // Play notification sound for new deployment
-      playSound('notification')
-      // Hide after 30 seconds
+            // Hide after 30 seconds
       const timer = setTimeout(() => setShowRefreshPrompt(false), 30000)
       return () => clearTimeout(timer)
     }

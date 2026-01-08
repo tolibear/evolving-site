@@ -3,6 +3,7 @@ import { TerminalProvider, TerminalContainer, TerminalView } from '@/components/
 import { AuthProvider } from '@/components/AuthProvider'
 import { CreditProvider } from '@/components/CreditProvider'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { SidebarDrawer, SidebarContent } from '@/components/sidebar'
 import './globals.css'
 
@@ -50,6 +51,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background antialiased">
         <ThemeProvider>
+          <TooltipProvider delayDuration={200}>
           <AuthProvider>
             <CreditProvider>
               <TerminalProvider>
@@ -74,6 +76,7 @@ export default function RootLayout({
             </TerminalProvider>
             </CreditProvider>
           </AuthProvider>
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

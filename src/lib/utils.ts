@@ -1,5 +1,14 @@
 import crypto from 'crypto'
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
 import { checkRateLimitDb, cleanupExpiredRateLimits } from '@/lib/db'
+
+/**
+ * Shadcn utility for merging Tailwind classes
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
 
 /**
  * Create a hash from IP address and user agent for vote deduplication

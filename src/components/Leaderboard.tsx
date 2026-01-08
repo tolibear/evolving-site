@@ -5,8 +5,31 @@ import useSWR from 'swr'
 import Avatar from './Avatar'
 import TierBadge from './TierBadge'
 import { NotificationSettings } from './NotificationSettings'
-import { ACHIEVEMENTS, TierName, AchievementType, TIERS } from '@/lib/reputation-types'
+import { TierName, AchievementType, TIERS } from '@/lib/reputation-types'
 import { RankMedalIcon, AchievementIcon, ACHIEVEMENT_TOOLTIPS } from './BadgeIcons'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+
+// Achievement badge with tooltip
+function AchievementBadge({ type, size = 14 }: { type: AchievementType; size?: number }) {
+  const tooltip = ACHIEVEMENT_TOOLTIPS[type]
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center cursor-help">
+          <AchievementIcon type={type} size={size} />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p className="font-semibold">{tooltip.name}</p>
+        <p className="text-xs opacity-90">{tooltip.description}</p>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
 
 interface LeaderboardEntry {
   rank: number
@@ -153,13 +176,7 @@ export default function Leaderboard() {
           {currentUser.achievements.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-3">
               {currentUser.achievements.map((a) => (
-                <span
-                  key={a}
-                  className="inline-flex items-center"
-                  title={`${ACHIEVEMENT_TOOLTIPS[a].name}: ${ACHIEVEMENT_TOOLTIPS[a].description}`}
-                >
-                  <AchievementIcon type={a} size={18} />
-                </span>
+                <AchievementBadge key={a} type={a} size={18} />
               ))}
             </div>
           )}
@@ -272,13 +289,7 @@ export default function Leaderboard() {
                 <TierBadge tier={entry.tier} size="sm" />
                 {/* Achievement badges */}
                 {entry.achievements.slice(0, 2).map((a) => (
-                  <span
-                    key={a}
-                    className="inline-flex items-center"
-                    title={`${ACHIEVEMENT_TOOLTIPS[a].name}: ${ACHIEVEMENT_TOOLTIPS[a].description}`}
-                  >
-                    <AchievementIcon type={a} size={14} />
-                  </span>
+                  <AchievementBadge key={a} type={a} size={14} />
                 ))}
               </div>
 

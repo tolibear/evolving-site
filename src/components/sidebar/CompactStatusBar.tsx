@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import useSWR from 'swr'
+import useSWR, { mutate } from 'swr'
 
 interface Status {
   current_suggestion_id: number | null
@@ -38,6 +38,9 @@ export function CompactStatusBar() {
   // Track state changes to show refresh prompt
   useEffect(() => {
     if (status?.state === 'completed' && lastState === 'deploying') {
+      // Refresh suggestion and changelog lists immediately
+      mutate('/api/suggestions')
+      mutate('/api/changelog')
       setShowRefreshPrompt(true)
       const timer = setTimeout(() => setShowRefreshPrompt(false), 30000)
       return () => clearTimeout(timer)

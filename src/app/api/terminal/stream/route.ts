@@ -53,8 +53,8 @@ export async function GET(request: Request) {
             endedAt: session.ended_at,
           })
 
-          // If replay mode or session is not active, send all chunks at once
-          if (replay || session.status !== 'active') {
+          // If explicit replay mode requested, send all chunks and close
+          if (replay) {
             const allChunks = await getAllTerminalChunks(session.id)
             for (const chunk of allChunks) {
               sendEvent('chunk', {
@@ -68,7 +68,7 @@ export async function GET(request: Request) {
             return
           }
 
-          // For active sessions, send catch-up chunks first
+          // Send all existing chunks (catch-up)
           if (fromSequence >= 0) {
             const catchUpChunks = await getTerminalChunks(session.id, fromSequence)
             for (const chunk of catchUpChunks) {

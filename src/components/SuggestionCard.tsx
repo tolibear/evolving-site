@@ -184,7 +184,7 @@ export default function SuggestionCard({
       className={`card ${isInProgress ? 'border-2 border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-900/20' : ''}`}
     >
       <div className="flex gap-3">
-        <VoteButton suggestionId={id} votes={votes} initialVoteType={userVoteType} />
+        <VoteButton suggestionId={id} votes={votes} initialVoteType={userVoteType} isLocked={isInProgress} />
         <div className="flex-1 min-w-0">
           {isInProgress && (
             <div className="flex items-center gap-2 mb-2">
@@ -263,15 +263,7 @@ export default function SuggestionCard({
             </button>
 
             <div className="flex items-center gap-2">
-              {!isInProgress && (
-                <ExpediteButton
-                  suggestionId={id}
-                  currentAmount={expediteAmountCents}
-                  onNeedsCredits={openCheckout}
-                  onToggleBoost={() => setShowBoost(!showBoost)}
-                  showingBoost={showBoost}
-                />
-              )}
+              {/* ExpediteButton temporarily hidden */}
               {isOwner && !isInProgress && (
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
@@ -325,12 +317,7 @@ export default function SuggestionCard({
         </div>
       </div>
 
-      {/* Inline boost checkout */}
-      {showBoost && (
-        <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
-          <InlineBoostCheckout onClose={() => setShowBoost(false)} />
-        </div>
-      )}
+      {/* Inline boost checkout temporarily hidden */}
 
       {showComments && (
         <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">

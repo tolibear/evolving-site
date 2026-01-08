@@ -16,6 +16,7 @@
     "ralph:auto": "npx tsx src/ralph/index.ts --auto",
     "ralph:manual": "npx tsx src/ralph/index.ts --manual",
     "finalize": "npx tsx scripts/finalize.ts",
+    "fix-leaderboard": "npx tsx scripts/fix-leaderboard.ts",
     "db:init": "node scripts/init-db.js"
   },
   "dependencies": {

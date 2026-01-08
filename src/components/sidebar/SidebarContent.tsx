@@ -133,8 +133,8 @@ export function SidebarContent() {
       {/* Tab content */}
       {mainTab === 'build' ? (
         <>
-          {/* Boost display (only if has purchased before) */}
-          <BoostDisplay />
+          {/* Boost display temporarily hidden */}
+          {/* <BoostDisplay /> */}
 
           {/* Suggestion Form - always show, handles login internally */}
           <div className="mb-4">
@@ -158,12 +158,12 @@ export function SidebarContent() {
           {/* History tabs */}
           <HistoryTabs />
 
-          {/* Footer: Boost badge */}
-          {isLoggedIn && (
+          {/* Footer: Boost badge temporarily hidden */}
+          {/* {isLoggedIn && (
             <div className="mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-end">
               <BoostBadge />
             </div>
-          )}
+          )} */}
         </>
       ) : (
         <div className="flex-1 min-h-0 overflow-y-auto sidebar-scroll">

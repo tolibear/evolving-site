@@ -9,12 +9,14 @@ interface VoteButtonProps {
   suggestionId: number
   votes: number
   initialVoteType?: 'up' | 'down' | null
+  isLocked?: boolean
 }
 
 export default function VoteButton({
   suggestionId,
   votes,
   initialVoteType = null,
+  isLocked = false,
 }: VoteButtonProps) {
   const { isLoggedIn, isLoading } = useAuth()
   const [isVoting, setIsVoting] = useState(false)
@@ -55,7 +57,7 @@ export default function VoteButton({
   }, [showLoginPrompt])
 
   const handleVote = async (newVoteType: 'up' | 'down') => {
-    if (isVoting || isLoading) return
+    if (isVoting || isLoading || isLocked) return
 
     // Check if user is logged in
     if (!isLoggedIn) {
@@ -85,8 +87,7 @@ export default function VoteButton({
       // Trigger animations to indicate vote receipt
       setIsWiggling(true)
       setIsPop(true)
-      // Play vote sound
-            // Show success feedback briefly
+      // Show success feedback briefly
       setSuccess(true)
       setTimeout(() => setSuccess(false), 1500)
       // Refresh suggestions to update vote counts and vote allowance
@@ -102,22 +103,25 @@ export default function VoteButton({
   }
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center relative">
       {/* Upvote button */}
       <button
         onClick={() => handleVote('up')}
-        disabled={isVoting}
+        disabled={isVoting || isLocked}
         className={`
           flex items-center justify-center p-1 rounded transition-all
           ${
-            voteType === 'up'
+            isLocked
+              ? 'text-neutral-300 dark:text-neutral-600 cursor-not-allowed'
+              : voteType === 'up'
               ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50'
               : 'text-muted hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30'
           }
           active:scale-95 disabled:cursor-not-allowed
         `}
-        aria-label={voteType === 'up' ? 'Remove upvote' : 'Upvote this suggestion'}
+        aria-label={isLocked ? 'Voting locked during implementation' : voteType === 'up' ? 'Remove upvote' : 'Upvote this suggestion'}
         aria-pressed={voteType === 'up'}
+        title={isLocked ? 'Voting locked during implementation' : undefined}
       >
         <svg
           className={`w-4 h-4 ${isVoting ? 'animate-pulse' : ''} ${isWiggling && voteType === 'up' ? 'animate-wiggle' : ''}`}
@@ -146,18 +150,21 @@ export default function VoteButton({
       {/* Downvote button */}
       <button
         onClick={() => handleVote('down')}
-        disabled={isVoting}
+        disabled={isVoting || isLocked}
         className={`
           flex items-center justify-center p-1 rounded transition-all
           ${
-            voteType === 'down'
+            isLocked
+              ? 'text-neutral-300 dark:text-neutral-600 cursor-not-allowed'
+              : voteType === 'down'
               ? 'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50'
               : 'text-muted hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30'
           }
           active:scale-95 disabled:cursor-not-allowed
         `}
-        aria-label={voteType === 'down' ? 'Remove downvote' : 'Downvote this suggestion'}
+        aria-label={isLocked ? 'Voting locked during implementation' : voteType === 'down' ? 'Remove downvote' : 'Downvote this suggestion'}
         aria-pressed={voteType === 'down'}
+        title={isLocked ? 'Voting locked during implementation' : undefined}
       >
         <svg
           className={`w-4 h-4 ${isVoting ? 'animate-pulse' : ''} ${isWiggling && voteType === 'down' ? 'animate-wiggle' : ''}`}
@@ -171,7 +178,7 @@ export default function VoteButton({
       </button>
 
       {showLoginPrompt && (
-        <div className="absolute mt-16 z-10 animate-fade-in">
+        <div className="absolute left-full ml-2 top-0 z-10 animate-fade-in whitespace-nowrap">
           <LoginPrompt action="vote" compact />
         </div>
       )}

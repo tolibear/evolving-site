@@ -38,11 +38,11 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
     if (!hasVisited) {
       // Open on first visit
       setIsOpen(true)
-      // Auto-close quickly and mark as visited
+      // Auto-close after 1 second and mark as visited
       const timer = setTimeout(() => {
         setIsOpen(false)
         localStorage.setItem(FIRST_VISIT_KEY, 'true')
-      }, 500)
+      }, 1000)
       return () => clearTimeout(timer)
     }
   }, [])

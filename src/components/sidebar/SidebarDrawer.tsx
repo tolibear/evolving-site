@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 
 interface SidebarDrawerProps {
   children: React.ReactNode
@@ -8,14 +8,32 @@ interface SidebarDrawerProps {
 }
 
 const FIRST_VISIT_KEY = 'sidebar-first-visit-shown'
+const TERMINAL_HEIGHT_KEY = 'terminal-height'
+const MIN_TERMINAL_HEIGHT = 150
+const MAX_TERMINAL_HEIGHT = 600
+const DEFAULT_TERMINAL_HEIGHT = 280
 
 export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [terminalHeight, setTerminalHeight] = useState(DEFAULT_TERMINAL_HEIGHT)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStartY = useRef(0)
+  const dragStartHeight = useRef(0)
 
-  // Handle first visit auto-open
+  // Handle first visit auto-open and load saved terminal height
   useEffect(() => {
     setMounted(true)
+
+    // Load saved terminal height
+    const savedHeight = localStorage.getItem(TERMINAL_HEIGHT_KEY)
+    if (savedHeight) {
+      const height = parseInt(savedHeight, 10)
+      if (height >= MIN_TERMINAL_HEIGHT && height <= MAX_TERMINAL_HEIGHT) {
+        setTerminalHeight(height)
+      }
+    }
+
     const hasVisited = localStorage.getItem(FIRST_VISIT_KEY)
     if (!hasVisited) {
       // Open on first visit
@@ -28,6 +46,43 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
       return () => clearTimeout(timer)
     }
   }, [])
+
+  // Handle drag to resize terminal
+  const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    dragStartY.current = clientY
+    dragStartHeight.current = terminalHeight
+  }, [terminalHeight])
+
+  useEffect(() => {
+    if (!isDragging) return
+
+    const handleDragMove = (e: MouseEvent | TouchEvent) => {
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+      const delta = dragStartY.current - clientY // Negative = dragging down, Positive = dragging up
+      const newHeight = Math.min(MAX_TERMINAL_HEIGHT, Math.max(MIN_TERMINAL_HEIGHT, dragStartHeight.current + delta))
+      setTerminalHeight(newHeight)
+    }
+
+    const handleDragEnd = () => {
+      setIsDragging(false)
+      localStorage.setItem(TERMINAL_HEIGHT_KEY, terminalHeight.toString())
+    }
+
+    window.addEventListener('mousemove', handleDragMove)
+    window.addEventListener('mouseup', handleDragEnd)
+    window.addEventListener('touchmove', handleDragMove)
+    window.addEventListener('touchend', handleDragEnd)
+
+    return () => {
+      window.removeEventListener('mousemove', handleDragMove)
+      window.removeEventListener('mouseup', handleDragEnd)
+      window.removeEventListener('touchmove', handleDragMove)
+      window.removeEventListener('touchend', handleDragEnd)
+    }
+  }, [isDragging, terminalHeight])
 
   // Keyboard shortcut: Escape to close
   useEffect(() => {
@@ -117,9 +172,25 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
           {children}
         </div>
 
-        {/* Fixed terminal at bottom */}
-        <div className="h-[280px] flex-shrink-0 border-t border-neutral-200 dark:border-neutral-700">
-          {terminalSlot}
+        {/* Resizable terminal at bottom */}
+        <div className="flex-shrink-0 border-t border-neutral-200 dark:border-neutral-700 flex flex-col">
+          {/* Drag handle */}
+          <div
+            onMouseDown={handleDragStart}
+            onTouchStart={handleDragStart}
+            className={`
+              h-2 cursor-ns-resize flex items-center justify-center
+              hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors
+              ${isDragging ? 'bg-neutral-300 dark:bg-neutral-600' : ''}
+            `}
+            title="Drag to resize terminal"
+          >
+            <div className="w-8 h-0.5 bg-neutral-300 dark:bg-neutral-600 rounded-full" />
+          </div>
+          {/* Terminal content */}
+          <div style={{ height: terminalHeight }} className="overflow-hidden">
+            {terminalSlot}
+          </div>
         </div>
       </aside>
     </>

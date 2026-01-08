@@ -85,13 +85,31 @@ export default function Leaderboard() {
   if (error) {
     return (
       <div className="text-sm text-red-500 dark:text-red-400">
-        Failed to load leaderboard
+        Failed to load leaderboard: {error.message}
       </div>
     )
   }
 
-  const leaderboard = data?.leaderboard || []
-  const currentUser = data?.currentUser
+  // Handle case where data might be an error response
+  if (data && 'error' in data) {
+    return (
+      <div className="text-sm text-red-500 dark:text-red-400">
+        Error: {(data as { error: string }).error}
+      </div>
+    )
+  }
+
+  const leaderboard = Array.isArray(data?.leaderboard) ? data.leaderboard : []
+  const currentUser = data?.currentUser || null
+
+  // If no data yet and not loading, show a message
+  if (!data && !isLoading && !error) {
+    return (
+      <div className="text-sm text-muted text-center py-4">
+        Loading leaderboard...
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">

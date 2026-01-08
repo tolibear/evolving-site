@@ -10,7 +10,8 @@ import {
   changeVoteByUser,
 } from '@/lib/db'
 import { updateVotingStreak, activateReferralIfEligible } from '@/lib/reputation'
-import { getClientIP, checkRateLimit } from '@/lib/utils'
+import { getClientIP } from '@/lib/utils-server'
+import { checkRateLimit } from '@/lib/utils'
 import { isValidId } from '@/lib/security'
 import { validateSessionAndGetUser, SESSION_COOKIE_NAME } from '@/lib/twitter-auth'
 

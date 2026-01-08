@@ -9,7 +9,8 @@ import {
   getContributors,
   type Suggestion,
 } from '@/lib/db'
-import { getClientIP, checkRateLimit } from '@/lib/utils'
+import { getClientIP } from '@/lib/utils-server'
+import { checkRateLimit } from '@/lib/utils'
 import { sanitizeSuggestion } from '@/lib/security'
 import { validateSessionAndGetUser, SESSION_COOKIE_NAME } from '@/lib/twitter-auth'
 

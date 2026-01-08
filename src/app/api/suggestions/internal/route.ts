@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createSuggestionWithAuthor, logSecurityEvent } from '@/lib/db'
 import { sanitizeSuggestion } from '@/lib/security'
 import { validateRalphAuth } from '@/lib/auth'
-import { getClientIP } from '@/lib/utils'
+import { getClientIP } from '@/lib/utils-server'
 
 /**
  * Internal API endpoint for Ralph Wiggum to create suggestions

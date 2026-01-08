@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getVoteAllowance } from '@/lib/db'
-import { getClientIP, createVoterHash } from '@/lib/utils'
+import { getClientIP, createVoterHash } from '@/lib/utils-server'
 
 // GET /api/vote-allowance - Get remaining votes for current user
 export async function GET(request: Request) {

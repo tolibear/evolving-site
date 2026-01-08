@@ -8,7 +8,7 @@ import {
   getSessionCookieOptions,
 } from '@/lib/twitter-auth'
 import { logSecurityEvent } from '@/lib/db'
-import { getClientIP } from '@/lib/utils'
+import { getClientIP } from '@/lib/utils-server'
 
 export const dynamic = 'force-dynamic'
 

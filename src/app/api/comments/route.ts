@@ -6,7 +6,8 @@ import {
   getUserCommentByUserId,
   updateCommentByUser,
 } from '@/lib/db'
-import { getClientIP, checkRateLimit } from '@/lib/utils'
+import { getClientIP } from '@/lib/utils-server'
+import { checkRateLimit } from '@/lib/utils'
 import { isValidId, isInputSafe, sanitizeInput } from '@/lib/security'
 import { validateSessionAndGetUser, SESSION_COOKIE_NAME } from '@/lib/twitter-auth'
 

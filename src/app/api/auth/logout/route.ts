@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { logout, SESSION_COOKIE_NAME } from '@/lib/twitter-auth'
 import { logSecurityEvent } from '@/lib/db'
-import { getClientIP } from '@/lib/utils'
+import { getClientIP } from '@/lib/utils-server'
 
 export const dynamic = 'force-dynamic'
 

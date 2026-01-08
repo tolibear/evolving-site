@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getVoteType } from '@/lib/db'
-import { getClientIP, createVoterHash } from '@/lib/utils'
+import { getClientIP, createVoterHash } from '@/lib/utils-server'
 
 // GET /api/user-votes?suggestionIds=1,2,3 - Get user's vote types for suggestions
 export async function GET(request: Request) {

@@ -10,7 +10,7 @@ import {
   logSecurityEvent,
 } from '@/lib/db'
 import { validateRalphAuth } from '@/lib/auth'
-import { getClientIP } from '@/lib/utils'
+import { getClientIP } from '@/lib/utils-server'
 
 export const dynamic = 'force-dynamic'
 

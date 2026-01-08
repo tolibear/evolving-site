@@ -9,6 +9,7 @@ interface SidebarDrawerProps {
 
 const FIRST_VISIT_KEY = 'sidebar-first-visit-shown'
 const TERMINAL_HEIGHT_KEY = 'terminal-height'
+const TERMINAL_COLLAPSED_KEY = 'terminal-collapsed-mobile'
 const MIN_TERMINAL_HEIGHT = 150
 const MAX_TERMINAL_HEIGHT = 600
 const DEFAULT_TERMINAL_HEIGHT = 280
@@ -18,6 +19,7 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
   const [mounted, setMounted] = useState(false)
   const [terminalHeight, setTerminalHeight] = useState(DEFAULT_TERMINAL_HEIGHT)
   const [isDragging, setIsDragging] = useState(false)
+  const [isTerminalCollapsed, setIsTerminalCollapsed] = useState(false)
   const dragStartY = useRef(0)
   const dragStartHeight = useRef(0)
 
@@ -32,6 +34,12 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
       if (height >= MIN_TERMINAL_HEIGHT && height <= MAX_TERMINAL_HEIGHT) {
         setTerminalHeight(height)
       }
+    }
+
+    // Load saved terminal collapsed state (mobile only)
+    const savedCollapsed = localStorage.getItem(TERMINAL_COLLAPSED_KEY)
+    if (savedCollapsed === 'true') {
+      setIsTerminalCollapsed(true)
     }
 
     const hasVisited = localStorage.getItem(FIRST_VISIT_KEY)
@@ -97,6 +105,14 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
 
   const toggleSidebar = useCallback(() => {
     setIsOpen(prev => !prev)
+  }, [])
+
+  const toggleTerminalCollapsed = useCallback(() => {
+    setIsTerminalCollapsed(prev => {
+      const newValue = !prev
+      localStorage.setItem(TERMINAL_COLLAPSED_KEY, String(newValue))
+      return newValue
+    })
   }, [])
 
   if (!mounted) {
@@ -172,7 +188,26 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
 
         {/* Resizable terminal at bottom */}
         <div className="flex-shrink-0 border-t border-neutral-200 dark:border-neutral-700 flex flex-col">
-          {/* Drag handle */}
+          {/* Mobile: Collapsible header */}
+          <button
+            onClick={toggleTerminalCollapsed}
+            className="md:hidden flex items-center justify-between px-3 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+            aria-expanded={!isTerminalCollapsed}
+            aria-label={isTerminalCollapsed ? 'Show terminal' : 'Hide terminal'}
+          >
+            <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+              Terminal
+            </span>
+            <svg
+              className={`w-4 h-4 text-neutral-500 dark:text-neutral-400 transition-transform duration-200 ${isTerminalCollapsed ? '' : 'rotate-180'}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+          {/* Drag handle - desktop only when not collapsed, or always on mobile when expanded */}
           <div
             onMouseDown={handleDragStart}
             onTouchStart={handleDragStart}
@@ -180,14 +215,20 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
               h-2 cursor-ns-resize flex items-center justify-center
               hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors
               ${isDragging ? 'bg-neutral-300 dark:bg-neutral-600' : ''}
+              ${isTerminalCollapsed ? 'hidden md:flex' : ''}
             `}
             title="Drag to resize terminal"
           >
             <div className="w-8 h-0.5 bg-neutral-300 dark:bg-neutral-600 rounded-full" />
           </div>
-          {/* Terminal content */}
-          <div style={{ height: terminalHeight }} className="overflow-hidden">
-            {terminalSlot}
+          {/* Terminal content - hidden on mobile when collapsed */}
+          <div
+            style={{ height: isTerminalCollapsed ? 0 : terminalHeight }}
+            className={`overflow-hidden transition-[height] duration-200 ${isTerminalCollapsed ? 'md:!h-auto' : ''}`}
+          >
+            <div style={{ height: terminalHeight }} className="md:h-full">
+              {terminalSlot}
+            </div>
           </div>
         </div>
       </aside>

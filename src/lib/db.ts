@@ -247,6 +247,39 @@ const initSchema = async () => {
     )
   `)
 
+  // Create user_credits table for credit system
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS user_credits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL UNIQUE,
+      balance INTEGER NOT NULL DEFAULT 0,
+      total_purchased INTEGER NOT NULL DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `)
+
+  // Create credit_purchases table
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS credit_purchases (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      credits_amount INTEGER NOT NULL,
+      amount_cents INTEGER NOT NULL,
+      stripe_checkout_session_id TEXT NOT NULL UNIQUE,
+      stripe_payment_intent_id TEXT,
+      status TEXT DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `)
+
+  // Create indexes for credit tables
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_user_credits_user ON user_credits(user_id)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_credit_purchases_user ON credit_purchases(user_id)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_credit_purchases_session ON credit_purchases(stripe_checkout_session_id)`)
+
   // Create indexes for expedite_payments
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_suggestion ON expedite_payments(suggestion_id)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_user ON expedite_payments(user_id)`)
@@ -467,6 +500,26 @@ export interface Contributor {
   username: string
   avatar: string | null
   type: 'comment' | 'vote'
+}
+
+export interface UserCredits {
+  id: number
+  user_id: number
+  balance: number
+  total_purchased: number
+  updated_at: string
+}
+
+export interface CreditPurchase {
+  id: number
+  user_id: number
+  credits_amount: number
+  amount_cents: number
+  stripe_checkout_session_id: string
+  stripe_payment_intent_id: string | null
+  status: 'pending' | 'completed' | 'failed'
+  created_at: string
+  completed_at: string | null
 }
 
 // Ensure schema is ready before queries
@@ -1691,6 +1744,127 @@ export async function getSuggestionsWithExpedite(): Promise<Suggestion[]> {
     ORDER BY s.expedite_amount_cents DESC, s.votes DESC, s.created_at ASC
   `)
   return result.rows as unknown as Suggestion[]
+}
+
+// Credit system functions
+export async function getUserCredits(userId: number): Promise<UserCredits> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT * FROM user_credits WHERE user_id = ?',
+    args: [userId],
+  })
+  if (result.rows.length === 0) {
+    // Initialize credits record for new user
+    await db.execute({
+      sql: 'INSERT INTO user_credits (user_id, balance, total_purchased) VALUES (?, 0, 0)',
+      args: [userId],
+    })
+    return {
+      id: 0,
+      user_id: userId,
+      balance: 0,
+      total_purchased: 0,
+      updated_at: new Date().toISOString(),
+    }
+  }
+  return result.rows[0] as unknown as UserCredits
+}
+
+export async function hasEverPurchased(userId: number): Promise<boolean> {
+  await ensureSchema()
+  const credits = await getUserCredits(userId)
+  return credits.total_purchased > 0
+}
+
+export async function addCredits(userId: number, amount: number): Promise<void> {
+  await ensureSchema()
+  // Ensure user credits record exists
+  await getUserCredits(userId)
+  await db.execute({
+    sql: `UPDATE user_credits
+          SET balance = balance + ?,
+              total_purchased = total_purchased + ?,
+              updated_at = datetime('now')
+          WHERE user_id = ?`,
+    args: [amount, amount, userId],
+  })
+}
+
+export async function useCredit(userId: number): Promise<boolean> {
+  await ensureSchema()
+  const credits = await getUserCredits(userId)
+  if (credits.balance <= 0) {
+    return false
+  }
+  await db.execute({
+    sql: `UPDATE user_credits
+          SET balance = balance - 1,
+              updated_at = datetime('now')
+          WHERE user_id = ?`,
+    args: [userId],
+  })
+  return true
+}
+
+export async function createCreditPurchase(
+  userId: number,
+  creditsAmount: number,
+  amountCents: number,
+  sessionId: string
+): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: `INSERT INTO credit_purchases (user_id, credits_amount, amount_cents, stripe_checkout_session_id)
+          VALUES (?, ?, ?, ?)`,
+    args: [userId, creditsAmount, amountCents, sessionId],
+  })
+  return Number(result.lastInsertRowid)
+}
+
+export async function completeCreditPurchase(
+  sessionId: string,
+  paymentIntentId: string
+): Promise<CreditPurchase | null> {
+  await ensureSchema()
+  // Get the purchase record
+  const result = await db.execute({
+    sql: 'SELECT * FROM credit_purchases WHERE stripe_checkout_session_id = ?',
+    args: [sessionId],
+  })
+  if (result.rows.length === 0) return null
+  const purchase = result.rows[0] as unknown as CreditPurchase
+
+  // Update purchase to completed
+  await db.execute({
+    sql: `UPDATE credit_purchases
+          SET status = 'completed', stripe_payment_intent_id = ?, completed_at = datetime('now')
+          WHERE stripe_checkout_session_id = ?`,
+    args: [paymentIntentId, sessionId],
+  })
+
+  // Add credits to user balance
+  await addCredits(purchase.user_id, purchase.credits_amount)
+
+  return { ...purchase, status: 'completed', stripe_payment_intent_id: paymentIntentId }
+}
+
+export async function getCreditPurchaseBySession(
+  sessionId: string
+): Promise<CreditPurchase | null> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT * FROM credit_purchases WHERE stripe_checkout_session_id = ?',
+    args: [sessionId],
+  })
+  return (result.rows[0] as unknown as CreditPurchase) || null
+}
+
+export async function failCreditPurchase(sessionId: string): Promise<void> {
+  await ensureSchema()
+  await db.execute({
+    sql: `UPDATE credit_purchases SET status = 'failed' WHERE stripe_checkout_session_id = ?`,
+    args: [sessionId],
+  })
 }
 
 export default db

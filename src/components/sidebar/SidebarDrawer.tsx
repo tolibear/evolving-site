@@ -20,11 +20,11 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
     if (!hasVisited) {
       // Open on first visit
       setIsOpen(true)
-      // Auto-close after 3 seconds and mark as visited
+      // Auto-close quickly and mark as visited
       const timer = setTimeout(() => {
         setIsOpen(false)
         localStorage.setItem(FIRST_VISIT_KEY, 'true')
-      }, 3000)
+      }, 800)
       return () => clearTimeout(timer)
     }
   }, [])
@@ -55,32 +55,28 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
         onClick={toggleSidebar}
         className={`
           fixed right-0 top-1/2 -translate-y-1/2 z-40
-          transition-all duration-300 ease-out
+          transition-all duration-200 ease-out
           ${isOpen ? 'translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'}
         `}
         aria-label="Open control panel"
         aria-expanded={isOpen}
       >
         <div className="
-          bg-accent hover:bg-accent/90
-          text-white px-2 py-4 rounded-l-lg shadow-lg
-          flex flex-col items-center gap-1
+          bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600
+          text-neutral-500 dark:text-neutral-400 p-2 rounded-l-md
           transition-colors
         ">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          <span className="text-xs font-medium [writing-mode:vertical-lr] rotate-180">
-            Control Panel
-          </span>
         </div>
       </button>
 
-      {/* Overlay backdrop for mobile */}
+      {/* Overlay backdrop - click to close */}
       <div
         className={`
-          fixed inset-0 bg-black/50 z-30 md:hidden
-          transition-opacity duration-300
+          fixed inset-0 z-30
+          transition-opacity duration-200
           ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
         onClick={() => setIsOpen(false)}

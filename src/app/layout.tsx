@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import ThemeToggle from '@/components/ThemeToggle'
-import { TerminalProvider, TerminalContainer, TerminalView, TerminalToggle } from '@/components/terminal'
+import { TerminalProvider, TerminalContainer, TerminalView } from '@/components/terminal'
 import { AuthProvider } from '@/components/AuthProvider'
 import { SidebarDrawer, SidebarContent } from '@/components/sidebar'
 import './globals.css'
@@ -53,23 +52,8 @@ export default function RootLayout({
             <TerminalContainer>
               {/* Main body - the evolving canvas */}
               <div className="min-h-screen">
-                {/* Header - stays in main body */}
-                <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-700 px-4 py-4">
-                  <div className="flex items-center justify-between max-w-7xl mx-auto">
-                    <div>
-                      <h1 className="text-2xl font-bold text-foreground">
-                        Evolving Site
-                      </h1>
-                      <p className="text-sm text-muted">
-                        Suggest features, vote, and watch Claude implement the winners
-                      </p>
-                    </div>
-                    <ThemeToggle />
-                  </div>
-                </header>
-
                 {/* Main content area - the blank canvas */}
-                <main className="px-4 py-8">
+                <main className="p-4">
                   <div className="max-w-7xl mx-auto">
                     {children}
                   </div>
@@ -82,9 +66,6 @@ export default function RootLayout({
               >
                 <SidebarContent />
               </SidebarDrawer>
-
-              {/* Terminal fullscreen toggle */}
-              <TerminalToggle />
             </TerminalContainer>
           </TerminalProvider>
         </AuthProvider>

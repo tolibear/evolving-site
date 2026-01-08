@@ -56,3 +56,4 @@ next-env.d.ts
 # Temp finalization scripts
 scripts/mark-s12-implemented.js
 scripts/finalize-12.mjs
+INCENTIVES.md

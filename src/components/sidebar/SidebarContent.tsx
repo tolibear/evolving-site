@@ -4,6 +4,8 @@ import { useState, Suspense } from 'react'
 import SuggestionForm from '@/components/SuggestionForm'
 import SuggestionList from '@/components/SuggestionList'
 import RecentlyCompleted from '@/components/RecentlyCompleted'
+import RecentlyDenied from '@/components/RecentlyDenied'
+import NeedsInput from '@/components/NeedsInput'
 import ExpediteSuccessToast from '@/components/ExpediteSuccessToast'
 import Leaderboard from '@/components/Leaderboard'
 import { useCredits } from '@/components/CreditProvider'
@@ -154,6 +156,12 @@ export function SidebarContent() {
 
             {/* Recently Completed */}
             <RecentlyCompleted />
+
+            {/* Recently Denied */}
+            <RecentlyDenied />
+
+            {/* Needs Input */}
+            <NeedsInput />
           </div>
 
           {/* Divider */}

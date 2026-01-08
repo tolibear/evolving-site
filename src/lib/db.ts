@@ -687,23 +687,27 @@ export async function updateSuggestionStatus(
   })
 }
 
-export async function getDeniedSuggestions(): Promise<Suggestion[]> {
+export async function getDeniedSuggestions(limit?: number): Promise<Suggestion[]> {
   await ensureSchema()
-  const result = await db.execute(`
-    SELECT * FROM suggestions
-    WHERE status = 'denied'
-    ORDER BY implemented_at DESC
-  `)
+  const sql = limit
+    ? 'SELECT * FROM suggestions WHERE status = \'denied\' ORDER BY implemented_at DESC LIMIT ?'
+    : 'SELECT * FROM suggestions WHERE status = \'denied\' ORDER BY implemented_at DESC'
+  const result = await db.execute({
+    sql,
+    args: limit ? [limit] : [],
+  })
   return result.rows as unknown as Suggestion[]
 }
 
-export async function getNeedsInputSuggestions(): Promise<Suggestion[]> {
+export async function getNeedsInputSuggestions(limit?: number): Promise<Suggestion[]> {
   await ensureSchema()
-  const result = await db.execute(`
-    SELECT * FROM suggestions
-    WHERE status = 'needs_input'
-    ORDER BY votes DESC, created_at ASC
-  `)
+  const sql = limit
+    ? 'SELECT * FROM suggestions WHERE status = \'needs_input\' ORDER BY votes DESC, created_at ASC LIMIT ?'
+    : 'SELECT * FROM suggestions WHERE status = \'needs_input\' ORDER BY votes DESC, created_at ASC'
+  const result = await db.execute({
+    sql,
+    args: limit ? [limit] : [],
+  })
   return result.rows as unknown as Suggestion[]
 }
 
@@ -1986,4 +1990,5 @@ export async function failCreditPurchase(sessionId: string): Promise<void> {
   })
 }
 
+export { ensureSchema }
 export default db

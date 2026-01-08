@@ -5,7 +5,7 @@
  * For client-safe types and constants, import from '@/lib/reputation-types'.
  */
 
-import { createClient } from '@libsql/client'
+import db from './db'
 
 // Re-export client-safe types and constants for server-side convenience
 export { TIERS, ACHIEVEMENTS, getTier, getVoteWeight, getVotePower } from './reputation-types'
@@ -13,11 +13,6 @@ export type { TierName, AchievementType, UserReputation, LeaderboardEntry, RepDi
 
 import { TIERS, getTier } from './reputation-types'
 import type { TierName, AchievementType, UserReputation, RepDistributionResult, LeaderboardEntry } from './reputation-types'
-
-const db = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
-})
 
 // Base rep awarded when a suggestion is implemented
 const BASE_REP = 10

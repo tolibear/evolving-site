@@ -5,9 +5,13 @@ import { getNeedsInputSuggestions } from '@/lib/db'
 export const dynamic = 'force-dynamic'
 
 // GET /api/needs-input - Get suggestions that need developer input
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const suggestions = await getNeedsInputSuggestions()
+    const { searchParams } = new URL(request.url)
+    const limitParam = searchParams.get('limit')
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined
+
+    const suggestions = await getNeedsInputSuggestions(limit)
     return NextResponse.json(suggestions)
   } catch (error) {
     console.error('Error fetching needs-input suggestions:', error)

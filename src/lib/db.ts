@@ -238,9 +238,20 @@ const initSchema = async () => {
     )
   `)
 
+  // Add user_id column if missing (migration for existing tables)
+  try {
+    await db.execute('ALTER TABLE expedite_payments ADD COLUMN user_id INTEGER NOT NULL DEFAULT 0 REFERENCES users(id)')
+  } catch {
+    // Column already exists
+  }
+
   // Create indexes for expedite_payments
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_suggestion ON expedite_payments(suggestion_id)`)
-  await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_user ON expedite_payments(user_id)`)
+  try {
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_user ON expedite_payments(user_id)`)
+  } catch {
+    // Index might fail if column doesn't exist in old table, ignore
+  }
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_status ON expedite_payments(status)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_session ON expedite_payments(stripe_checkout_session_id)`)
 

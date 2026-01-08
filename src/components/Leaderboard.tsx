@@ -39,7 +39,15 @@ interface LeaderboardData {
   type: 'all_time' | 'weekly'
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  if (!res.ok) {
+    throw new Error(`Failed to fetch: ${res.status}`)
+  }
+  const data = await res.json()
+  console.log('Leaderboard API response:', data)
+  return data
+}
 
 export default function Leaderboard() {
   const [type, setType] = useState<'all_time' | 'weekly'>('all_time')
@@ -86,6 +94,9 @@ export default function Leaderboard() {
 
   const leaderboard = data?.leaderboard || []
   const currentUser = data?.currentUser
+
+  // Debug logging
+  console.log('Leaderboard data:', { data, leaderboard, error, isLoading })
 
   return (
     <div className="space-y-4">
@@ -197,6 +208,11 @@ export default function Leaderboard() {
         >
           This Week
         </button>
+      </div>
+
+      {/* Debug info - TEMP remove after fixing */}
+      <div className="text-xs bg-yellow-100 dark:bg-yellow-900/50 p-2 rounded mb-2 break-all">
+        Debug: data={data ? 'yes' : 'no'}, leaderboard={leaderboard.length}, err={error?.message || 'none'}
       </div>
 
       {/* Leaderboard List */}

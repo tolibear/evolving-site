@@ -5,14 +5,15 @@ import { useState } from 'react'
 interface AvatarProps {
   username: string
   avatar: string | null
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   showTooltip?: boolean
   className?: string
 }
 
 const sizeClasses = {
+  xs: 'w-5 h-5',
   sm: 'w-6 h-6',
-  md: 'w-8 h-8',
+  md: 'w-7 h-7',
   lg: 'w-10 h-10',
 }
 

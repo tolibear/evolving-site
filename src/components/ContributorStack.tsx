@@ -49,19 +49,19 @@ export default function ContributorStack({
         <Avatar
           username={submitter.username}
           avatar={submitter.avatar}
-          size="md"
+          size="sm"
           className="relative z-10"
         />
       ) : (
         // Placeholder for anonymous/legacy suggestion
         <div
-          className="w-8 h-8 rounded-full border-2 border-white dark:border-neutral-800
+          className="w-6 h-6 rounded-full border-2 border-white dark:border-neutral-800
                      bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center
                      shadow-sm relative z-10"
           title="Anonymous user"
         >
           <svg
-            className="w-4 h-4 text-neutral-400 dark:text-neutral-500"
+            className="w-3 h-3 text-neutral-400 dark:text-neutral-500"
             fill="currentColor"
             viewBox="0 0 24 24"
           >
@@ -74,13 +74,13 @@ export default function ContributorStack({
       {displayedContributors.map((contributor, index) => (
         <div
           key={contributor.id}
-          className="-ml-2"
+          className="-ml-1.5"
           style={{ zIndex: 9 - index }}
         >
           <Avatar
             username={contributor.username}
             avatar={contributor.avatar}
-            size="sm"
+            size="xs"
           />
         </div>
       ))}
@@ -88,9 +88,9 @@ export default function ContributorStack({
       {/* "+N more" badge */}
       {remainingCount > 0 && (
         <div
-          className="-ml-2 w-6 h-6 rounded-full border-2 border-white dark:border-neutral-800
+          className="-ml-1.5 w-5 h-5 rounded-full border-2 border-white dark:border-neutral-800
                      bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center
-                     text-[10px] font-medium text-muted shadow-sm"
+                     text-[9px] font-medium text-muted shadow-sm"
           style={{ zIndex: 0 }}
           title={`${remainingCount} more contributor${remainingCount > 1 ? 's' : ''}`}
         >

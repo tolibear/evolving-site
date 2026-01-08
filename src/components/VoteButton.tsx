@@ -102,13 +102,13 @@ export default function VoteButton({
   }
 
   return (
-    <div className="flex flex-col items-center gap-0.5">
+    <div className="flex flex-col items-center">
       {/* Upvote button */}
       <button
         onClick={() => handleVote('up')}
         disabled={isVoting}
         className={`
-          flex items-center justify-center p-1.5 rounded-md transition-all
+          flex items-center justify-center p-1 rounded transition-all
           ${
             voteType === 'up'
               ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50'
@@ -120,19 +120,19 @@ export default function VoteButton({
         aria-pressed={voteType === 'up'}
       >
         <svg
-          className={`w-5 h-5 ${isVoting ? 'animate-pulse' : ''} ${isWiggling && voteType === 'up' ? 'animate-wiggle' : ''}`}
+          className={`w-4 h-4 ${isVoting ? 'animate-pulse' : ''} ${isWiggling && voteType === 'up' ? 'animate-wiggle' : ''}`}
           fill={voteType === 'up' ? 'currentColor' : 'none'}
           stroke="currentColor"
           viewBox="0 0 24 24"
           aria-hidden="true"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
         </svg>
       </button>
 
       {/* Vote count */}
       <span
-        className={`text-sm font-semibold transition-transform ${
+        className={`text-xs font-semibold transition-transform ${
           voteType === 'up'
             ? 'text-green-600 dark:text-green-400'
             : voteType === 'down'
@@ -148,7 +148,7 @@ export default function VoteButton({
         onClick={() => handleVote('down')}
         disabled={isVoting}
         className={`
-          flex items-center justify-center p-1.5 rounded-md transition-all
+          flex items-center justify-center p-1 rounded transition-all
           ${
             voteType === 'down'
               ? 'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50'
@@ -160,13 +160,13 @@ export default function VoteButton({
         aria-pressed={voteType === 'down'}
       >
         <svg
-          className={`w-5 h-5 ${isVoting ? 'animate-pulse' : ''} ${isWiggling && voteType === 'down' ? 'animate-wiggle' : ''}`}
+          className={`w-4 h-4 ${isVoting ? 'animate-pulse' : ''} ${isWiggling && voteType === 'down' ? 'animate-wiggle' : ''}`}
           fill={voteType === 'down' ? 'currentColor' : 'none'}
           stroke="currentColor"
           viewBox="0 0 24 24"
           aria-hidden="true"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 

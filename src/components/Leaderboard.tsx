@@ -5,7 +5,7 @@ import useSWR from 'swr'
 import Avatar from './Avatar'
 import TierBadge from './TierBadge'
 import { NotificationSettings } from './NotificationSettings'
-import { ACHIEVEMENTS, TierName, AchievementType } from '@/lib/reputation'
+import { ACHIEVEMENTS, TierName, AchievementType, TIERS } from '@/lib/reputation'
 
 interface LeaderboardEntry {
   rank: number
@@ -93,7 +93,7 @@ export default function Leaderboard() {
             <TierBadge tier={currentUser.tier} showLabel size="sm" />
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-center mb-3">
+          <div className="grid grid-cols-4 gap-2 text-center mb-3">
             <div>
               <div className="text-lg font-bold text-foreground">
                 {currentUser.rank ? `#${currentUser.rank}` : '-'}
@@ -111,6 +111,12 @@ export default function Leaderboard() {
                 {currentUser.current_streak}
               </div>
               <div className="text-[10px] text-muted">Streak</div>
+            </div>
+            <div>
+              <div className="text-lg font-bold text-foreground" style={{ color: TIERS[currentUser.tier].color }}>
+                {TIERS[currentUser.tier].votePower}x
+              </div>
+              <div className="text-[10px] text-muted">Vote Power</div>
             </div>
           </div>
 

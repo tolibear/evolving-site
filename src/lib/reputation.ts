@@ -305,6 +305,7 @@ export async function distributeRepForImplementation(
   }
 
   // Distribute referral bonuses (5% of each user's earned rep goes to their referrer)
+  // Anti-gaming: Cap referral rep at 20% of referrer's own rep
   for (const [userId, earnedRep] of repDistribution) {
     const referralResult = await db.execute({
       sql: 'SELECT referrer_id FROM referrals WHERE referred_id = ? AND activated = true',
@@ -312,8 +313,14 @@ export async function distributeRepForImplementation(
     })
     if (referralResult.rows.length > 0) {
       const referrerId = (referralResult.rows[0] as unknown as { referrer_id: number }).referrer_id
-      const referralRep = Math.round(earnedRep * (REFERRAL_PERCENT / 100))
+      let referralRep = Math.round(earnedRep * (REFERRAL_PERCENT / 100))
+
+      // Cap referral rep at 20% of referrer's own total rep
       if (referralRep > 0) {
+        const referrerRep = await getUserReputation(referrerId)
+        const maxReferralRep = Math.round(referrerRep.total_rep * 0.2)
+        referralRep = Math.min(referralRep, Math.max(1, maxReferralRep)) // At least 1 rep if any
+
         await addReputation(referrerId, referralRep)
       }
     }

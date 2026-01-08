@@ -19,35 +19,60 @@ export async function GET(request: Request) {
 
   try {
     // Get leaderboard
-    const leaderboard = await getLeaderboard(type, limit, offset)
+    let leaderboard
+    try {
+      leaderboard = await getLeaderboard(type, limit, offset)
+    } catch (e) {
+      console.error('getLeaderboard failed:', e)
+      throw new Error(`getLeaderboard: ${e instanceof Error ? e.message : String(e)}`)
+    }
 
     // Get current user's stats if logged in
     let currentUser = null
-    const cookieStore = await cookies()
+    let cookieStore
+    try {
+      cookieStore = await cookies()
+    } catch (e) {
+      console.error('cookies() failed:', e)
+      throw new Error(`cookies: ${e instanceof Error ? e.message : String(e)}`)
+    }
     const sessionId = cookieStore.get('session_id')?.value
 
     if (sessionId) {
-      const session = await getSession(sessionId)
-      if (session) {
-        const userId = session.user.id
-        const rep = await getUserReputation(userId)
-        const rank = await getUserRank(userId, type)
-        const achievements = await getUserAchievements(userId)
-        const referralCode = await generateReferralCode(userId)
+      let session
+      try {
+        session = await getSession(sessionId)
+      } catch (e) {
+        console.error('getSession failed:', e)
+        // Don't throw - just skip user stats
+        session = null
+      }
 
-        currentUser = {
-          user_id: userId,
-          username: session.user.twitter_username,
-          avatar: session.user.twitter_avatar,
-          total_rep: rep.total_rep,
-          weekly_rep: rep.weekly_rep,
-          tier: rep.tier,
-          rank,
-          current_streak: rep.current_streak,
-          longest_streak: rep.longest_streak,
-          suggestions_backed_denied: rep.suggestions_backed_denied,
-          achievements,
-          referral_code: referralCode,
+      if (session) {
+        try {
+          const userId = session.user.id
+          const rep = await getUserReputation(userId)
+          const rank = await getUserRank(userId, type)
+          const achievements = await getUserAchievements(userId)
+          const referralCode = await generateReferralCode(userId)
+
+          currentUser = {
+            user_id: userId,
+            username: session.user.twitter_username,
+            avatar: session.user.twitter_avatar,
+            total_rep: rep.total_rep,
+            weekly_rep: rep.weekly_rep,
+            tier: rep.tier,
+            rank,
+            current_streak: rep.current_streak,
+            longest_streak: rep.longest_streak,
+            suggestions_backed_denied: rep.suggestions_backed_denied,
+            achievements,
+            referral_code: referralCode,
+          }
+        } catch (e) {
+          console.error('User stats failed:', e)
+          // Don't throw - just skip user stats
         }
       }
     }
@@ -58,7 +83,9 @@ export async function GET(request: Request) {
       type,
     })
   } catch (error) {
-    console.error('Leaderboard error:', error)
-    return NextResponse.json({ error: 'Failed to fetch leaderboard' }, { status: 500 })
+    const errMsg = error instanceof Error ? error.message : String(error)
+    const errStack = error instanceof Error ? error.stack : undefined
+    console.error('Leaderboard error:', errMsg, errStack)
+    return NextResponse.json({ error: `Failed to fetch leaderboard: ${errMsg}` }, { status: 500 })
   }
 }

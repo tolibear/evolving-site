@@ -6,6 +6,7 @@ import VoteButton from './VoteButton'
 import FeatureIcon from './FeatureIcon'
 import ContributorStack from './ContributorStack'
 import LoginPrompt from './LoginPrompt'
+import ExpediteButton from './ExpediteButton'
 import { useAuth } from './AuthProvider'
 
 interface Comment {
@@ -49,6 +50,7 @@ interface SuggestionCardProps {
   submitter?: Submitter | null
   contributors?: Contributor[]
   contributorCount?: number
+  expediteAmountCents?: number
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
@@ -67,6 +69,7 @@ export default function SuggestionCard({
   submitter = null,
   contributors = [],
   contributorCount = 0,
+  expediteAmountCents = 0,
 }: SuggestionCardProps) {
   const { isLoggedIn, user } = useAuth()
   const [showComments, setShowComments] = useState(false)
@@ -268,6 +271,9 @@ export default function SuggestionCard({
                 </svg>
                 Delete
               </button>
+            )}
+            {!isInProgress && (
+              <ExpediteButton suggestionId={id} currentAmount={expediteAmountCents} />
             )}
           </div>
 

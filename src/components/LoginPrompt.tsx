@@ -1,7 +1,7 @@
 'use client'
 
 interface LoginPromptProps {
-  action: 'submit' | 'vote' | 'comment'
+  action: 'submit' | 'vote' | 'comment' | 'expedite'
   compact?: boolean
 }
 
@@ -9,6 +9,7 @@ const actionText = {
   submit: 'submit a suggestion',
   vote: 'vote',
   comment: 'comment',
+  expedite: 'expedite',
 }
 
 export default function LoginPrompt({ action, compact = false }: LoginPromptProps) {

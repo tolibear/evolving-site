@@ -219,6 +219,38 @@ const initSchema = async () => {
     // Column already exists
   }
 
+  // Create expedite_payments table for Stripe expedite feature
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS expedite_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      suggestion_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      stripe_payment_intent_id TEXT,
+      stripe_checkout_session_id TEXT NOT NULL UNIQUE,
+      amount_cents INTEGER NOT NULL DEFAULT 400,
+      status TEXT DEFAULT 'pending',
+      refund_id TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      refunded_at DATETIME,
+      FOREIGN KEY (suggestion_id) REFERENCES suggestions(id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `)
+
+  // Create indexes for expedite_payments
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_suggestion ON expedite_payments(suggestion_id)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_user ON expedite_payments(user_id)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_status ON expedite_payments(status)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_session ON expedite_payments(stripe_checkout_session_id)`)
+
+  // Add expedite_amount_cents column to suggestions (cached total for efficient sorting)
+  try {
+    await db.execute('ALTER TABLE suggestions ADD COLUMN expedite_amount_cents INTEGER DEFAULT 0')
+  } catch {
+    // Column already exists
+  }
+
   // One-time migration: Mark suggestion #12 as implemented (vote allowance feature)
   // The feature was implemented in commit d4a0b11 but database wasn't updated
   try {
@@ -319,6 +351,7 @@ export interface Suggestion {
   submitter_hash: string | null // hash of IP+UserAgent for identifying the submitter (legacy)
   user_id: number | null // Twitter authenticated user ID
   comment_count?: number
+  expedite_amount_cents?: number // Total amount paid to expedite this suggestion
 }
 
 export interface Status {
@@ -406,6 +439,20 @@ export interface Session {
   created_at: string
 }
 
+export interface ExpeditePayment {
+  id: number
+  suggestion_id: number
+  user_id: number
+  stripe_payment_intent_id: string | null
+  stripe_checkout_session_id: string
+  amount_cents: number
+  status: 'pending' | 'completed' | 'refunded' | 'failed'
+  refund_id: string | null
+  created_at: string
+  completed_at: string | null
+  refunded_at: string | null
+}
+
 export interface Contributor {
   id: number
   username: string
@@ -430,7 +477,7 @@ export async function getSuggestions(): Promise<Suggestion[]> {
       GROUP BY suggestion_id
     ) c ON s.id = c.suggestion_id
     WHERE s.status = 'pending'
-    ORDER BY s.votes DESC, s.created_at ASC
+    ORDER BY COALESCE(s.expedite_amount_cents, 0) DESC, s.votes DESC, s.created_at ASC
   `)
   return result.rows as unknown as Suggestion[]
 }
@@ -1502,6 +1549,139 @@ export async function deleteSuggestionByUser(id: number, userId: number): Promis
     return true
   }
   return false
+}
+
+// Expedite payment functions
+export async function createExpeditePayment(
+  suggestionId: number,
+  userId: number,
+  checkoutSessionId: string,
+  amountCents: number = 400
+): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: `INSERT INTO expedite_payments (suggestion_id, user_id, stripe_checkout_session_id, amount_cents)
+          VALUES (?, ?, ?, ?)`,
+    args: [suggestionId, userId, checkoutSessionId, amountCents],
+  })
+  return Number(result.lastInsertRowid)
+}
+
+export async function completeExpeditePayment(
+  checkoutSessionId: string,
+  paymentIntentId: string
+): Promise<ExpeditePayment | null> {
+  await ensureSchema()
+  // Get the payment record first
+  const result = await db.execute({
+    sql: 'SELECT * FROM expedite_payments WHERE stripe_checkout_session_id = ?',
+    args: [checkoutSessionId],
+  })
+  if (result.rows.length === 0) return null
+  const payment = result.rows[0] as unknown as ExpeditePayment
+
+  // Update payment to completed
+  await db.execute({
+    sql: `UPDATE expedite_payments
+          SET status = 'completed', stripe_payment_intent_id = ?, completed_at = datetime('now')
+          WHERE stripe_checkout_session_id = ?`,
+    args: [paymentIntentId, checkoutSessionId],
+  })
+
+  // Update suggestion's cached expedite amount
+  await updateSuggestionExpediteAmount(payment.suggestion_id)
+
+  return { ...payment, status: 'completed', stripe_payment_intent_id: paymentIntentId }
+}
+
+export async function failExpeditePayment(checkoutSessionId: string): Promise<void> {
+  await ensureSchema()
+  await db.execute({
+    sql: `UPDATE expedite_payments SET status = 'failed' WHERE stripe_checkout_session_id = ?`,
+    args: [checkoutSessionId],
+  })
+}
+
+export async function getExpeditePaymentBySession(
+  checkoutSessionId: string
+): Promise<ExpeditePayment | null> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT * FROM expedite_payments WHERE stripe_checkout_session_id = ?',
+    args: [checkoutSessionId],
+  })
+  return (result.rows[0] as unknown as ExpeditePayment) || null
+}
+
+export async function getCompletedExpeditePayments(
+  suggestionId: number
+): Promise<ExpeditePayment[]> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: `SELECT * FROM expedite_payments
+          WHERE suggestion_id = ? AND status = 'completed'
+          ORDER BY created_at ASC`,
+    args: [suggestionId],
+  })
+  return result.rows as unknown as ExpeditePayment[]
+}
+
+export async function markExpediteRefunded(
+  paymentId: number,
+  refundId: string
+): Promise<void> {
+  await ensureSchema()
+  await db.execute({
+    sql: `UPDATE expedite_payments
+          SET status = 'refunded', refund_id = ?, refunded_at = datetime('now')
+          WHERE id = ?`,
+    args: [refundId, paymentId],
+  })
+}
+
+export async function updateSuggestionExpediteAmount(suggestionId: number): Promise<void> {
+  await ensureSchema()
+  // Calculate total from completed payments
+  const result = await db.execute({
+    sql: `SELECT COALESCE(SUM(amount_cents), 0) as total
+          FROM expedite_payments
+          WHERE suggestion_id = ? AND status = 'completed'`,
+    args: [suggestionId],
+  })
+  const total = (result.rows[0] as unknown as { total: number }).total
+
+  // Update suggestion's cached amount
+  await db.execute({
+    sql: 'UPDATE suggestions SET expedite_amount_cents = ? WHERE id = ?',
+    args: [total, suggestionId],
+  })
+}
+
+export async function getExpediteAmount(suggestionId: number): Promise<number> {
+  await ensureSchema()
+  const result = await db.execute({
+    sql: 'SELECT expedite_amount_cents FROM suggestions WHERE id = ?',
+    args: [suggestionId],
+  })
+  if (result.rows.length === 0) return 0
+  return (result.rows[0] as unknown as { expedite_amount_cents: number | null }).expedite_amount_cents || 0
+}
+
+// Get all pending suggestions with expedite amounts (for Ralph selection)
+export async function getSuggestionsWithExpedite(): Promise<Suggestion[]> {
+  await ensureSchema()
+  const result = await db.execute(`
+    SELECT s.*, COALESCE(c.comment_count, 0) as comment_count
+    FROM suggestions s
+    LEFT JOIN (
+      SELECT suggestion_id, COUNT(*) as comment_count
+      FROM comments
+      GROUP BY suggestion_id
+    ) c ON s.id = c.suggestion_id
+    WHERE s.status = 'pending'
+    ORDER BY s.expedite_amount_cents DESC, s.votes DESC, s.created_at ASC
+  `)
+  return result.rows as unknown as Suggestion[]
 }
 
 export default db

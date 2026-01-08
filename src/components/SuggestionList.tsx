@@ -28,7 +28,7 @@ interface Suggestion {
   comment_count?: number
   author: string | null
   isOwner: boolean
-  is_expedited?: number
+  expedite_amount_cents?: number
   submitter: Submitter | null
   contributors: Contributor[]
   contributorCount: number
@@ -151,6 +151,7 @@ export default function SuggestionList() {
           submitter={suggestion.submitter}
           contributors={suggestion.contributors}
           contributorCount={suggestion.contributorCount}
+          expediteAmountCents={suggestion.expedite_amount_cents}
           isInProgress={
             status?.state === 'working' && status?.current_suggestion_id === suggestion.id
           }

@@ -900,11 +900,15 @@ export async function setNextCheckAt(nextCheckAt: string | null): Promise<void> 
 }
 
 // Changelog queries
-export async function getChangelog(): Promise<ChangelogEntry[]> {
+export async function getChangelog(limit?: number): Promise<ChangelogEntry[]> {
   await ensureSchema()
-  const result = await db.execute(
-    'SELECT * FROM changelog ORDER BY implemented_at DESC'
-  )
+  const sql = limit
+    ? 'SELECT * FROM changelog ORDER BY implemented_at DESC LIMIT ?'
+    : 'SELECT * FROM changelog ORDER BY implemented_at DESC'
+  const result = await db.execute({
+    sql,
+    args: limit ? [limit] : [],
+  })
   return result.rows as unknown as ChangelogEntry[]
 }
 

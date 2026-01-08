@@ -48,7 +48,11 @@ export default function Leaderboard() {
   const { data, error, isLoading } = useSWR<LeaderboardData>(
     `/api/leaderboard?type=${type}`,
     fetcher,
-    { refreshInterval: 30000 }
+    {
+      refreshInterval: 30000,
+      revalidateOnMount: true,
+      revalidateOnFocus: true,
+    }
   )
 
   const copyReferralLink = async () => {

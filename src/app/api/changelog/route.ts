@@ -5,9 +5,13 @@ import { getChangelog } from '@/lib/db'
 export const dynamic = 'force-dynamic'
 
 // GET /api/changelog - Get implementation history
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const entries = await getChangelog()
+    const { searchParams } = new URL(request.url)
+    const limitParam = searchParams.get('limit')
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined
+
+    const entries = await getChangelog(limit)
     return NextResponse.json(entries)
   } catch (error) {
     console.error('Error fetching changelog:', error)

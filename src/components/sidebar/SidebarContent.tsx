@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react'
 import SuggestionForm from '@/components/SuggestionForm'
 import SuggestionList from '@/components/SuggestionList'
+import RecentlyCompleted from '@/components/RecentlyCompleted'
 import ExpediteSuccessToast from '@/components/ExpediteSuccessToast'
 import Leaderboard from '@/components/Leaderboard'
 import { useCredits } from '@/components/CreditProvider'
@@ -150,6 +151,9 @@ export function SidebarContent() {
 
             {/* Suggestions List */}
             <SuggestionList />
+
+            {/* Recently Completed */}
+            <RecentlyCompleted />
           </div>
 
           {/* Divider */}

@@ -24,7 +24,7 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
       const timer = setTimeout(() => {
         setIsOpen(false)
         localStorage.setItem(FIRST_VISIT_KEY, 'true')
-      }, 800)
+      }, 500)
       return () => clearTimeout(timer)
     }
   }, [])

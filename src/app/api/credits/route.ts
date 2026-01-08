@@ -1,30 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import {
-  getSession,
   getUserCredits,
   hasEverPurchased,
   createCreditPurchase,
 } from '@/lib/db'
 import { createCreditCheckoutSession, CREDIT_TIERS, getCreditTier } from '@/lib/stripe'
+import { validateSessionAndGetUser, SESSION_COOKIE_NAME } from '@/lib/twitter-auth'
 
 // GET: Get user's credit balance and purchase status
 export async function GET() {
   try {
     const cookieStore = await cookies()
-    const sessionId = cookieStore.get('session')?.value
+    const sessionId = cookieStore.get(SESSION_COOKIE_NAME)?.value
+    const user = await validateSessionAndGetUser(sessionId)
 
-    if (!sessionId) {
+    if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const session = await getSession(sessionId)
-    if (!session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    const credits = await getUserCredits(session.user.id)
-    const hasPurchased = await hasEverPurchased(session.user.id)
+    const credits = await getUserCredits(user.id)
+    const hasPurchased = await hasEverPurchased(user.id)
 
     return NextResponse.json({
       balance: credits.balance,
@@ -42,15 +38,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()
-    const sessionId = cookieStore.get('session')?.value
+    const sessionId = cookieStore.get(SESSION_COOKIE_NAME)?.value
+    const user = await validateSessionAndGetUser(sessionId)
 
-    if (!sessionId) {
+    if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
-    const session = await getSession(sessionId)
-    if (!session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -70,7 +62,7 @@ export async function POST(request: NextRequest) {
       `${request.headers.get('x-forwarded-proto') || 'https'}://${request.headers.get('host')}`
 
     const checkoutSession = await createCreditCheckoutSession(
-      session.user.id,
+      user.id,
       tierId,
       `${baseUrl}?credits=success`,
       `${baseUrl}?credits=cancelled`
@@ -82,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     // Store the pending purchase
     await createCreditPurchase(
-      session.user.id,
+      user.id,
       tier.credits,
       tier.priceCents,
       checkoutSession.id

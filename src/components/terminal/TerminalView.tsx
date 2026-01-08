@@ -91,7 +91,7 @@ export function TerminalView({ className = '' }: TerminalViewProps) {
 
         {session && (
           <span className="text-xs text-terminal-text opacity-50 font-mono">
-            #{session.suggestionId}
+            {session.suggestionId === 0 ? '🔄 Sync' : `#${session.suggestionId}`}
           </span>
         )}
       </div>

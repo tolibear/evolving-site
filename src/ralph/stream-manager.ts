@@ -106,3 +106,18 @@ export async function closeStream(status: 'completed' | 'failed'): Promise<void>
 export function isStreamActive(): boolean {
   return globalBuffer !== null && globalSessionId !== null
 }
+
+/**
+ * Initialize a maintenance streaming session (for periodic git pulls)
+ * Uses suggestionId 0 to indicate maintenance activity
+ */
+export async function initializeMaintenanceStream(): Promise<string | null> {
+  return initializeStream(0) // 0 indicates maintenance session
+}
+
+/**
+ * Close the maintenance stream
+ */
+export async function closeMaintenanceStream(): Promise<void> {
+  await closeStream('completed')
+}

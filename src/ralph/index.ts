@@ -4,7 +4,7 @@ import { getRalphConfig, validateConfig } from './config'
 import { RalphApiClient } from './api-client'
 import { implementSuggestion, gitPull, gitPush, hasUnpushedCommits } from './implementation'
 import { printBanner, printStatus, printHelp, log, clearLine, printCountdown } from './ui'
-import { initializeStream, closeStream } from './stream-manager'
+import { initializeStream, closeStream, initializeMaintenanceStream, closeMaintenanceStream } from './stream-manager'
 
 // Parse command line arguments
 const args = process.argv.slice(2)
@@ -140,7 +140,26 @@ async function main(): Promise<void> {
       const suggestion = await client.getTopSuggestion()
 
       if (!suggestion) {
-        log('No suggestions with votes > 0. Waiting...', 'info')
+        log('No suggestions with votes > 0. Syncing with GitHub...', 'info')
+
+        // Start maintenance stream so users can see the git pull in terminal
+        const maintenanceSessionId = await initializeMaintenanceStream()
+        if (maintenanceSessionId) {
+          log(`Maintenance sync started: ${maintenanceSessionId.slice(0, 8)}...`, 'info')
+        }
+
+        // Pull latest changes from GitHub
+        try {
+          await gitPull(config.projectDir)
+          log('Repository synced with GitHub', 'success')
+        } catch (err) {
+          log(`Git pull failed: ${err instanceof Error ? err.message : err}`, 'warn')
+        }
+
+        // Close maintenance stream
+        await closeMaintenanceStream()
+
+        log('Waiting for suggestions...', 'info')
         const shouldContinue = await sleepWithCountdown(intervalMinutes * 60 * 1000, client)
         if (!shouldContinue) break
         continue

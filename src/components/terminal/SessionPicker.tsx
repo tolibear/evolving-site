@@ -143,8 +143,10 @@ export function SessionPicker() {
                       }`}
                     />
                     <span className="font-medium text-sm truncate flex-1">
-                      {s.suggestionContent?.slice(0, 35) || `Session #${s.suggestion_id}`}
-                      {s.suggestionContent && s.suggestionContent.length > 35 && '...'}
+                      {s.suggestion_id === 0
+                        ? '🔄 GitHub Sync'
+                        : s.suggestionContent?.slice(0, 35) || `Session #${s.suggestion_id}`}
+                      {s.suggestion_id !== 0 && s.suggestionContent && s.suggestionContent.length > 35 && '...'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1 text-xs opacity-60">

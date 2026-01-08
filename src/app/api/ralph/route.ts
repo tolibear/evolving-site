@@ -111,8 +111,15 @@ async function handleFinalize(body: {
     await grantVotesToAllUsers(2)
   }
 
-  // Reset status to idle
-  await updateStatus(null, 'idle', 'Awaiting next suggestion...')
+  // If suggestion was implemented, keep 'completed' state briefly so users see the refresh prompt
+  // The frontend StatusBanner shows a "New version deployed!" overlay when state is 'completed'
+  if (status === 'implemented') {
+    // Keep completed state with a message prompting users to refresh
+    await updateStatus(null, 'completed', 'New feature live! Refresh the site to see the updates.')
+  } else {
+    // For denied/needs_input, go directly to idle
+    await updateStatus(null, 'idle', 'Awaiting next suggestion...')
+  }
 
   return NextResponse.json({
     success: true,

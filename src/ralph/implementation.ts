@@ -109,14 +109,15 @@ export async function implementSuggestion(
 
     if (result.success) {
       const commitHash = await getLatestCommitHash(projectDir)
+      const fullCommitHash = await getFullCommitHash(projectDir)
       printResult(true, result.aiNote || 'Implementation completed successfully')
 
       // Close stream with success
       await closeStream('completed')
 
-      // Watch Vercel deployment
+      // Watch Vercel deployment - pass full commit hash to verify new deployment is live
       log('Watching Vercel deployment...', 'info')
-      const deploySuccess = await watchVercelDeployment()
+      const deploySuccess = await watchVercelDeployment(fullCommitHash)
 
       if (deploySuccess) {
         printRefreshPrompt()
@@ -497,6 +498,18 @@ async function getLatestCommitHash(cwd: string): Promise<string> {
   })
 }
 
+async function getFullCommitHash(cwd: string): Promise<string> {
+  return new Promise((resolve) => {
+    const git = spawn('git', ['rev-parse', 'HEAD'], { cwd })
+    let hash = ''
+    git.stdout.on('data', (data: Buffer) => {
+      hash += data.toString().trim()
+    })
+    git.on('close', () => resolve(hash || 'unknown'))
+    git.on('error', () => resolve('unknown'))
+  })
+}
+
 /**
  * Run a git command and return stdout
  */
@@ -585,7 +598,7 @@ export async function gitPull(cwd: string): Promise<void> {
   }
 }
 
-async function watchVercelDeployment(): Promise<boolean> {
+async function watchVercelDeployment(expectedCommit?: string): Promise<boolean> {
   const maxWaitTime = 5 * 60 * 1000 // 5 minutes max
   const pollInterval = 5000 // Check every 5 seconds
   const startTime = Date.now()
@@ -593,14 +606,15 @@ async function watchVercelDeployment(): Promise<boolean> {
   // Update status to deploying so users see it on the website
   await updateRemoteStatus('deploying', 'Building & deploying to Vercel...')
 
-  // Give Vercel a moment to pick up the push
-  await sleep(3000)
+  // Give Vercel time to start the build (builds typically take 30-60 seconds)
+  // Initial wait before first check
+  await sleep(10000)
 
   let lastState = ''
 
   while (Date.now() - startTime < maxWaitTime) {
     try {
-      const status = await checkVercelStatus()
+      const status = await checkVercelStatus(expectedCommit)
 
       if (status.state !== lastState) {
         printVercelStatus(status.state, status.url)
@@ -609,7 +623,7 @@ async function watchVercelDeployment(): Promise<boolean> {
 
       if (status.state === 'READY') {
         // Update status to completed so users get the refresh prompt
-        await updateRemoteStatus('completed', 'Deployment complete! Reload the page to see the new feature.')
+        await updateRemoteStatus('completed', 'Deployment complete! Refresh the site to see the new feature.')
         return true
       }
 
@@ -627,18 +641,45 @@ async function watchVercelDeployment(): Promise<boolean> {
   }
 
   log('Vercel deployment timed out, but may still be building', 'warn')
-  await updateRemoteStatus('completed', 'Deployment complete! Reload the page to see the new feature.')
+  await updateRemoteStatus('completed', 'Deployment complete! Refresh the site to see the new feature.')
   return true // Assume it'll complete
 }
 
-async function checkVercelStatus(): Promise<{ state: string; url: string }> {
-  // Try to fetch the site and check if it's responding
+async function checkVercelStatus(expectedCommit?: string): Promise<{ state: string; url: string }> {
+  const siteUrl = 'https://evolving-site.vercel.app'
+
   try {
-    const response = await fetch('https://evolving-site.vercel.app/api/status')
-    if (response.ok) {
-      return { state: 'READY', url: 'https://evolving-site.vercel.app' }
+    // First check if the site is responding
+    const statusResponse = await fetch(`${siteUrl}/api/status`)
+    if (!statusResponse.ok) {
+      return { state: 'BUILDING', url: '' }
     }
-    return { state: 'BUILDING', url: '' }
+
+    // If we have an expected commit, verify the new deployment is live
+    if (expectedCommit) {
+      try {
+        const versionResponse = await fetch(`${siteUrl}/api/version`)
+        if (versionResponse.ok) {
+          const versionData = await versionResponse.json() as { commit: string; shortCommit: string }
+          const deployedCommit = versionData.shortCommit || versionData.commit?.slice(0, 7)
+
+          // Check if the deployed version matches our expected commit
+          if (deployedCommit && expectedCommit.startsWith(deployedCommit)) {
+            log(`New deployment verified: ${deployedCommit}`, 'success')
+            return { state: 'READY', url: siteUrl }
+          } else {
+            // Site is up but still serving old deployment
+            log(`Waiting for new deployment... (current: ${deployedCommit}, expected: ${expectedCommit.slice(0, 7)})`, 'info')
+            return { state: 'BUILDING', url: '' }
+          }
+        }
+      } catch {
+        // Version endpoint might not exist yet (first deploy), fall back to status check
+      }
+    }
+
+    // If no expected commit or version check failed, use basic status check
+    return { state: 'READY', url: siteUrl }
   } catch {
     return { state: 'BUILDING', url: '' }
   }

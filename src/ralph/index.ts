@@ -244,6 +244,16 @@ async function main(): Promise<void> {
 
       if (result.success) {
         log(`Successfully implemented suggestion #${suggestion.id}!`, 'success')
+        // Keep 'completed' state visible for 60 seconds so users see the refresh prompt
+        // Then reset to 'idle'
+        log('Keeping refresh prompt visible for 60 seconds...', 'info')
+        await sleep(60000)
+        await client.updateStatus({
+          state: 'idle',
+          message: 'Awaiting next suggestion...',
+          currentSuggestionId: null,
+        })
+        log('Status reset to idle', 'info')
       } else if (result.status === 'denied') {
         log(`Suggestion #${suggestion.id} was denied: ${result.aiNote}`, 'warn')
       } else {

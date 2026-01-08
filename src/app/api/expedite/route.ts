@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getSuggestionById, createExpeditePayment } from '@/lib/db'
+import {
+  getSuggestionById,
+  createExpeditePayment,
+  getUserCredits,
+  useCredit,
+  updateSuggestionExpediteAmount,
+} from '@/lib/db'
 import { checkRateLimit } from '@/lib/utils'
 import { isValidId } from '@/lib/security'
 import { validateSessionAndGetUser, SESSION_COOKIE_NAME } from '@/lib/twitter-auth'
@@ -57,33 +63,28 @@ export async function POST(request: Request) {
       )
     }
 
-    // Determine base URL for success/cancel redirects
-    const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_BASE_URL || 'https://evolving-site.vercel.app'
-    const successUrl = `${origin}/?expedited=true&suggestionId=${suggestionId}`
-    const cancelUrl = `${origin}/`
+    // Check if user has credits available
+    const credits = await getUserCredits(user.id)
 
-    // Create Stripe Checkout session
-    const session = await createExpediteCheckoutSession(
-      suggestionId,
-      user.id,
-      suggestion.content,
-      successUrl,
-      cancelUrl
-    )
+    if (credits.balance > 0) {
+      // Use a credit to expedite instantly
+      const creditUsed = await useCredit(user.id)
+      if (creditUsed) {
+        // Increment the suggestion's expedite amount (1 credit = 100 cents = $1)
+        await updateSuggestionExpediteAmount(suggestionId)
 
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Payment service unavailable. Please try again later.' },
-        { status: 503 }
-      )
+        return NextResponse.json({
+          success: true,
+          usedCredit: true,
+          remainingCredits: credits.balance - 1,
+        })
+      }
     }
 
-    // Create pending payment record in database
-    await createExpeditePayment(suggestionId, user.id, session.id, EXPEDITE_AMOUNT_CENTS)
-
+    // No credits available - return indication that credits are needed
     return NextResponse.json({
-      checkoutUrl: session.url,
-      sessionId: session.id,
+      needsCredits: true,
+      currentBalance: credits.balance,
     })
   } catch (error) {
     console.error('Error creating expedite session:', error)

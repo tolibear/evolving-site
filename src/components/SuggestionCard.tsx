@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import useSWR, { mutate } from 'swr'
 import VoteButton from './VoteButton'
-import FeatureIcon from './FeatureIcon'
 import ContributorStack from './ContributorStack'
 import LoginPrompt from './LoginPrompt'
 import ExpediteButton from './ExpediteButton'
@@ -185,9 +184,9 @@ export default function SuggestionCard({
           #{suggestionNumber}
         </span>
       )}
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         <VoteButton suggestionId={id} votes={votes} initialVoteType={userVoteType} />
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 py-0.5">
           {isInProgress && (
             <div className="flex items-center gap-2 mb-2">
               <span className="relative flex h-2 w-2">
@@ -199,15 +198,8 @@ export default function SuggestionCard({
               </span>
             </div>
           )}
-          <div className="flex items-start gap-2">
-            <FeatureIcon
-              content={content}
-              size={18}
-              className="flex-shrink-0 mt-0.5 text-muted opacity-60"
-            />
-            <p className="text-foreground break-words">{content}</p>
-          </div>
-          <div className="flex items-center gap-3 mt-2 flex-wrap">
+          <p className="text-foreground break-words">{content}</p>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {author === 'ralph' && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200">
                 <img
@@ -279,7 +271,7 @@ export default function SuggestionCard({
 
           {/* Contributor avatars */}
           {(submitter || contributors.length > 0) && (
-            <div className="mt-3">
+            <div className="mt-2">
               <ContributorStack
                 submitter={submitter}
                 contributors={contributors}

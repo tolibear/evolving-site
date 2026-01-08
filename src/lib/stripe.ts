@@ -14,10 +14,30 @@ export const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null
 
-// Stripe product and price IDs (created via Stripe MCP)
+// Legacy expedite constants (kept for backwards compatibility)
 export const EXPEDITE_PRODUCT_ID = 'prod_TkZwfKCkKmAPaW'
 export const EXPEDITE_PRICE_ID = 'price_1Sn4mJLCJbdyFiTaSDwKWU3K'
 export const EXPEDITE_AMOUNT_CENTS = 400
+
+// Credit tier definitions
+export interface CreditTier {
+  id: 1 | 2 | 3
+  credits: number
+  priceCents: number
+  priceDisplay: string
+  discount: number // percentage
+  perCreditCents: number
+}
+
+export const CREDIT_TIERS: CreditTier[] = [
+  { id: 1, credits: 1, priceCents: 100, priceDisplay: '$1', discount: 0, perCreditCents: 100 },
+  { id: 2, credits: 5, priceCents: 400, priceDisplay: '$4', discount: 20, perCreditCents: 80 },
+  { id: 3, credits: 10, priceCents: 700, priceDisplay: '$7', discount: 30, perCreditCents: 70 },
+]
+
+export function getCreditTier(tierId: 1 | 2 | 3): CreditTier | undefined {
+  return CREDIT_TIERS.find(t => t.id === tierId)
+}
 
 // Refund all expedite payments for a suggestion (called when suggestion is denied)
 export async function refundExpeditePayments(suggestionId: number): Promise<{
@@ -122,4 +142,54 @@ export function verifyWebhookSignature(
     console.error('Webhook signature verification failed:', error)
     return null
   }
+}
+
+// Create a Stripe Checkout session for purchasing credits
+export async function createCreditCheckoutSession(
+  userId: number,
+  tierId: 1 | 2 | 3,
+  successUrl: string,
+  cancelUrl: string
+): Promise<Stripe.Checkout.Session | null> {
+  if (!stripe) {
+    console.error('Stripe not configured - cannot create checkout session')
+    return null
+  }
+
+  const tier = getCreditTier(tierId)
+  if (!tier) {
+    console.error(`Invalid tier ID: ${tierId}`)
+    return null
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `${tier.credits} Expedite Credit${tier.credits > 1 ? 's' : ''}`,
+            description: tier.discount > 0
+              ? `${tier.discount}% discount - $${(tier.perCreditCents / 100).toFixed(2)} per credit`
+              : 'Use to boost your suggestion to the top',
+          },
+          unit_amount: tier.priceCents,
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      userId: String(userId),
+      tierId: String(tierId),
+      creditsAmount: String(tier.credits),
+      type: 'credit_purchase',
+    },
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+  })
+
+  return session
 }

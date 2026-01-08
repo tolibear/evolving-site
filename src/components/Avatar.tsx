@@ -20,6 +20,11 @@ const sizeClasses = {
 
 function Tooltip({ username, targetRef }: { username: string; targetRef: React.RefObject<HTMLButtonElement | null> }) {
   const [position, setPosition] = useState({ top: 0, left: 0 })
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (targetRef.current) {
@@ -30,6 +35,8 @@ function Tooltip({ username, targetRef }: { username: string; targetRef: React.R
       })
     }
   }, [targetRef])
+
+  if (!mounted) return null
 
   return createPortal(
     <div

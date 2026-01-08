@@ -260,6 +260,7 @@ async function runClaude(
     // The prompt must be piped via stdin
     const claude = spawn(claudePath, [
       '-p',
+      '--model', 'claude-opus-4-5-20251101',
       '--output-format', 'stream-json',
       '--verbose',
       '--include-partial-messages',
@@ -590,7 +591,7 @@ async function watchVercelDeployment(): Promise<boolean> {
   const startTime = Date.now()
 
   // Update status to deploying so users see it on the website
-  await updateRemoteStatus('deploying', 'Deploying to Vercel...')
+  await updateRemoteStatus('deploying', 'Building & deploying to Vercel...')
 
   // Give Vercel a moment to pick up the push
   await sleep(3000)
@@ -608,7 +609,7 @@ async function watchVercelDeployment(): Promise<boolean> {
 
       if (status.state === 'READY') {
         // Update status to completed so users get the refresh prompt
-        await updateRemoteStatus('completed', 'Feature deployed! Refresh to see it.')
+        await updateRemoteStatus('completed', 'Deployment complete! Reload the page to see the new feature.')
         return true
       }
 
@@ -626,7 +627,7 @@ async function watchVercelDeployment(): Promise<boolean> {
   }
 
   log('Vercel deployment timed out, but may still be building', 'warn')
-  await updateRemoteStatus('completed', 'Feature deployed! Refresh to see it.')
+  await updateRemoteStatus('completed', 'Deployment complete! Reload the page to see the new feature.')
   return true // Assume it'll complete
 }
 

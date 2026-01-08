@@ -190,7 +190,7 @@ async function main(): Promise<void> {
       // Update status to working
       await client.updateStatus({
         state: 'working',
-        message: `Implementing: ${suggestion.content.slice(0, 80)}...`,
+        message: `Coding with Claude: ${suggestion.content.slice(0, 60)}...`,
         currentSuggestionId: suggestion.id,
       })
 

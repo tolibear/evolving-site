@@ -118,23 +118,22 @@ export function TerminalView({ className = '' }: TerminalViewProps) {
               : 'No terminal session available'}
           </div>
         ) : (
-          <div className="terminal-output">
-            {lines.map((line) => (
-              <div
-                key={line.id}
-                className="whitespace-pre-wrap text-terminal-text"
-              >
-                {line.isCountdown && line.targetTime ? (
-                  // Countdown line - render dynamically
-                  <span className="opacity-50">
-                    {formatCountdown(line.targetTime - Date.now())}
-                  </span>
-                ) : (
-                  // Regular line - render with ANSI parsing
-                  <Ansi>{line.content}</Ansi>
+          <div className="terminal-output whitespace-pre-wrap text-terminal-text">
+            {/* Combine all non-countdown content into a single continuous block */}
+            <Ansi>
+              {lines
+                .filter(line => !line.isCountdown)
+                .map(line => line.content)
+                .join('')}
+            </Ansi>
+            {/* Render countdown separately at the end */}
+            {lines.find(line => line.isCountdown && line.targetTime) && (
+              <span className="opacity-50">
+                {formatCountdown(
+                  (lines.find(line => line.isCountdown)?.targetTime || 0) - Date.now()
                 )}
-              </div>
-            ))}
+              </span>
+            )}
           </div>
         )}
       </div>

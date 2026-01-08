@@ -5,7 +5,7 @@
  * For client-safe types and constants, import from '@/lib/reputation-types'.
  */
 
-import db from './db'
+import db, { ensureSchema } from './db'
 
 // Re-export client-safe types and constants for server-side convenience
 export { TIERS, ACHIEVEMENTS, getTier, getVoteWeight, getVotePower } from './reputation-types'
@@ -60,6 +60,7 @@ export function getStreakMultiplier(streak: number): number {
  * Get or create user reputation record
  */
 export async function getUserReputation(userId: number): Promise<UserReputation> {
+  await ensureSchema()
   const result = await db.execute({
     sql: 'SELECT * FROM user_reputation WHERE user_id = ?',
     args: [userId],
@@ -124,6 +125,7 @@ export async function addReputation(
 export async function distributeRepForImplementation(
   suggestionId: number
 ): Promise<RepDistributionResult> {
+  await ensureSchema()
   // Look up suggestion details
   const suggestionResult = await db.execute({
     sql: 'SELECT user_id, votes FROM suggestions WHERE id = ?',
@@ -253,6 +255,7 @@ export async function distributeRepForImplementation(
  * Returns the number of users affected
  */
 export async function incrementBackedDenied(suggestionId: number): Promise<number> {
+  await ensureSchema()
   // Get all upvoters
   const votersResult = await db.execute({
     sql: `SELECT user_id FROM votes
@@ -333,6 +336,7 @@ export async function getLeaderboard(
   limit: number = 50,
   offset: number = 0
 ): Promise<LeaderboardEntry[]> {
+  await ensureSchema()
   const orderBy = type === 'weekly' ? 'ur.weekly_rep' : 'ur.total_rep'
 
   const result = await db.execute({
@@ -411,6 +415,7 @@ export async function getUserRank(userId: number, type: 'all_time' | 'weekly' = 
  * Grant an achievement to a user
  */
 export async function grantAchievement(userId: number, achievementType: AchievementType): Promise<boolean> {
+  await ensureSchema()
   try {
     await db.execute({
       sql: 'INSERT INTO user_achievements (user_id, achievement_type) VALUES (?, ?)',
@@ -427,6 +432,7 @@ export async function grantAchievement(userId: number, achievementType: Achievem
  * Get user's achievements
  */
 export async function getUserAchievements(userId: number): Promise<AchievementType[]> {
+  await ensureSchema()
   const result = await db.execute({
     sql: 'SELECT achievement_type FROM user_achievements WHERE user_id = ?',
     args: [userId],
@@ -438,6 +444,7 @@ export async function getUserAchievements(userId: number): Promise<AchievementTy
  * Check and grant kingmaker achievement (10 suggestions voted on shipped)
  */
 async function checkKingmakerAchievement(userId: number): Promise<void> {
+  await ensureSchema()
   const result = await db.execute({
     sql: `SELECT COUNT(DISTINCT v.suggestion_id) as count
           FROM votes v
@@ -455,6 +462,7 @@ async function checkKingmakerAchievement(userId: number): Promise<void> {
  * Check and grant visionary achievement (5 of your suggestions shipped)
  */
 async function checkVisionaryAchievement(userId: number): Promise<void> {
+  await ensureSchema()
   const result = await db.execute({
     sql: `SELECT COUNT(*) as count FROM suggestions
           WHERE user_id = ? AND status = 'implemented'`,
@@ -470,6 +478,7 @@ async function checkVisionaryAchievement(userId: number): Promise<void> {
  * Reset weekly reputation (call at start of each week)
  */
 export async function resetWeeklyRep(): Promise<void> {
+  await ensureSchema()
   // First, snapshot current weekly standings
   const weekStart = new Date()
   weekStart.setDate(weekStart.getDate() - weekStart.getDay()) // Start of current week
@@ -504,6 +513,7 @@ export async function resetWeeklyRep(): Promise<void> {
  * Generate a unique referral code for a user
  */
 export async function generateReferralCode(userId: number): Promise<string> {
+  await ensureSchema()
   // Check if user already has a code
   const existing = await db.execute({
     sql: 'SELECT referral_code FROM users WHERE id = ? AND referral_code IS NOT NULL',
@@ -529,6 +539,7 @@ export async function generateReferralCode(userId: number): Promise<string> {
  * Process a referral signup
  */
 export async function processReferral(referralCode: string, newUserId: number): Promise<boolean> {
+  await ensureSchema()
   // Find referrer by code
   const referrerResult = await db.execute({
     sql: 'SELECT id FROM users WHERE referral_code = ?',
@@ -569,6 +580,7 @@ export async function processReferral(referralCode: string, newUserId: number): 
  * Activate a referral (when referred user casts first vote AND has been active 7+ days)
  */
 export async function activateReferralIfEligible(userId: number): Promise<boolean> {
+  await ensureSchema()
   // Check if user has a pending referral
   const referralResult = await db.execute({
     sql: `SELECT r.id, r.referrer_id, u.created_at
@@ -615,6 +627,7 @@ export async function activateReferralIfEligible(userId: number): Promise<boolea
  * Get next vote order for a suggestion
  */
 export async function getNextVoteOrder(suggestionId: number): Promise<number> {
+  await ensureSchema()
   const result = await db.execute({
     sql: 'SELECT COALESCE(MAX(vote_order), 0) + 1 as next_order FROM votes WHERE suggestion_id = ?',
     args: [suggestionId],

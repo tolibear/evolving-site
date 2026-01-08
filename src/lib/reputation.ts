@@ -1,49 +1,23 @@
 /**
- * Reputation System
+ * Reputation System - Server-only functions
  *
- * Core mechanics:
- * - Rep earned when suggestions you voted on get implemented
- * - Early voter bonus: First 5 voters get 3x rep, next 10 get 2x, rest get 1x
- * - Suggester bonus: Person who submitted gets 50% of total rep pool
- * - Denial visibility: No rep loss, but track backed-denied count
- *
- * Tiers:
- * - Bronze: 0 rep, 1x vote power
- * - Silver: 100 rep, 2x vote power
- * - Gold: 500 rep, 3x vote power
- * - Platinum: 2000 rep, 3x vote power + badge
- *
- * Vote weight formula (logarithmic):
- * voteWeight = 1 + log2(1 + reputation / 100)
+ * This file contains database operations for the reputation system.
+ * For client-safe types and constants, import from '@/lib/reputation-types'.
  */
 
 import { createClient } from '@libsql/client'
+
+// Re-export client-safe types and constants for server-side convenience
+export { TIERS, ACHIEVEMENTS, getTier, getVoteWeight, getVotePower } from './reputation-types'
+export type { TierName, AchievementType, UserReputation, LeaderboardEntry, RepDistributionResult } from './reputation-types'
+
+import { TIERS, getTier } from './reputation-types'
+import type { TierName, AchievementType, UserReputation, RepDistributionResult, LeaderboardEntry } from './reputation-types'
 
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL!,
   authToken: process.env.TURSO_AUTH_TOKEN!,
 })
-
-// Constants
-export const TIERS = {
-  bronze: { minRep: 0, votePower: 1, color: '#CD7F32', icon: '🥉' },
-  silver: { minRep: 100, votePower: 2, color: '#C0C0C0', icon: '🥈' },
-  gold: { minRep: 500, votePower: 3, color: '#FFD700', icon: '🥇' },
-  platinum: { minRep: 2000, votePower: 3, color: '#E5E4E2', icon: '💎' },
-} as const
-
-export type TierName = keyof typeof TIERS
-
-export const ACHIEVEMENTS = {
-  pioneer: { name: 'Pioneer', description: 'First 100 users', icon: '🚀' },
-  kingmaker: { name: 'Kingmaker', description: '10 suggestions you voted on shipped', icon: '👑' },
-  visionary: { name: 'Visionary', description: '5 of your suggestions shipped', icon: '🔮' },
-  streak_master: { name: 'Streak Master', description: '30-day voting streak', icon: '🔥' },
-  whale: { name: 'Whale', description: 'Reached Platinum tier', icon: '🐋' },
-  recruiter: { name: 'Recruiter', description: 'Referred 10+ active users', icon: '🎯' },
-} as const
-
-export type AchievementType = keyof typeof ACHIEVEMENTS
 
 // Base rep awarded when a suggestion is implemented
 const BASE_REP = 10
@@ -70,31 +44,6 @@ const MAX_STREAK_MULTIPLIER = 1.5
 const STREAK_MULTIPLIER_PER_DAY = 0.07 // 1.0 + (days * 0.07), max 1.5 at 7 days
 
 /**
- * Calculate tier based on reputation
- */
-export function getTier(rep: number): TierName {
-  if (rep >= TIERS.platinum.minRep) return 'platinum'
-  if (rep >= TIERS.gold.minRep) return 'gold'
-  if (rep >= TIERS.silver.minRep) return 'silver'
-  return 'bronze'
-}
-
-/**
- * Calculate vote weight based on reputation (logarithmic formula)
- * voteWeight = 1 + log2(1 + reputation / 100)
- */
-export function getVoteWeight(rep: number): number {
-  return 1 + Math.log2(1 + rep / 100)
-}
-
-/**
- * Get vote power based on tier (discrete: 1, 2, or 3)
- */
-export function getVotePower(tier: TierName): number {
-  return TIERS[tier].votePower
-}
-
-/**
  * Calculate early voter multiplier based on vote order
  */
 export function getEarlyVoterMultiplier(voteOrder: number): number {
@@ -110,29 +59,6 @@ export function getEarlyVoterMultiplier(voteOrder: number): number {
 export function getStreakMultiplier(streak: number): number {
   const multiplier = 1 + Math.min(streak, 7) * STREAK_MULTIPLIER_PER_DAY
   return Math.min(multiplier, MAX_STREAK_MULTIPLIER)
-}
-
-export interface UserReputation {
-  user_id: number
-  total_rep: number
-  weekly_rep: number
-  tier: TierName
-  current_streak: number
-  longest_streak: number
-  last_vote_date: string | null
-  suggestions_backed_denied: number
-  updated_at: string
-}
-
-export interface LeaderboardEntry {
-  rank: number
-  user_id: number
-  username: string
-  avatar: string | null
-  total_rep: number
-  weekly_rep: number
-  tier: TierName
-  achievements: AchievementType[]
 }
 
 /**
@@ -194,14 +120,6 @@ export async function addReputation(
   if (newTier === 'platinum' && rep.tier !== 'platinum') {
     await grantAchievement(userId, 'whale')
   }
-}
-
-export interface RepDistributionResult {
-  suggesterId: number | null
-  suggesterRep: number
-  voterCount: number
-  totalVoterRep: number
-  distribution: Map<number, number>
 }
 
 /**

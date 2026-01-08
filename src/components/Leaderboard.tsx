@@ -5,7 +5,7 @@ import useSWR from 'swr'
 import Avatar from './Avatar'
 import TierBadge from './TierBadge'
 import { NotificationSettings } from './NotificationSettings'
-import { ACHIEVEMENTS, TierName, AchievementType, TIERS } from '@/lib/reputation'
+import { ACHIEVEMENTS, TierName, AchievementType, TIERS } from '@/lib/reputation-types'
 
 interface LeaderboardEntry {
   rank: number

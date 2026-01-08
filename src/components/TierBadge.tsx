@@ -1,6 +1,6 @@
 'use client'
 
-import { TIERS, TierName } from '@/lib/reputation'
+import { TIERS, TierName } from '@/lib/reputation-types'
 
 interface TierBadgeProps {
   tier: TierName

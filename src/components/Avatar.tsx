@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { TierBadgeMini } from './TierBadge'
-import type { TierName } from '@/lib/reputation'
+import type { TierName } from '@/lib/reputation-types'
 
 interface AvatarProps {
   username: string

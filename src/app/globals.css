@@ -6,6 +6,8 @@
   --accent: #3b82f6;
   --success: #22c55e;
   --muted: #737373;
+  --background: #ffffff;
+  --foreground: #0a0a0a;
 }
 
 html.dark {
@@ -461,10 +463,6 @@ html.dark .win96-message {
 
 html.dark .win96-message-own {
   background: #404020;
-}
-
-html.dark .win96-message .text-blue-800 {
-  color: #80b0ff;
 }
 
 html.dark .win96-taskbar {

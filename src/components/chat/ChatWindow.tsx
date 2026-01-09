@@ -197,7 +197,7 @@ export function ChatWindow() {
         {/* Messages Area */}
         <div className="win96-content h-64 overflow-y-auto">
           {messages.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 text-sm">
+            <div className="text-center py-8 text-neutral-500 dark:text-neutral-400 text-sm">
               No messages yet. Be the first to say hi!
             </div>
           ) : (
@@ -212,19 +212,19 @@ export function ChatWindow() {
                       <img
                         src={msg.avatar}
                         alt={msg.username || 'User'}
-                        className="w-6 h-6 rounded-sm border border-gray-400"
+                        className="w-6 h-6 rounded-sm border border-neutral-400 dark:border-neutral-500"
                       />
                     ) : (
-                      <div className="w-6 h-6 bg-gray-300 rounded-sm border border-gray-400 flex items-center justify-center text-xs">
+                      <div className="w-6 h-6 bg-neutral-300 dark:bg-neutral-600 rounded-sm border border-neutral-400 dark:border-neutral-500 flex items-center justify-center text-xs">
                         ?
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2">
-                        <span className="font-bold text-xs text-blue-800">
+                        <span className="font-bold text-xs text-blue-700 dark:text-blue-400">
                           {msg.username || 'Anonymous'}
                         </span>
-                        <span className="text-[10px] text-gray-500">
+                        <span className="text-[10px] text-neutral-500 dark:text-neutral-400">
                           {new Date(msg.created_at).toLocaleTimeString([], {
                             hour: '2-digit',
                             minute: '2-digit',
@@ -244,7 +244,7 @@ export function ChatWindow() {
         {/* Input Area */}
         <div className="win96-statusbar">
           {authLoading ? (
-            <div className="text-xs text-gray-500 text-center py-1">Loading...</div>
+            <div className="text-xs text-neutral-500 dark:text-neutral-400 text-center py-1">Loading...</div>
           ) : isLoggedIn ? (
             <div className="flex gap-1">
               <input
@@ -268,7 +268,7 @@ export function ChatWindow() {
             </div>
           ) : (
             <div className="text-xs text-center py-1">
-              <a href="/api/auth/login" className="text-blue-800 underline hover:text-blue-600">
+              <a href="/api/auth/login" className="text-blue-700 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300">
                 Sign in with Twitter
               </a>
               {' '}to chat

@@ -8,7 +8,7 @@
 import db, { ensureSchema } from './db'
 
 // Re-export client-safe types and constants for server-side convenience
-export { TIERS, ACHIEVEMENTS, getTier, getVoteWeight, getVotePower } from './reputation-types'
+export { TIERS, ACHIEVEMENTS, getTier } from './reputation-types'
 export type { TierName, AchievementType, UserReputation, LeaderboardEntry, RepDistributionResult } from './reputation-types'
 
 import { TIERS, getTier } from './reputation-types'

@@ -919,9 +919,14 @@ export async function setNextCheckAt(nextCheckAt: string | null): Promise<void> 
 // Changelog queries
 export async function getChangelog(limit?: number): Promise<ChangelogEntry[]> {
   await ensureSchema()
+  // Use subquery to deduplicate by suggestion_id (keep earliest entry per suggestion)
   const sql = limit
-    ? 'SELECT * FROM changelog ORDER BY implemented_at DESC LIMIT ?'
-    : 'SELECT * FROM changelog ORDER BY implemented_at DESC'
+    ? `SELECT * FROM changelog
+       WHERE id IN (SELECT MIN(id) FROM changelog GROUP BY suggestion_id)
+       ORDER BY implemented_at DESC LIMIT ?`
+    : `SELECT * FROM changelog
+       WHERE id IN (SELECT MIN(id) FROM changelog GROUP BY suggestion_id)
+       ORDER BY implemented_at DESC`
   const result = await db.execute({
     sql,
     args: limit ? [limit] : [],
@@ -938,6 +943,15 @@ export async function addChangelogEntry(
   iconType?: string
 ): Promise<void> {
   await ensureSchema()
+  // Check if entry already exists for this suggestion
+  const existing = await db.execute({
+    sql: 'SELECT id FROM changelog WHERE suggestion_id = ?',
+    args: [suggestionId],
+  })
+  if (existing.rows.length > 0) {
+    // Already exists, skip insertion
+    return
+  }
   await db.execute({
     sql: `INSERT INTO changelog (suggestion_id, suggestion_content, votes_when_implemented, commit_hash, ai_note, icon_type)
           VALUES (?, ?, ?, ?, ?, ?)`,

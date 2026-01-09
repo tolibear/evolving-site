@@ -7,10 +7,10 @@
 
 // Constants
 export const TIERS = {
-  bronze: { minRep: 0, votePower: 1, color: '#CD7F32', icon: '🥉' },
-  silver: { minRep: 100, votePower: 2, color: '#C0C0C0', icon: '🥈' },
-  gold: { minRep: 500, votePower: 3, color: '#FFD700', icon: '🥇' },
-  platinum: { minRep: 2000, votePower: 3, color: '#E5E4E2', icon: '💎' },
+  bronze: { minRep: 0, color: '#CD7F32', icon: '🥉' },
+  silver: { minRep: 100, color: '#C0C0C0', icon: '🥈' },
+  gold: { minRep: 500, color: '#FFD700', icon: '🥇' },
+  platinum: { minRep: 2000, color: '#E5E4E2', icon: '💎' },
 } as const
 
 export type TierName = keyof typeof TIERS
@@ -36,20 +36,6 @@ export function getTier(rep: number): TierName {
   return 'bronze'
 }
 
-/**
- * Calculate vote weight based on reputation (logarithmic formula)
- * voteWeight = 1 + log2(1 + reputation / 100)
- */
-export function getVoteWeight(rep: number): number {
-  return 1 + Math.log2(1 + rep / 100)
-}
-
-/**
- * Get vote power based on tier (discrete: 1, 2, or 3)
- */
-export function getVotePower(tier: TierName): number {
-  return TIERS[tier].votePower
-}
 
 // Type definitions
 export interface UserReputation {

@@ -60,7 +60,6 @@ export default function TierBadge({
       <TooltipContent>
         <p className="font-semibold">{tooltip.name} Tier</p>
         <p className="text-xs opacity-90">{tooltip.description}</p>
-        <p className="text-xs opacity-75 mt-1">{tooltip.votePower}x vote power</p>
       </TooltipContent>
     </Tooltip>
   )

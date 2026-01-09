@@ -214,9 +214,9 @@ export const ACHIEVEMENT_TOOLTIPS: Record<AchievementType, { name: string; descr
 }
 
 // Tier descriptions for tooltips
-export const TIER_TOOLTIPS: Record<TierName, { name: string; description: string; votePower: number }> = {
-  bronze: { name: 'Bronze', description: 'Starting tier', votePower: 1 },
-  silver: { name: 'Silver', description: '100+ reputation', votePower: 2 },
-  gold: { name: 'Gold', description: '500+ reputation', votePower: 3 },
-  platinum: { name: 'Platinum', description: '2000+ reputation', votePower: 3 },
+export const TIER_TOOLTIPS: Record<TierName, { name: string; description: string }> = {
+  bronze: { name: 'Bronze', description: 'Starting tier' },
+  silver: { name: 'Silver', description: '100+ reputation' },
+  gold: { name: 'Gold', description: '500+ reputation' },
+  platinum: { name: 'Platinum', description: '2000+ reputation' },
 }

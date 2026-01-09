@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import Changelog from '@/components/Changelog'
-// import NeedsInputList from '@/components/NeedsInputList'
-// import DeniedList from '@/components/DeniedList'
+import NeedsInputList from '@/components/NeedsInputList'
+import DeniedList from '@/components/DeniedList'
 
 type Tab = 'implemented' | 'pending' | 'denied'
 
@@ -59,10 +59,10 @@ export function HistoryTabs() {
           </div>
 
           {/* Tab content */}
-          <div className="max-h-[400px] overflow-y-auto text-sm">
+          <div className="max-h-[400px] overflow-y-auto">
             {activeTab === 'implemented' && <Changelog />}
-            {activeTab === 'pending' && <div>Needs Input placeholder</div>}
-            {activeTab === 'denied' && <div>Denied placeholder</div>}
+            {activeTab === 'pending' && <NeedsInputList />}
+            {activeTab === 'denied' && <DeniedList />}
           </div>
         </div>
       </div>

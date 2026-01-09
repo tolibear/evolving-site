@@ -1,7 +1,7 @@
 'use client'
 
-import useSWR from 'swr'
-import { fetcher, formatRelativeTime } from '@/lib/utils'
+import { useState, useEffect, useCallback } from 'react'
+import { formatRelativeTime } from '@/lib/utils'
 import { useCollapsibleList } from '@/hooks/useCollapsibleList'
 
 interface DeniedSuggestion {
@@ -15,11 +15,28 @@ interface DeniedSuggestion {
 }
 
 export default function DeniedList() {
-  const { data: suggestions, error, isLoading } = useSWR<DeniedSuggestion[]>(
-    '/api/denied',
-    fetcher,
-    { refreshInterval: 30000 }
-  )
+  const [suggestions, setSuggestions] = useState<DeniedSuggestion[] | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await fetch('/api/denied')
+      const data = await res.json()
+      setSuggestions(data)
+      setError(false)
+    } catch {
+      setError(true)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+    const interval = setInterval(fetchData, 30000)
+    return () => clearInterval(interval)
+  }, [fetchData])
 
   const { displayedItems, hasMore, remainingCount, showAll, toggle } = useCollapsibleList(suggestions || [])
 

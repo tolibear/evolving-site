@@ -1,10 +1,15 @@
 import type { Metadata } from 'next'
-import { TerminalProvider, TerminalContainer, TerminalView } from '@/components/terminal'
 import { AuthProvider } from '@/components/AuthProvider'
 import { CreditProvider } from '@/components/CreditProvider'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { SidebarDrawer, ChatWindow } from '@/components/ClientComponents'
+import {
+  SidebarDrawer,
+  ChatWindow,
+  TerminalProvider,
+  TerminalContainer,
+  TerminalView,
+} from '@/components/ClientComponents'
 import { SidebarContent } from '@/components/sidebar'
 import './globals.css'
 

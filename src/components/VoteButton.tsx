@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { mutate } from 'swr'
 import { useAuth } from './AuthProvider'
 import LoginPrompt from './LoginPrompt'
-import { useAutoResetFlag } from '@/hooks/useAutoReset'
 
 interface VoteButtonProps {
   suggestionId: number
@@ -24,23 +23,43 @@ export default function VoteButton({
   const [voteType, setVoteType] = useState<'up' | null>(initialVoteType)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-
-  // Auto-reset animation states
-  const [isWiggling, triggerWiggle] = useAutoResetFlag(500)
-  const [isPop, triggerPop] = useAutoResetFlag(300)
-  const [showLoginPrompt, triggerLoginPrompt] = useAutoResetFlag(5000)
+  const [isWiggling, setIsWiggling] = useState(false)
+  const [isPop, setIsPop] = useState(false)
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
 
   // Update vote type when initialVoteType changes
   useEffect(() => {
     setVoteType(initialVoteType)
   }, [initialVoteType])
 
+  // Auto-reset animation states
+  useEffect(() => {
+    if (isWiggling) {
+      const timer = setTimeout(() => setIsWiggling(false), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [isWiggling])
+
+  useEffect(() => {
+    if (isPop) {
+      const timer = setTimeout(() => setIsPop(false), 300)
+      return () => clearTimeout(timer)
+    }
+  }, [isPop])
+
+  useEffect(() => {
+    if (showLoginPrompt) {
+      const timer = setTimeout(() => setShowLoginPrompt(false), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [showLoginPrompt])
+
   const handleVote = async () => {
     if (isVoting || isLoading || isLocked) return
 
     // Check if user is logged in
     if (!isLoggedIn) {
-      triggerLoginPrompt()
+      setShowLoginPrompt(true)
       return
     }
 
@@ -63,8 +82,8 @@ export default function VoteButton({
       // Update vote state based on response
       setVoteType(data.voteType)
       // Trigger animations to indicate vote receipt
-      triggerWiggle()
-      triggerPop()
+      setIsWiggling(true)
+      setIsPop(true)
       // Show success feedback briefly
       setSuccess(true)
       setTimeout(() => setSuccess(false), 1500)

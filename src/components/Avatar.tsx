@@ -12,6 +12,7 @@ interface AvatarProps {
   showTooltip?: boolean
   className?: string
   tier?: TierName | null
+  disableLink?: boolean
 }
 
 const sizeClasses = {
@@ -21,7 +22,7 @@ const sizeClasses = {
   lg: 'w-10 h-10',
 }
 
-function Tooltip({ username, targetRef }: { username: string; targetRef: React.RefObject<HTMLButtonElement | null> }) {
+function Tooltip({ username, targetRef }: { username: string; targetRef: React.RefObject<HTMLElement | null> }) {
   const [position, setPosition] = useState({ top: 0, left: 0 })
   const [mounted, setMounted] = useState(false)
 
@@ -66,13 +67,75 @@ export default function Avatar({
   showTooltip = true,
   className = '',
   tier = null,
+  disableLink = false,
 }: AvatarProps) {
   const [showTooltipState, setShowTooltipState] = useState(false)
   const [imgError, setImgError] = useState(false)
+  const divRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const handleClick = () => {
-    window.open(`https://twitter.com/${username}`, '_blank', 'noopener,noreferrer')
+    if (!disableLink) {
+      window.open(`https://twitter.com/${username}`, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const sharedClasses = `
+    ${sizeClasses[size]}
+    rounded-full
+    border-2 border-white dark:border-neutral-800
+    shadow-sm
+    overflow-hidden
+    ${!disableLink ? 'cursor-pointer transition-transform hover:scale-110' : ''}
+    ${className}
+  `
+
+  const avatarContent = (
+    <>
+      {avatar && !imgError ? (
+        <img
+          src={avatar}
+          alt={`@${username}`}
+          className="w-full h-full object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div className="w-full h-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
+          <svg
+            className="w-3/5 h-3/5 text-neutral-400 dark:text-neutral-500"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+          </svg>
+        </div>
+      )}
+    </>
+  )
+
+  // If link is disabled, render as a simple div
+  if (disableLink) {
+    return (
+      <div className="relative inline-block" ref={divRef}>
+        <div
+          onMouseEnter={() => setShowTooltipState(true)}
+          onMouseLeave={() => setShowTooltipState(false)}
+          className={sharedClasses}
+        >
+          {avatarContent}
+        </div>
+
+        {/* Tier badge overlay - only for non-bronze tiers and larger sizes */}
+        {tier && tier !== 'bronze' && (size === 'sm' || size === 'md' || size === 'lg') && (
+          <div className="absolute -bottom-0.5 -right-0.5">
+            <TierBadgeMini tier={tier} />
+          </div>
+        )}
+
+        {/* Tooltip - rendered via portal to escape overflow containers */}
+        {showTooltip && showTooltipState && <Tooltip username={username} targetRef={divRef} />}
+      </div>
+    )
   }
 
   return (
@@ -83,36 +146,12 @@ export default function Avatar({
         onMouseEnter={() => setShowTooltipState(true)}
         onMouseLeave={() => setShowTooltipState(false)}
         className={`
-          ${sizeClasses[size]}
-          rounded-full
-          border-2 border-white dark:border-neutral-800
-          shadow-sm
-          overflow-hidden
-          cursor-pointer
-          transition-transform hover:scale-110
+          ${sharedClasses}
           focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1
-          ${className}
         `}
         aria-label={`View @${username}'s Twitter profile`}
       >
-        {avatar && !imgError ? (
-          <img
-            src={avatar}
-            alt={`@${username}`}
-            className="w-full h-full object-cover"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <div className="w-full h-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
-            <svg
-              className="w-3/5 h-3/5 text-neutral-400 dark:text-neutral-500"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-            </svg>
-          </div>
-        )}
+        {avatarContent}
       </button>
 
       {/* Tier badge overlay - only for non-bronze tiers and larger sizes */}

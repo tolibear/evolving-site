@@ -32,7 +32,7 @@ export default function UserInfo({ compact = false }: UserInfoProps) {
           className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
           title={`@${user!.username}`}
         >
-          <Avatar username={user!.username} avatar={user!.avatar} size="xs" />
+          <Avatar username={user!.username} avatar={user!.avatar} size="xs" disableLink showTooltip={false} />
           <span className="text-xs text-muted hidden sm:inline">@{user!.username}</span>
         </button>
 
@@ -116,7 +116,7 @@ export default function UserInfo({ compact = false }: UserInfoProps) {
     <div className="p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Avatar username={user!.username} avatar={user!.avatar} size="md" />
+          <Avatar username={user!.username} avatar={user!.avatar} size="md" disableLink showTooltip={false} />
           <div>
             <p className="font-medium text-sm text-foreground">@{user!.username}</p>
             <p className="text-xs text-muted">Signed in</p>

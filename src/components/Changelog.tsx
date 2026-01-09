@@ -1,7 +1,7 @@
 'use client'
 
-import useSWR from 'swr'
-import { fetcher, formatRelativeTime } from '@/lib/utils'
+import { useState, useEffect, useCallback } from 'react'
+import { formatRelativeTime } from '@/lib/utils'
 import { useCollapsibleList } from '@/hooks/useCollapsibleList'
 
 interface ChangelogEntry {
@@ -16,16 +16,31 @@ interface ChangelogEntry {
 }
 
 export default function Changelog() {
-  const { data: entries, error, isLoading } = useSWR<ChangelogEntry[]>(
-    '/api/changelog',
-    fetcher,
-    {
-      refreshInterval: 30000,
-      keepPreviousData: true,
-      revalidateOnFocus: false,
-      dedupingInterval: 5000,
+  const [entries, setEntries] = useState<ChangelogEntry[] | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await fetch('/api/changelog')
+      const data = await res.json()
+      setEntries(data)
+      setError(false)
+    } catch {
+      setError(true)
+    } finally {
+      setIsLoading(false)
     }
-  )
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+    const interval = setInterval(fetchData, 30000)
+    return () => clearInterval(interval)
+  }, [fetchData])
+
+  // Call hook BEFORE any conditional returns (React rules of hooks)
+  const { displayedItems, hasMore, remainingCount, showAll, toggle } = useCollapsibleList(entries || [])
 
   if (isLoading) {
     return (
@@ -39,8 +54,6 @@ export default function Changelog() {
   if (error) {
     return null
   }
-
-  const { displayedItems, hasMore, remainingCount, showAll, toggle } = useCollapsibleList(entries || [])
 
   if (!entries || entries.length === 0) {
     return (

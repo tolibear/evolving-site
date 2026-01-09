@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 import useSWR from 'swr'
 import { fetcher, formatRelativeTime } from '@/lib/utils'
+import { useCollapsibleList } from '@/hooks/useCollapsibleList'
 
 interface NeedsInputSuggestion {
   id: number
@@ -14,15 +14,14 @@ interface NeedsInputSuggestion {
   ai_note: string | null
 }
 
-const ITEMS_TO_SHOW = 5
-
 export default function NeedsInputList() {
-  const [showAll, setShowAll] = useState(false)
   const { data: suggestions, error, isLoading } = useSWR<NeedsInputSuggestion[]>(
     '/api/needs-input',
     fetcher,
     { refreshInterval: 30000 }
   )
+
+  const { displayedItems, hasMore, remainingCount, showAll, toggle } = useCollapsibleList(suggestions || [])
 
   if (isLoading) {
     return (
@@ -44,16 +43,13 @@ export default function NeedsInputList() {
     )
   }
 
-  const displayedSuggestions = showAll ? suggestions : suggestions.slice(0, ITEMS_TO_SHOW)
-  const hasMore = suggestions.length > ITEMS_TO_SHOW
-
   return (
     <div>
       <p className="text-xs text-muted mb-3">
         {suggestions.length} awaiting setup
       </p>
       <div className="space-y-3">
-        {displayedSuggestions.map((suggestion) => (
+        {displayedItems.map((suggestion) => (
           <div
             key={suggestion.id}
             className="card border-l-2 border-l-amber-500"
@@ -89,7 +85,7 @@ export default function NeedsInputList() {
       </div>
       {hasMore && (
         <button
-          onClick={() => setShowAll(!showAll)}
+          onClick={toggle}
           className="mt-3 text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
         >
           {showAll ? (
@@ -104,7 +100,7 @@ export default function NeedsInputList() {
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              View {suggestions.length - ITEMS_TO_SHOW} more
+              View {remainingCount} more
             </>
           )}
         </button>

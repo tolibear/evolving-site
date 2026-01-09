@@ -2,6 +2,8 @@
 // All interactive components have moved to the sidebar
 // Ralph/Claude should ONLY modify this area when implementing suggestions
 
+import Link from 'next/link'
+
 export default function Home() {
   return (
     <div className="min-h-[calc(100vh-10rem)] flex items-center justify-center">
@@ -18,9 +20,23 @@ export default function Home() {
         <p className="text-sm mb-4">
           This site evolves based on your suggestions. Open the control panel on the right to submit ideas and vote.
         </p>
-        <p className="text-xs opacity-60">
+        <p className="text-xs opacity-60 mb-6">
           Click the &ldquo;Control Panel&rdquo; tab on the right edge to get started
         </p>
+
+        {/* Games Section */}
+        <div className="mt-8 pt-6 border-t border-neutral-200 dark:border-neutral-700">
+          <h3 className="text-sm font-medium text-foreground mb-3">Games</h3>
+          <div className="flex justify-center gap-3">
+            <Link
+              href="/games/snake"
+              className="win96-btn flex items-center gap-2 px-4 py-2 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
+            >
+              <span>🐍</span>
+              <span>Snake</span>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   )

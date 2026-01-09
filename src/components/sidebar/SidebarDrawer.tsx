@@ -173,7 +173,7 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
         {/* Close button for mobile */}
         <button
           onClick={() => setIsOpen(false)}
-          className="absolute top-3 right-3 md:hidden p-2 rounded-md bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          className="absolute top-3 right-3 z-10 md:hidden p-2 rounded-md bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
           aria-label="Close sidebar"
         >
           <svg className="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,7 +182,7 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
         </button>
 
         {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto p-4 sidebar-scroll">
+        <div className="flex-1 overflow-y-auto p-4 pt-14 md:pt-4 sidebar-scroll">
           {children}
         </div>
 

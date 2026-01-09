@@ -41,8 +41,13 @@ export function ChatWindow() {
     setMounted(true)
     // Check localStorage for saved state
     const savedState = localStorage.getItem('chat-window-open')
-    if (savedState === 'true') {
-      setIsOpen(true)
+    if (savedState !== null) {
+      // Use saved preference if it exists
+      setIsOpen(savedState === 'true')
+    } else {
+      // Default open on desktop (screen width >= 768px)
+      const isDesktop = window.innerWidth >= 768
+      setIsOpen(isDesktop)
     }
   }, [])
 

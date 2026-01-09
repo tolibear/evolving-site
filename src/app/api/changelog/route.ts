@@ -1,22 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getChangelog, getUserById, getContributors, getSuggestionById } from '@/lib/db'
+import type { Submitter } from '@/types'
 
 // Force dynamic - always fetch fresh data
 export const dynamic = 'force-dynamic'
-
-interface Contributor {
-  id: number
-  username: string
-  avatar: string | null
-  type: 'comment' | 'vote'
-}
-
-interface Submitter {
-  id: number
-  username: string
-  avatar: string | null
-  name: string | null
-}
 
 // GET /api/changelog - Get implementation history
 export async function GET(request: Request) {

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useTerminal } from './TerminalProvider'
+import { formatRelativeTime } from '@/lib/utils'
 
 interface SessionMeta {
   id: string
@@ -34,22 +35,6 @@ export function SessionPicker() {
   }, [isOpen, sessions.length])
 
   const isLive = state.selectedSessionId === null
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-
-    if (diffMins < 1) return 'just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-
-    const diffHours = Math.floor(diffMins / 60)
-    if (diffHours < 24) return `${diffHours}h ago`
-
-    const diffDays = Math.floor(diffHours / 24)
-    return `${diffDays}d ago`
-  }
 
   return (
     <div className="relative">
@@ -150,7 +135,7 @@ export function SessionPicker() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1 text-xs opacity-60">
-                    <span>{formatDate(s.started_at)}</span>
+                    <span>{formatRelativeTime(s.started_at)}</span>
                     <span>·</span>
                     <span>{s.chunkCount} chunks</span>
                     <span>·</span>

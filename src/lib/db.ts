@@ -1,4 +1,8 @@
 import { createClient } from '@libsql/client'
+import type { Contributor } from '@/types'
+
+// Re-export for backward compatibility
+export type { Contributor }
 
 // Always use Turso production database - no local fallback
 if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
@@ -533,13 +537,6 @@ export interface ExpeditePayment {
   created_at: string
   completed_at: string | null
   refunded_at: string | null
-}
-
-export interface Contributor {
-  id: number
-  username: string
-  avatar: string | null
-  type: 'comment' | 'vote'
 }
 
 export interface UserCredits {

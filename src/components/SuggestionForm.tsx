@@ -16,42 +16,10 @@ async function fetchWithTimeout(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    })
-    return response
+    return await fetch(url, { ...options, signal: controller.signal })
   } finally {
     clearTimeout(timeoutId)
   }
-}
-
-// Retry helper with exponential backoff
-async function fetchWithRetry(
-  url: string,
-  options: RequestInit,
-  maxRetries: number = 2
-): Promise<Response> {
-  let lastError: Error | null = null
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const response = await fetchWithTimeout(url, options)
-      return response
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error('Unknown error')
-
-      // Don't retry on abort (timeout) or if it's the last attempt
-      if (lastError.name === 'AbortError' || attempt === maxRetries) {
-        throw lastError
-      }
-
-      // Wait before retrying (exponential backoff: 500ms, 1000ms)
-      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)))
-    }
-  }
-
-  throw lastError || new Error('Failed after retries')
 }
 
 export default function SuggestionForm() {
@@ -123,7 +91,7 @@ export default function SuggestionForm() {
     setIsSubmitting(true)
 
     try {
-      const response = await fetchWithRetry('/api/suggestions', {
+      const response = await fetchWithTimeout('/api/suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: trimmedContent }),

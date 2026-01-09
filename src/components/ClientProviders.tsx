@@ -33,8 +33,8 @@ export function ClientProviders({ children }: ClientProvidersProps) {
                   </main>
                 </div>
                 <ChatWindow />
-                <SidebarDrawer>
-                  <div>Test</div>
+                <SidebarDrawer terminalSlot={<div>Terminal placeholder</div>}>
+                  <div>Content placeholder</div>
                 </SidebarDrawer>
               </TerminalContainer>
             </TerminalProvider>

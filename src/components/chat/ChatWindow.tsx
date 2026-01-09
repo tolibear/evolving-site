@@ -266,7 +266,7 @@ export function ChatWindow() {
             </div>
           ) : (
             <div className="text-xs text-center py-1">
-              <a href="/api/auth/login" className="text-blue-700 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300">
+              <a href="/api/auth/twitter" className="text-blue-700 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300">
                 Sign in with Twitter
               </a>
               {' '}to chat

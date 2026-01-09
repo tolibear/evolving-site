@@ -15,6 +15,7 @@ interface ChatMessage {
 }
 
 export function ChatWindow() {
+  // All hooks must be called unconditionally at the top
   const { user, isLoggedIn, isLoading: authLoading } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
@@ -24,27 +25,26 @@ export function ChatWindow() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Fetch chat messages
+  // Always call useSWR, use null key to disable fetching when not needed
+  const swrKey = mounted && isOpen && !isMinimized ? '/api/chat' : null
   const { data, mutate } = useSWR<{ messages: ChatMessage[] }>(
-    isOpen && !isMinimized ? '/api/chat' : null,
+    swrKey,
     fetcher,
     {
-      refreshInterval: 3000, // Poll every 3 seconds when open
+      refreshInterval: 3000,
       revalidateOnFocus: true,
     }
   )
 
   const messages = data?.messages || []
 
+  // Mount effect
   useEffect(() => {
     setMounted(true)
-    // Check localStorage for saved state
     const savedState = localStorage.getItem('chat-window-open')
     if (savedState !== null) {
-      // Use saved preference if it exists
       setIsOpen(savedState === 'true')
     } else {
-      // Default open on desktop (screen width >= 768px)
       const isDesktop = window.innerWidth >= 768
       setIsOpen(isDesktop)
     }
@@ -64,6 +64,7 @@ export function ChatWindow() {
     }
   }, [isOpen, mounted])
 
+  // Send message handler
   const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim() || isSending || !isLoggedIn) return
 
@@ -83,10 +84,8 @@ export function ChatWindow() {
         throw new Error(data.error || 'Failed to send message')
       }
 
-      // Refresh messages
       mutate()
     } catch {
-      // Restore input on error
       setInputValue(content)
     } finally {
       setSending(false)
@@ -94,6 +93,7 @@ export function ChatWindow() {
     }
   }, [inputValue, isSending, isLoggedIn, mutate])
 
+  // Key press handler (not a hook, just a function)
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -118,6 +118,7 @@ export function ChatWindow() {
     setIsMinimized(false)
   }
 
+  // Early return after all hooks
   if (!mounted) return null
 
   // Taskbar button (always visible)

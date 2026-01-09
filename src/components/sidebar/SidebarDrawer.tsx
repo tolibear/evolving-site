@@ -16,7 +16,6 @@ const DEFAULT_TERMINAL_HEIGHT = 280
 
 export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
   const [terminalHeight, setTerminalHeight] = useState(DEFAULT_TERMINAL_HEIGHT)
   const [isDragging, setIsDragging] = useState(false)
   const [isTerminalCollapsed, setIsTerminalCollapsed] = useState(false)
@@ -25,8 +24,6 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
 
   // Handle first visit auto-open and load saved terminal height
   useEffect(() => {
-    setMounted(true)
-
     // Load saved terminal height
     const savedHeight = localStorage.getItem(TERMINAL_HEIGHT_KEY)
     if (savedHeight) {
@@ -114,10 +111,6 @@ export function SidebarDrawer({ children, terminalSlot }: SidebarDrawerProps) {
       return newValue
     })
   }, [])
-
-  if (!mounted) {
-    return null
-  }
 
   return (
     <>

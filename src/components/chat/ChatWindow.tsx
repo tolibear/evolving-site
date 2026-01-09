@@ -21,12 +21,11 @@ export function ChatWindow() {
   const [isMinimized, setIsMinimized] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [isSending, setSending] = useState(false)
-  const [mounted, setMounted] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Always call useSWR, use null key to disable fetching when not needed
-  const swrKey = mounted && isOpen && !isMinimized ? '/api/chat' : null
+  const swrKey = isOpen && !isMinimized ? '/api/chat' : null
   const { data, mutate } = useSWR<{ messages: ChatMessage[] }>(
     swrKey,
     fetcher,
@@ -38,9 +37,8 @@ export function ChatWindow() {
 
   const messages = data?.messages || []
 
-  // Mount effect
+  // Load saved state on mount
   useEffect(() => {
-    setMounted(true)
     const savedState = localStorage.getItem('chat-window-open')
     if (savedState !== null) {
       setIsOpen(savedState === 'true')
@@ -59,10 +57,8 @@ export function ChatWindow() {
 
   // Save state to localStorage
   useEffect(() => {
-    if (mounted) {
-      localStorage.setItem('chat-window-open', isOpen.toString())
-    }
-  }, [isOpen, mounted])
+    localStorage.setItem('chat-window-open', isOpen.toString())
+  }, [isOpen])
 
   // Send message handler
   const handleSendMessage = useCallback(async () => {
@@ -117,9 +113,6 @@ export function ChatWindow() {
     setIsOpen(false)
     setIsMinimized(false)
   }
-
-  // Early return after all hooks
-  if (!mounted) return null
 
   // Taskbar button (always visible)
   const taskbarButton = (

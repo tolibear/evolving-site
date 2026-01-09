@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import useSWR from 'swr'
 import SuggestionCard from './SuggestionCard'
 import VoteAllowanceDisplay from './VoteAllowanceDisplay'
 import { fetcher } from '@/lib/utils'
+import { useCollapsibleList } from '@/hooks/useCollapsibleList'
 import type { Submitter, Contributor } from '@/types'
 
 interface Suggestion {
@@ -32,10 +33,7 @@ interface UserVotesResponse {
   votes: Record<number, 'up' | null>
 }
 
-const ITEMS_TO_SHOW = 5
-
 export default function SuggestionList() {
-  const [showAll, setShowAll] = useState(false)
   const {
     data: suggestions,
     error,
@@ -43,6 +41,8 @@ export default function SuggestionList() {
   } = useSWR<Suggestion[]>('/api/suggestions', fetcher, { refreshInterval: 5000 })
 
   const { data: status } = useSWR<Status>('/api/status', fetcher, { refreshInterval: 5000 })
+
+  const { displayedItems, hasMore, remainingCount, showAll, toggle } = useCollapsibleList(suggestions || [])
 
   // Build the suggestionIds query parameter
   const suggestionIdsParam = useMemo(() => {
@@ -113,16 +113,13 @@ export default function SuggestionList() {
     )
   }
 
-  const displayedSuggestions = showAll ? suggestions : suggestions.slice(0, ITEMS_TO_SHOW)
-  const hasMore = suggestions.length > ITEMS_TO_SHOW
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-semibold text-foreground">Suggestions ({suggestions.length})</h2>
         <VoteAllowanceDisplay />
       </div>
-      {displayedSuggestions.map((suggestion, index) => (
+      {displayedItems.map((suggestion) => (
         <SuggestionCard
           key={suggestion.id}
           id={suggestion.id}
@@ -145,7 +142,7 @@ export default function SuggestionList() {
       ))}
       {hasMore && (
         <button
-          onClick={() => setShowAll(!showAll)}
+          onClick={toggle}
           className="text-sm text-muted hover:text-foreground transition-colors flex items-center gap-1"
         >
           {showAll ? (
@@ -160,7 +157,7 @@ export default function SuggestionList() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              View {suggestions.length - ITEMS_TO_SHOW} more
+              View {remainingCount} more
             </>
           )}
         </button>

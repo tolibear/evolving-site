@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import SuggestionForm from '@/components/SuggestionForm'
 import UserInfo from './UserInfo'
 import ThemeToggle from '@/components/ThemeToggle'
 import { CompactStatusBar } from './CompactStatusBar'
@@ -54,10 +55,17 @@ export function SidebarContent() {
         </MainTabButton>
       </div>
 
-      {/* Tab content placeholder */}
-      <div className="text-sm">
-        {mainTab === 'build' ? 'Build tab content' : 'Leaderboard tab content'}
-      </div>
+      {/* Tab content */}
+      {mainTab === 'build' ? (
+        <>
+          <div className="mb-4">
+            <SuggestionForm />
+          </div>
+          <div className="text-sm">Rest of build tab...</div>
+        </>
+      ) : (
+        <div className="text-sm">Leaderboard placeholder</div>
+      )}
     </div>
   )
 }

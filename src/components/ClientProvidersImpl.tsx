@@ -16,7 +16,7 @@ interface ClientProvidersImplProps {
   children: ReactNode
 }
 
-export function ClientProvidersImpl({ children }: ClientProvidersImplProps) {
+function ClientProvidersImpl({ children }: ClientProvidersImplProps) {
   return (
     <ThemeProvider>
       <TooltipProvider delayDuration={200}>
@@ -51,3 +51,5 @@ export function ClientProvidersImpl({ children }: ClientProvidersImplProps) {
     </ThemeProvider>
   )
 }
+
+export default ClientProvidersImpl

@@ -1,57 +1,24 @@
 'use client'
 
-import { useState, useEffect, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 interface ClientProvidersProps {
   children: ReactNode
 }
 
-// Completely separate component that only loads after mount
-function ClientApp({ children }: { children: ReactNode }) {
-  // These imports happen ONLY after we're mounted on the client
-  const [Component, setComponent] = useState<React.ComponentType<{ children: ReactNode }> | null>(null)
-
-  useEffect(() => {
-    // Dynamically import all providers only on the client
-    import('./ClientAppInner').then((mod) => {
-      setComponent(() => mod.default)
-    })
-  }, [])
-
-  if (!Component) {
-    return (
-      <div className="min-h-screen bg-background">
-        <main className="p-4">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
-        </main>
-      </div>
-    )
-  }
-
-  return <Component>{children}</Component>
-}
-
+// TEMPORARY: Completely stripped down - no providers, no client features
+// Just to test if the base page loads
 export function ClientProviders({ children }: ClientProvidersProps) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // During SSR, render nothing - just the basic shell
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-background">
-        <main className="p-4">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
-        </main>
+  return (
+    <div className="min-h-screen bg-white dark:bg-neutral-900">
+      <main className="p-4">
+        <div className="max-w-7xl mx-auto">
+          {children}
+        </div>
+      </main>
+      <div className="fixed bottom-4 right-4 bg-yellow-100 dark:bg-yellow-900 p-4 rounded shadow">
+        <p className="text-sm">Debug mode: All features disabled to test base render</p>
       </div>
-    )
-  }
-
-  return <ClientApp>{children}</ClientApp>
+    </div>
+  )
 }

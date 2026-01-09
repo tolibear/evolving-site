@@ -1,9 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
-import useSWR from 'swr'
 import { useAuth } from './AuthProvider'
-import { fetcher } from '@/lib/utils'
 
 interface CreditTier {
   id: 1 | 2 | 3
@@ -42,13 +40,34 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
   const { isLoggedIn } = useAuth()
   const [showCheckout, setShowCheckout] = useState(false)
   const [animatingBoosts, setAnimatingBoosts] = useState<BoostAnimation | null>(null)
+  const [data, setData] = useState<{ balance: number; totalPurchased: number; hasEverPurchased: boolean; tiers: CreditTier[] } | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const previousBalanceRef = useRef<number>(0)
 
-  const { data, isLoading, mutate } = useSWR(
-    isLoggedIn ? '/api/credits' : null,
-    fetcher,
-    { refreshInterval: 30000 } // Refresh every 30 seconds
-  )
+  const fetchCredits = useCallback(async () => {
+    if (!isLoggedIn) {
+      setData(null)
+      setIsLoading(false)
+      return null
+    }
+    try {
+      const res = await fetch('/api/credits')
+      const result = await res.json()
+      setData(result)
+      setIsLoading(false)
+      return result
+    } catch {
+      setIsLoading(false)
+      return null
+    }
+  }, [isLoggedIn])
+
+  useEffect(() => {
+    fetchCredits()
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchCredits, 30000)
+    return () => clearInterval(interval)
+  }, [fetchCredits])
 
   // Track balance for animation
   useEffect(() => {
@@ -62,26 +81,23 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
     if (params.get('credits') === 'success') {
-      // Store previous balance before refresh
       const prevBalance = previousBalanceRef.current
 
-      // Refresh credits after successful purchase
-      mutate().then((newData) => {
+      fetchCredits().then((newData) => {
         if (newData && newData.balance > prevBalance) {
           setAnimatingBoosts({ from: prevBalance, to: newData.balance })
         }
       })
 
-      // Clean up URL
       const url = new URL(window.location.href)
       url.searchParams.delete('credits')
       window.history.replaceState({}, '', url.toString())
     }
-  }, [mutate])
+  }, [fetchCredits])
 
   const openCheckout = useCallback(() => setShowCheckout(true), [])
   const closeCheckout = useCallback(() => setShowCheckout(false), [])
-  const refreshCredits = useCallback(() => mutate(), [mutate])
+  const refreshCredits = useCallback(() => { fetchCredits() }, [fetchCredits])
   const clearAnimation = useCallback(() => setAnimatingBoosts(null), [])
 
   const value: CreditContextType = {

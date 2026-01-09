@@ -1,7 +1,6 @@
 'use client'
 
-import useSWR from 'swr'
-import { fetcher } from '@/lib/utils'
+import { useState, useEffect, useCallback } from 'react'
 
 export interface CurrentUser {
   id: number
@@ -19,32 +18,44 @@ interface UseUserReturn {
 }
 
 export function useUser(): UseUserReturn {
-  const { data, isLoading, mutate } = useSWR<{ user: CurrentUser | null }>(
-    '/api/auth/me',
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 60000, // 1 minute
+  const [user, setUser] = useState<CurrentUser | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  const fetchUser = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/me')
+      const data = await res.json()
+      setUser(data.user || null)
+    } catch {
+      setUser(null)
+    } finally {
+      setIsLoading(false)
     }
-  )
+  }, [])
+
+  useEffect(() => {
+    fetchUser()
+  }, [fetchUser])
 
   const logout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' })
-      mutate({ user: null }, false)
-      // Force a page reload to clear any cached state
+      setUser(null)
       window.location.href = '/'
     } catch (error) {
       console.error('Logout failed:', error)
     }
   }
 
+  const mutate = useCallback(() => {
+    fetchUser()
+  }, [fetchUser])
+
   return {
-    user: data?.user || null,
+    user,
     isLoading,
-    isLoggedIn: !!data?.user,
+    isLoggedIn: !!user,
     logout,
-    mutate: () => mutate(),
+    mutate,
   }
 }

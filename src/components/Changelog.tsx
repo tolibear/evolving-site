@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 import useSWR from 'swr'
 import { fetcher, formatRelativeTime } from '@/lib/utils'
+import { useCollapsibleList } from '@/hooks/useCollapsibleList'
 
 interface ChangelogEntry {
   id: number
@@ -15,10 +15,7 @@ interface ChangelogEntry {
   icon_type: string | null
 }
 
-const ITEMS_TO_SHOW = 5
-
 export default function Changelog() {
-  const [showAll, setShowAll] = useState(false)
   const { data: entries, error, isLoading } = useSWR<ChangelogEntry[]>(
     '/api/changelog',
     fetcher,
@@ -43,6 +40,8 @@ export default function Changelog() {
     return null
   }
 
+  const { displayedItems, hasMore, remainingCount, showAll, toggle } = useCollapsibleList(entries || [])
+
   if (!entries || entries.length === 0) {
     return (
       <p className="text-muted text-sm text-center py-4">
@@ -51,14 +50,11 @@ export default function Changelog() {
     )
   }
 
-  const displayedEntries = showAll ? entries : entries.slice(0, ITEMS_TO_SHOW)
-  const hasMore = entries.length > ITEMS_TO_SHOW
-
   return (
     <div>
       <p className="text-xs text-muted mb-3">{entries.length} implemented</p>
       <div className="space-y-3">
-        {displayedEntries.map((entry) => (
+        {displayedItems.map((entry) => (
           <div
             key={entry.id}
             className="card border-l-2 border-l-green-500"
@@ -99,7 +95,7 @@ export default function Changelog() {
       </div>
       {hasMore && (
         <button
-          onClick={() => setShowAll(!showAll)}
+          onClick={toggle}
           className="mt-3 text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
         >
           {showAll ? (
@@ -114,7 +110,7 @@ export default function Changelog() {
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              View {entries.length - ITEMS_TO_SHOW} more
+              View {remainingCount} more
             </>
           )}
         </button>

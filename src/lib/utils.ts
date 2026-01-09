@@ -14,6 +14,18 @@ export function cn(...inputs: ClassValue[]) {
 export const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 /**
+ * Standardized SWR configuration presets
+ */
+export const swrConfigs = {
+  /** Real-time updates (5s) - for actively changing data */
+  realtime: { refreshInterval: 5000 },
+  /** Standard updates (30s) - for moderately changing data */
+  standard: { refreshInterval: 30000, revalidateOnFocus: false },
+  /** Static data - rarely changes, minimal refetching */
+  static: { revalidateOnFocus: false, revalidateOnReconnect: false },
+}
+
+/**
  * In-memory rate limiter (fallback for sync contexts)
  * For API routes, use checkRateLimitAsync from utils-server which uses database-backed storage
  */

@@ -4,10 +4,33 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 
 export default function ExpediteSuccessToast() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   const [show, setShow] = useState(false)
   const [suggestionId, setSuggestionId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Don't render anything during SSR - useSearchParams needs client
+  if (!mounted) return null
+
+  return <ExpediteSuccessToastInner show={show} setShow={setShow} suggestionId={suggestionId} setSuggestionId={setSuggestionId} />
+}
+
+function ExpediteSuccessToastInner({
+  show,
+  setShow,
+  suggestionId,
+  setSuggestionId
+}: {
+  show: boolean
+  setShow: (show: boolean) => void
+  suggestionId: string | null
+  setSuggestionId: (id: string | null) => void
+}) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
 
   useEffect(() => {
     const expedited = searchParams.get('expedited')
@@ -27,7 +50,7 @@ export default function ExpediteSuccessToast() {
       const timer = setTimeout(() => setShow(false), 5000)
       return () => clearTimeout(timer)
     }
-  }, [searchParams, router])
+  }, [searchParams, router, setShow, setSuggestionId])
 
   if (!show) return null
 

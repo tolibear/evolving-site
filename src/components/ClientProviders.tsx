@@ -1,35 +1,53 @@
 'use client'
 
-import dynamic from 'next/dynamic'
-import { useState, useEffect, type ReactNode } from 'react'
-
-// Dynamically import the actual providers implementation
-const ClientProvidersImpl = dynamic(() => import('./ClientProvidersImpl'), {
-  ssr: false,
-})
+import type { ReactNode } from 'react'
+import { ThemeProvider } from './ThemeProvider'
+import { TooltipProvider } from './ui/tooltip'
+import { AuthProvider } from './AuthProvider'
+import { CreditProvider } from './CreditProvider'
+import { TerminalProvider } from './terminal/TerminalProvider'
+import { TerminalContainer } from './terminal/TerminalContainer'
+import { TerminalView } from './terminal/TerminalView'
+import { SidebarDrawer } from './sidebar/SidebarDrawer'
+import { ChatWindow } from './chat/ChatWindow'
+import { SidebarContent } from './sidebar'
 
 interface ClientProvidersProps {
   children: ReactNode
 }
 
 export function ClientProviders({ children }: ClientProvidersProps) {
-  const [mounted, setMounted] = useState(false)
+  return (
+    <ThemeProvider>
+      <TooltipProvider delayDuration={200}>
+        <AuthProvider>
+          <CreditProvider>
+            <TerminalProvider>
+              <TerminalContainer>
+                {/* Main body - the evolving canvas */}
+                <div className="min-h-screen">
+                  {/* Main content area - the blank canvas */}
+                  <main className="p-4">
+                    <div className="max-w-7xl mx-auto">
+                      {children}
+                    </div>
+                  </main>
+                </div>
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+                {/* Chat window (Windows 96 style) on left side */}
+                <ChatWindow />
 
-  // During SSR and initial client render, show nothing
-  // This prevents hydration mismatches
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-background">
-        <main className="p-4">
-          <div className="max-w-7xl mx-auto">{children}</div>
-        </main>
-      </div>
-    )
-  }
-
-  return <ClientProvidersImpl>{children}</ClientProvidersImpl>
+                {/* Sidebar drawer with all control panel components */}
+                <SidebarDrawer
+                  terminalSlot={<TerminalView className="h-full" />}
+                >
+                  <SidebarContent />
+                </SidebarDrawer>
+              </TerminalContainer>
+            </TerminalProvider>
+          </CreditProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </ThemeProvider>
+  )
 }

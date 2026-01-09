@@ -7,6 +7,7 @@ import ContributorStack from './ContributorStack'
 import LoginPrompt from './LoginPrompt'
 import { useAuth } from './AuthProvider'
 import { fetcher, formatRelativeTime } from '@/lib/utils'
+import type { Submitter, Contributor } from '@/types'
 
 interface Comment {
   id: number
@@ -19,20 +20,6 @@ interface Comment {
 interface CommentsResponse {
   comments: Comment[]
   currentUserId: number | null
-}
-
-interface Submitter {
-  id: number
-  username: string
-  avatar: string | null
-  name: string | null
-}
-
-interface Contributor {
-  id: number
-  username: string
-  avatar: string | null
-  type: 'comment' | 'vote'
 }
 
 interface SuggestionCardProps {

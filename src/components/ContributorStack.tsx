@@ -1,20 +1,7 @@
 'use client'
 
 import Avatar from './Avatar'
-
-interface Submitter {
-  id: number
-  username: string
-  avatar: string | null
-  name?: string | null
-}
-
-interface Contributor {
-  id: number
-  username: string
-  avatar: string | null
-  type: 'comment' | 'vote'
-}
+import type { Submitter, Contributor } from '@/types'
 
 interface ContributorStackProps {
   submitter: Submitter | null

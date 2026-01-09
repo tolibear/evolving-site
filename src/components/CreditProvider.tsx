@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import { useAuth } from './AuthProvider'
+import { fetcher } from '@/lib/utils'
 
 interface CreditTier {
   id: 1 | 2 | 3
@@ -36,8 +37,6 @@ interface CreditContextType extends CreditState {
 }
 
 const CreditContext = createContext<CreditContextType | null>(null)
-
-const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 export function CreditProvider({ children }: { children: React.ReactNode }) {
   const { isLoggedIn } = useAuth()

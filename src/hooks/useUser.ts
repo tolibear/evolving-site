@@ -1,6 +1,7 @@
 'use client'
 
 import useSWR from 'swr'
+import { fetcher } from '@/lib/utils'
 
 export interface CurrentUser {
   id: number
@@ -16,8 +17,6 @@ interface UseUserReturn {
   logout: () => Promise<void>
   mutate: () => void
 }
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export function useUser(): UseUserReturn {
   const { data, isLoading, mutate } = useSWR<{ user: CurrentUser | null }>(

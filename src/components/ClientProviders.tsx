@@ -16,7 +16,7 @@ interface ClientProvidersProps {
   children: ReactNode
 }
 
-// TEST 8b: SidebarDrawer alone (no children, no terminalSlot)
+// TEST 8c: + TerminalView (SidebarContent still placeholder)
 export function ClientProviders({ children }: ClientProvidersProps) {
   return (
     <ThemeProvider>
@@ -33,7 +33,7 @@ export function ClientProviders({ children }: ClientProvidersProps) {
                   </main>
                 </div>
                 <ChatWindow />
-                <SidebarDrawer terminalSlot={<div>Terminal placeholder</div>}>
+                <SidebarDrawer terminalSlot={<TerminalView className="h-full" />}>
                   <div>Content placeholder</div>
                 </SidebarDrawer>
               </TerminalContainer>

@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import SuggestionForm from '@/components/SuggestionForm'
 import SuggestionList from '@/components/SuggestionList'
+import RecentlyCompleted from '@/components/RecentlyCompleted'
+import RecentlyDenied from '@/components/RecentlyDenied'
+import NeedsInput from '@/components/NeedsInput'
 import UserInfo from './UserInfo'
 import ThemeToggle from '@/components/ThemeToggle'
 import { CompactStatusBar } from './CompactStatusBar'
@@ -67,6 +70,9 @@ export function SidebarContent() {
               Up for Vote
             </div>
             <SuggestionList />
+            <RecentlyCompleted />
+            <RecentlyDenied />
+            <NeedsInput />
           </div>
         </>
       ) : (

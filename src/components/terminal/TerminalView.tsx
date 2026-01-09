@@ -1,8 +1,16 @@
 'use client'
 
-import React, { useRef, useEffect, useState } from 'react'
-import Ansi from 'ansi-to-react'
+import React, { useRef, useEffect, useState, useMemo } from 'react'
+import AnsiToHtml from 'ansi-to-html'
 import { useTerminal } from './TerminalProvider'
+
+// Create a single converter instance
+const ansiConverter = new AnsiToHtml({
+  fg: '#d4d4d4',
+  bg: 'transparent',
+  newline: true,
+  escapeXML: true,
+})
 import { SessionPicker } from './SessionPicker'
 import ActiveUserCounter from '@/components/ActiveUserCounter'
 
@@ -120,12 +128,17 @@ export function TerminalView({ className = '' }: TerminalViewProps) {
         ) : (
           <div className="terminal-output whitespace-pre-wrap text-terminal-text">
             {/* Combine all non-countdown content into a single continuous block */}
-            <Ansi>
-              {lines
-                .filter(line => !line.isCountdown)
-                .map(line => line.content)
-                .join('')}
-            </Ansi>
+            {/* ansi-to-html with escapeXML:true is safe - only creates <span> tags with color styles */}
+            <span
+              dangerouslySetInnerHTML={{
+                __html: ansiConverter.toHtml(
+                  lines
+                    .filter(line => !line.isCountdown)
+                    .map(line => line.content)
+                    .join('')
+                ),
+              }}
+            />
             {/* Render countdown separately at the end */}
             {lines.find(line => line.isCountdown && line.targetTime) && (
               <span className="opacity-50">

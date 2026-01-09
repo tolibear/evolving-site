@@ -7,13 +7,16 @@ import { AuthProvider } from './AuthProvider'
 import { CreditProvider } from './CreditProvider'
 import { TerminalProvider } from './terminal/TerminalProvider'
 import { TerminalContainer } from './terminal/TerminalContainer'
+import { TerminalView } from './terminal/TerminalView'
+import { SidebarDrawer } from './sidebar/SidebarDrawer'
 import { ChatWindow } from './chat/ChatWindow'
+import { SidebarContent } from './sidebar'
 
 interface ClientProvidersProps {
   children: ReactNode
 }
 
-// TEST 7: + ChatWindow
+// TEST 8: + SidebarDrawer (FINAL - full app)
 export function ClientProviders({ children }: ClientProvidersProps) {
   return (
     <ThemeProvider>
@@ -30,6 +33,9 @@ export function ClientProviders({ children }: ClientProvidersProps) {
                   </main>
                 </div>
                 <ChatWindow />
+                <SidebarDrawer terminalSlot={<TerminalView className="h-full" />}>
+                  <SidebarContent />
+                </SidebarDrawer>
               </TerminalContainer>
             </TerminalProvider>
           </CreditProvider>

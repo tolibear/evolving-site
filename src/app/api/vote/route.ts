@@ -7,10 +7,8 @@ import {
   getVoteTypeByUser,
   addVoteWithUser,
   removeVoteByUser,
-  changeVoteByUser,
 } from '@/lib/db'
 import { updateVotingStreak, activateReferralIfEligible } from '@/lib/reputation'
-import { getClientIP } from '@/lib/utils-server'
 import { checkRateLimit } from '@/lib/utils'
 import { isValidId } from '@/lib/security'
 import { validateSessionAndGetUser, SESSION_COOKIE_NAME } from '@/lib/twitter-auth'
@@ -18,7 +16,7 @@ import { validateSessionAndGetUser, SESSION_COOKIE_NAME } from '@/lib/twitter-au
 export const dynamic = 'force-dynamic'
 
 // POST /api/vote - Toggle vote for a suggestion (requires authentication)
-// Body: { suggestionId: number, voteType?: 'up' | 'down' }
+// Body: { suggestionId: number }
 export async function POST(request: Request) {
   try {
     // Check authentication
@@ -33,8 +31,6 @@ export async function POST(request: Request) {
       )
     }
 
-    const ip = getClientIP(request)
-
     // Rate limit: 50 votes per day per user
     const rateLimit = checkRateLimit(`votes:user:${user.id}`, 50, 24 * 60 * 60 * 1000)
     if (!rateLimit.allowed) {
@@ -48,16 +44,11 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { suggestionId, voteType = 'up' } = body
+    const { suggestionId } = body
 
     // Validate suggestionId
     if (!isValidId(suggestionId)) {
       return NextResponse.json({ error: 'Valid suggestionId is required' }, { status: 400 })
-    }
-
-    // Validate voteType
-    if (voteType !== 'up' && voteType !== 'down') {
-      return NextResponse.json({ error: 'voteType must be "up" or "down"' }, { status: 400 })
     }
 
     // Use user:id as the voter hash for allowance tracking
@@ -66,27 +57,14 @@ export async function POST(request: Request) {
     // Check if already voted
     const currentVoteType = await getVoteTypeByUser(suggestionId, user.id)
     if (currentVoteType) {
-      // If clicking the same vote type, remove the vote (toggle off)
-      if (currentVoteType === voteType) {
-        await removeVoteByUser(suggestionId, user.id)
-        await incrementVoteAllowance(voterHash)
-        const remainingVotes = await getVoteAllowance(voterHash)
-        return NextResponse.json({
-          message: 'Vote removed successfully',
-          action: 'removed',
-          voteType: null,
-          remaining: rateLimit.remaining,
-          remainingVotes,
-        })
-      }
-
-      // If clicking different vote type, change the vote (no allowance cost)
-      await changeVoteByUser(suggestionId, user.id, voteType)
+      // User already voted - remove the vote (toggle off)
+      await removeVoteByUser(suggestionId, user.id)
+      await incrementVoteAllowance(voterHash)
       const remainingVotes = await getVoteAllowance(voterHash)
       return NextResponse.json({
-        message: `Vote changed to ${voteType}`,
-        action: 'changed',
-        voteType,
+        message: 'Vote removed successfully',
+        action: 'removed',
+        voteType: null,
         remaining: rateLimit.remaining,
         remainingVotes,
       })
@@ -106,7 +84,7 @@ export async function POST(request: Request) {
 
     // Decrement allowance and record the vote
     await decrementVoteAllowance(voterHash)
-    await addVoteWithUser(suggestionId, user.id, voteType)
+    await addVoteWithUser(suggestionId, user.id, 'up')
     const remainingVotes = await getVoteAllowance(voterHash)
 
     // Update user's voting streak
@@ -118,7 +96,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       message: 'Vote recorded successfully',
       action: 'added',
-      voteType,
+      voteType: 'up',
       remaining: rateLimit.remaining,
       remainingVotes,
     })

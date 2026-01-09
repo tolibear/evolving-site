@@ -41,7 +41,7 @@ interface Status {
 }
 
 interface UserVotesResponse {
-  votes: Record<number, 'up' | 'down' | null>
+  votes: Record<number, 'up' | null>
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())

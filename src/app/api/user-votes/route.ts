@@ -19,9 +19,11 @@ export async function GET(request: Request) {
     const suggestionIds = suggestionIdsParam.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id) && id > 0)
 
     // Get vote type for each suggestion
-    const votes: Record<number, 'up' | 'down' | null> = {}
+    const votes: Record<number, 'up' | null> = {}
     for (const suggestionId of suggestionIds) {
-      votes[suggestionId] = await getVoteType(suggestionId, voterHash)
+      const voteType = await getVoteType(suggestionId, voterHash)
+      // Convert any legacy 'down' votes to null (as if not voted)
+      votes[suggestionId] = voteType === 'up' ? 'up' : null
     }
 
     return NextResponse.json({ votes })

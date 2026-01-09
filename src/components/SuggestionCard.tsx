@@ -46,7 +46,7 @@ interface SuggestionCardProps {
   commentCount?: number
   author?: string | null
   isOwner?: boolean
-  userVoteType?: 'up' | 'down' | null
+  userVoteType?: 'up' | null
   suggestionNumber?: number
   submitter?: Submitter | null
   contributors?: Contributor[]

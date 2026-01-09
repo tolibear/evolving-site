@@ -9,6 +9,7 @@ import NeedsInput from '@/components/NeedsInput'
 import UserInfo from './UserInfo'
 import ThemeToggle from '@/components/ThemeToggle'
 import { CompactStatusBar } from './CompactStatusBar'
+import { HistoryTabs } from './HistoryTabs'
 
 type MainTab = 'build' | 'leaderboard'
 
@@ -74,6 +75,8 @@ export function SidebarContent() {
             <RecentlyDenied />
             <NeedsInput />
           </div>
+          <div className="border-t border-neutral-100 dark:border-neutral-800 my-4" />
+          <HistoryTabs />
         </>
       ) : (
         <div className="text-sm">Leaderboard placeholder</div>

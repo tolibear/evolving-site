@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStatus, updateStatus, setAutomationMode, setIntervalMinutes, setNextCheckAt } from '@/lib/db'
+import { validateRalphAuth } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,8 +23,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     // Validate internal API secret
-    const secret = request.headers.get('x-ralph-secret')
-    if (!secret || secret !== process.env.RALPH_API_SECRET) {
+    if (!validateRalphAuth(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

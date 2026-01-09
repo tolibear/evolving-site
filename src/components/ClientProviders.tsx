@@ -1,53 +1,57 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import { ThemeProvider } from './ThemeProvider'
-import { TooltipProvider } from './ui/tooltip'
-import { AuthProvider } from './AuthProvider'
-import { CreditProvider } from './CreditProvider'
-import { TerminalProvider } from './terminal/TerminalProvider'
-import { TerminalContainer } from './terminal/TerminalContainer'
-import { TerminalView } from './terminal/TerminalView'
-import { SidebarDrawer } from './sidebar/SidebarDrawer'
-import { ChatWindow } from './chat/ChatWindow'
-import { SidebarContent } from './sidebar'
+import { useState, useEffect, type ReactNode } from 'react'
 
 interface ClientProvidersProps {
   children: ReactNode
 }
 
+// Completely separate component that only loads after mount
+function ClientApp({ children }: { children: ReactNode }) {
+  // These imports happen ONLY after we're mounted on the client
+  const [Component, setComponent] = useState<React.ComponentType<{ children: ReactNode }> | null>(null)
+
+  useEffect(() => {
+    // Dynamically import all providers only on the client
+    import('./ClientAppInner').then((mod) => {
+      setComponent(() => mod.default)
+    })
+  }, [])
+
+  if (!Component) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="p-4">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  return <Component>{children}</Component>
+}
+
 export function ClientProviders({ children }: ClientProvidersProps) {
-  return (
-    <ThemeProvider>
-      <TooltipProvider delayDuration={200}>
-        <AuthProvider>
-          <CreditProvider>
-            <TerminalProvider>
-              <TerminalContainer>
-                {/* Main body - the evolving canvas */}
-                <div className="min-h-screen">
-                  {/* Main content area - the blank canvas */}
-                  <main className="p-4">
-                    <div className="max-w-7xl mx-auto">
-                      {children}
-                    </div>
-                  </main>
-                </div>
+  const [mounted, setMounted] = useState(false)
 
-                {/* Chat window (Windows 96 style) on left side */}
-                <ChatWindow />
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
-                {/* Sidebar drawer with all control panel components */}
-                <SidebarDrawer
-                  terminalSlot={<TerminalView className="h-full" />}
-                >
-                  <SidebarContent />
-                </SidebarDrawer>
-              </TerminalContainer>
-            </TerminalProvider>
-          </CreditProvider>
-        </AuthProvider>
-      </TooltipProvider>
-    </ThemeProvider>
-  )
+  // During SSR, render nothing - just the basic shell
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="p-4">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  return <ClientApp>{children}</ClientApp>
 }

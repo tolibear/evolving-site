@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import Changelog from '@/components/Changelog'
-import NeedsInputList from '@/components/NeedsInputList'
-import DeniedList from '@/components/DeniedList'
+// TEMP: Comment out to test if child components are the issue
+// import Changelog from '@/components/Changelog'
+// import NeedsInputList from '@/components/NeedsInputList'
+// import DeniedList from '@/components/DeniedList'
 
 type Tab = 'implemented' | 'pending' | 'denied'
 
@@ -58,11 +59,11 @@ export function HistoryTabs() {
             </TabButton>
           </div>
 
-          {/* Tab content */}
-          <div className="max-h-[400px] overflow-y-auto">
-            {activeTab === 'implemented' && <Changelog />}
-            {activeTab === 'pending' && <NeedsInputList />}
-            {activeTab === 'denied' && <DeniedList />}
+          {/* Tab content - placeholder */}
+          <div className="max-h-[400px] overflow-y-auto text-sm">
+            {activeTab === 'implemented' && <div>Implemented placeholder</div>}
+            {activeTab === 'pending' && <div>Needs Input placeholder</div>}
+            {activeTab === 'denied' && <div>Denied placeholder</div>}
           </div>
         </div>
       </div>

@@ -1,14 +1,41 @@
 'use client'
 
-// TEST: Adding header components
+import { useState } from 'react'
 import UserInfo from './UserInfo'
 import ThemeToggle from '@/components/ThemeToggle'
 import { CompactStatusBar } from './CompactStatusBar'
 
+type MainTab = 'build' | 'leaderboard'
+
+function MainTabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 py-2 text-sm font-medium transition-colors border-b-2 ${
+        active
+          ? 'border-neutral-900 dark:border-white text-foreground'
+          : 'border-transparent text-muted hover:text-foreground'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
 export function SidebarContent() {
+  const [mainTab, setMainTab] = useState<MainTab>('build')
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header: Compact status + theme toggle + user info */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <CompactStatusBar />
         <div className="flex items-center gap-1">
@@ -16,7 +43,21 @@ export function SidebarContent() {
           <UserInfo compact />
         </div>
       </div>
-      <div className="text-sm">Sidebar Test - Header added</div>
+
+      {/* Main tab bar */}
+      <div className="flex border-b border-neutral-200 dark:border-neutral-700 mb-4">
+        <MainTabButton active={mainTab === 'build'} onClick={() => setMainTab('build')}>
+          Build
+        </MainTabButton>
+        <MainTabButton active={mainTab === 'leaderboard'} onClick={() => setMainTab('leaderboard')}>
+          Leaderboard
+        </MainTabButton>
+      </div>
+
+      {/* Tab content placeholder */}
+      <div className="text-sm">
+        {mainTab === 'build' ? 'Build tab content' : 'Leaderboard tab content'}
+      </div>
     </div>
   )
 }

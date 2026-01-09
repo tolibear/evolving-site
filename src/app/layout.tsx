@@ -1,16 +1,5 @@
 import type { Metadata } from 'next'
-import { AuthProvider } from '@/components/AuthProvider'
-import { CreditProvider } from '@/components/CreditProvider'
-import { ThemeProvider } from '@/components/ThemeProvider'
-import { TooltipProvider } from '@/components/ui/tooltip'
-import {
-  SidebarDrawer,
-  ChatWindow,
-  TerminalProvider,
-  TerminalContainer,
-  TerminalView,
-} from '@/components/ClientComponents'
-import { SidebarContent } from '@/components/sidebar'
+import { ClientProviders } from '@/components/ClientProviders'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -56,37 +45,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background antialiased">
-        <ThemeProvider>
-          <TooltipProvider delayDuration={200}>
-          <AuthProvider>
-            <CreditProvider>
-              <TerminalProvider>
-              <TerminalContainer>
-                {/* Main body - the evolving canvas */}
-                <div className="min-h-screen">
-                  {/* Main content area - the blank canvas */}
-                  <main className="p-4">
-                    <div className="max-w-7xl mx-auto">
-                      {children}
-                    </div>
-                  </main>
-                </div>
-
-                {/* Chat window (Windows 96 style) on left side */}
-                <ChatWindow />
-
-                {/* Sidebar drawer with all control panel components */}
-                <SidebarDrawer
-                  terminalSlot={<TerminalView className="h-full" />}
-                >
-                  <SidebarContent />
-                </SidebarDrawer>
-              </TerminalContainer>
-            </TerminalProvider>
-            </CreditProvider>
-          </AuthProvider>
-          </TooltipProvider>
-        </ThemeProvider>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   )

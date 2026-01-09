@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import SuggestionForm from '@/components/SuggestionForm'
+import SuggestionList from '@/components/SuggestionList'
 import UserInfo from './UserInfo'
 import ThemeToggle from '@/components/ThemeToggle'
 import { CompactStatusBar } from './CompactStatusBar'
@@ -61,7 +62,12 @@ export function SidebarContent() {
           <div className="mb-4">
             <SuggestionForm />
           </div>
-          <div className="text-sm">Rest of build tab...</div>
+          <div className="flex-1 min-h-0 overflow-y-auto sidebar-scroll">
+            <div className="text-xs font-medium text-muted uppercase tracking-wide mb-3">
+              Up for Vote
+            </div>
+            <SuggestionList />
+          </div>
         </>
       ) : (
         <div className="text-sm">Leaderboard placeholder</div>

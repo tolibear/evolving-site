@@ -1,14 +1,26 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { getVoteAllowance } from '@/lib/db'
-import { getClientIP, createVoterHash } from '@/lib/utils-server'
+import { validateSessionAndGetUser, SESSION_COOKIE_NAME } from '@/lib/twitter-auth'
 
 // GET /api/vote-allowance - Get remaining votes for current user
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const ip = getClientIP(request)
-    const userAgent = request.headers.get('user-agent') || 'unknown'
-    const voterHash = createVoterHash(ip, userAgent)
+    // Get the authenticated user
+    const cookieStore = await cookies()
+    const sessionId = cookieStore.get(SESSION_COOKIE_NAME)?.value
+    const user = await validateSessionAndGetUser(sessionId)
 
+    if (!user) {
+      // Not authenticated - return 0 votes (they need to log in to vote)
+      return NextResponse.json({
+        remainingVotes: 0,
+        voterHash: 'unauthenticated'
+      })
+    }
+
+    // Use the same voter hash format as the vote endpoint
+    const voterHash = `user:${user.id}`
     const remainingVotes = await getVoteAllowance(voterHash)
 
     return NextResponse.json({

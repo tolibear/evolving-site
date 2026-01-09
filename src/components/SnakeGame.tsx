@@ -3,22 +3,28 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 const GRID_SIZE = 20
-const CELL_SIZE = 16
+const BASE_CELL_SIZE = 16
 const INITIAL_SPEED = 150
 
 type Position = { x: number; y: number }
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT'
 
-export function SnakeGame() {
+interface SnakeGameProps {
+  onClose?: () => void
+}
+
+export function SnakeGame({ onClose }: SnakeGameProps) {
   const [snake, setSnake] = useState<Position[]>([{ x: 10, y: 10 }])
   const [food, setFood] = useState<Position>({ x: 15, y: 15 })
   const [direction, setDirection] = useState<Direction>('RIGHT')
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover'>('idle')
   const [score, setScore] = useState(0)
   const [highScore, setHighScore] = useState(0)
+  const [cellSize, setCellSize] = useState(BASE_CELL_SIZE)
   const directionRef = useRef<Direction>('RIGHT')
   const gameLoopRef = useRef<NodeJS.Timeout | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
   const generateFood = useCallback((currentSnake: Position[]): Position => {
     let newFood: Position
@@ -180,12 +186,76 @@ export function SnakeGame() {
     }
   }, [highScore])
 
+  // Calculate responsive cell size
+  useEffect(() => {
+    const updateCellSize = () => {
+      const maxWidth = Math.min(window.innerWidth - 32, 400)
+      const newCellSize = Math.floor(maxWidth / GRID_SIZE)
+      setCellSize(Math.max(12, Math.min(newCellSize, BASE_CELL_SIZE)))
+    }
+    updateCellSize()
+    window.addEventListener('resize', updateCellSize)
+    return () => window.removeEventListener('resize', updateCellSize)
+  }, [])
+
+  // Touch controls for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+  }, [])
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current || gameState !== 'playing') {
+      if (gameState !== 'playing' && touchStartRef.current) {
+        resetGame()
+      }
+      touchStartRef.current = null
+      return
+    }
+
+    const touch = e.changedTouches[0]
+    const deltaX = touch.clientX - touchStartRef.current.x
+    const deltaY = touch.clientY - touchStartRef.current.y
+    const minSwipeDistance = 30
+
+    if (Math.abs(deltaX) < minSwipeDistance && Math.abs(deltaY) < minSwipeDistance) {
+      touchStartRef.current = null
+      return
+    }
+
+    const currentDir = directionRef.current
+
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      // Horizontal swipe
+      if (deltaX > 0 && currentDir !== 'LEFT') {
+        directionRef.current = 'RIGHT'
+        setDirection('RIGHT')
+      } else if (deltaX < 0 && currentDir !== 'RIGHT') {
+        directionRef.current = 'LEFT'
+        setDirection('LEFT')
+      }
+    } else {
+      // Vertical swipe
+      if (deltaY > 0 && currentDir !== 'UP') {
+        directionRef.current = 'DOWN'
+        setDirection('DOWN')
+      } else if (deltaY < 0 && currentDir !== 'DOWN') {
+        directionRef.current = 'UP'
+        setDirection('UP')
+      }
+    }
+
+    touchStartRef.current = null
+  }, [gameState, resetGame])
+
   return (
     <div
       ref={containerRef}
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      className="win96-window max-w-fit mx-auto outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="win96-window max-w-fit mx-auto outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 touch-none"
       onClick={() => containerRef.current?.focus()}
     >
       {/* Title bar */}
@@ -193,7 +263,18 @@ export function SnakeGame() {
         <span className="text-xs font-bold flex items-center gap-1">
           <span>🐍</span> Snake.exe
         </span>
-        <span className="text-xs">Score: {score}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs">Score: {score}</span>
+          {onClose && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              className="w-4 h-4 flex items-center justify-center text-xs font-bold hover:bg-red-500 hover:text-white transition-colors"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Menu bar */}
@@ -207,8 +288,8 @@ export function SnakeGame() {
         <div
           className="relative bg-black"
           style={{
-            width: GRID_SIZE * CELL_SIZE,
-            height: GRID_SIZE * CELL_SIZE,
+            width: GRID_SIZE * cellSize,
+            height: GRID_SIZE * cellSize,
           }}
         >
           {/* Grid lines for retro effect */}
@@ -219,7 +300,7 @@ export function SnakeGame() {
                 linear-gradient(to right, #00ff00 1px, transparent 1px),
                 linear-gradient(to bottom, #00ff00 1px, transparent 1px)
               `,
-              backgroundSize: `${CELL_SIZE}px ${CELL_SIZE}px`,
+              backgroundSize: `${cellSize}px ${cellSize}px`,
             }}
           />
 
@@ -229,10 +310,10 @@ export function SnakeGame() {
               key={index}
               className="absolute transition-all duration-75"
               style={{
-                left: segment.x * CELL_SIZE,
-                top: segment.y * CELL_SIZE,
-                width: CELL_SIZE - 1,
-                height: CELL_SIZE - 1,
+                left: segment.x * cellSize,
+                top: segment.y * cellSize,
+                width: cellSize - 1,
+                height: cellSize - 1,
                 backgroundColor: index === 0 ? '#00ff00' : '#00cc00',
                 boxShadow: index === 0 ? '0 0 4px #00ff00' : 'none',
               }}
@@ -243,10 +324,10 @@ export function SnakeGame() {
           <div
             className="absolute animate-pulse"
             style={{
-              left: food.x * CELL_SIZE,
-              top: food.y * CELL_SIZE,
-              width: CELL_SIZE - 1,
-              height: CELL_SIZE - 1,
+              left: food.x * cellSize,
+              top: food.y * cellSize,
+              width: cellSize - 1,
+              height: cellSize - 1,
               backgroundColor: '#ff0000',
               boxShadow: '0 0 6px #ff0000',
             }}
@@ -271,7 +352,8 @@ export function SnakeGame() {
                   {gameState === 'idle' ? 'Start Game' : 'Play Again'}
                 </button>
                 <div className="text-green-600 text-[10px] mt-2 font-mono">
-                  Press SPACE or ENTER
+                  <span className="hidden sm:inline">Press SPACE or ENTER</span>
+                  <span className="sm:hidden">Tap to start</span>
                 </div>
               </div>
             </div>
@@ -281,7 +363,8 @@ export function SnakeGame() {
 
       {/* Status bar */}
       <div className="win96-statusbar flex justify-between text-[10px]">
-        <span>Use Arrow Keys or WASD to move</span>
+        <span className="hidden sm:inline">Use Arrow Keys or WASD to move</span>
+        <span className="sm:hidden">Swipe to move</span>
         <span>{snake.length} segments</span>
       </div>
     </div>

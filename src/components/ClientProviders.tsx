@@ -6,12 +6,13 @@ import { TooltipProvider } from './ui/tooltip'
 import { AuthProvider } from './AuthProvider'
 import { CreditProvider } from './CreditProvider'
 import { TerminalProvider } from './terminal/TerminalProvider'
+import { TerminalContainer } from './terminal/TerminalContainer'
 
 interface ClientProvidersProps {
   children: ReactNode
 }
 
-// TEST 5: + TerminalProvider
+// TEST 6: + TerminalContainer
 export function ClientProviders({ children }: ClientProvidersProps) {
   return (
     <ThemeProvider>
@@ -19,13 +20,15 @@ export function ClientProviders({ children }: ClientProvidersProps) {
         <AuthProvider>
           <CreditProvider>
             <TerminalProvider>
-              <div className="min-h-screen">
-                <main className="p-4">
-                  <div className="max-w-7xl mx-auto">
-                    {children}
-                  </div>
-                </main>
-              </div>
+              <TerminalContainer>
+                <div className="min-h-screen">
+                  <main className="p-4">
+                    <div className="max-w-7xl mx-auto">
+                      {children}
+                    </div>
+                  </main>
+                </div>
+              </TerminalContainer>
             </TerminalProvider>
           </CreditProvider>
         </AuthProvider>

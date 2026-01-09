@@ -16,7 +16,7 @@ interface ClientProvidersProps {
   children: ReactNode
 }
 
-// TEST 8c: + TerminalView (SidebarContent still placeholder)
+// TEST 8d: + SidebarContent (FULL APP - should break if SidebarContent is culprit)
 export function ClientProviders({ children }: ClientProvidersProps) {
   return (
     <ThemeProvider>
@@ -34,7 +34,7 @@ export function ClientProviders({ children }: ClientProvidersProps) {
                 </div>
                 <ChatWindow />
                 <SidebarDrawer terminalSlot={<TerminalView className="h-full" />}>
-                  <div>Content placeholder</div>
+                  <SidebarContent />
                 </SidebarDrawer>
               </TerminalContainer>
             </TerminalProvider>

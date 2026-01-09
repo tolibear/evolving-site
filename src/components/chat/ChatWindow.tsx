@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import useSWR from 'swr'
+import { fetcher } from '@/lib/utils'
 
 interface ChatMessage {
   id: number
@@ -12,8 +13,6 @@ interface ChatMessage {
   username?: string
   avatar?: string
 }
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export function ChatWindow() {
   const { user, isLoggedIn, isLoading: authLoading } = useAuth()

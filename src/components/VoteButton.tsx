@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { mutate } from 'swr'
 import { useAuth } from './AuthProvider'
 import LoginPrompt from './LoginPrompt'
+import { useAutoResetFlag } from '@/hooks/useAutoReset'
 
 interface VoteButtonProps {
   suggestionId: number
@@ -23,51 +24,28 @@ export default function VoteButton({
   const [voteType, setVoteType] = useState<'up' | null>(initialVoteType)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [isWiggling, setIsWiggling] = useState(false)
-  const [isPop, setIsPop] = useState(false)
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+
+  // Auto-reset animation states
+  const [isWiggling, triggerWiggle] = useAutoResetFlag(500)
+  const [isPop, triggerPop] = useAutoResetFlag(300)
+  const [showLoginPrompt, triggerLoginPrompt] = useAutoResetFlag(5000)
 
   // Update vote type when initialVoteType changes
   useEffect(() => {
     setVoteType(initialVoteType)
   }, [initialVoteType])
 
-  // Clear wiggle animation after it completes
-  useEffect(() => {
-    if (isWiggling) {
-      const timer = setTimeout(() => setIsWiggling(false), 500)
-      return () => clearTimeout(timer)
-    }
-  }, [isWiggling])
-
-  // Clear pop animation after it completes
-  useEffect(() => {
-    if (isPop) {
-      const timer = setTimeout(() => setIsPop(false), 300)
-      return () => clearTimeout(timer)
-    }
-  }, [isPop])
-
-  // Clear login prompt after 5 seconds
-  useEffect(() => {
-    if (showLoginPrompt) {
-      const timer = setTimeout(() => setShowLoginPrompt(false), 5000)
-      return () => clearTimeout(timer)
-    }
-  }, [showLoginPrompt])
-
   const handleVote = async () => {
     if (isVoting || isLoading || isLocked) return
 
     // Check if user is logged in
     if (!isLoggedIn) {
-      setShowLoginPrompt(true)
+      triggerLoginPrompt()
       return
     }
 
     setIsVoting(true)
     setError(null)
-    setShowLoginPrompt(false)
 
     try {
       const response = await fetch('/api/vote', {
@@ -85,8 +63,8 @@ export default function VoteButton({
       // Update vote state based on response
       setVoteType(data.voteType)
       // Trigger animations to indicate vote receipt
-      setIsWiggling(true)
-      setIsPop(true)
+      triggerWiggle()
+      triggerPop()
       // Show success feedback briefly
       setSuccess(true)
       setTimeout(() => setSuccess(false), 1500)
@@ -95,7 +73,7 @@ export default function VoteButton({
       mutate('/api/vote-allowance')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Vote failed')
-            // Clear error after 2 seconds
+      // Clear error after 2 seconds
       setTimeout(() => setError(null), 2000)
     } finally {
       setIsVoting(false)

@@ -7,6 +7,7 @@ import TierBadge from './TierBadge'
 import { NotificationSettings } from './NotificationSettings'
 import { TierName, AchievementType } from '@/lib/reputation-types'
 import { RankMedalIcon, AchievementIcon, ACHIEVEMENT_TOOLTIPS } from './BadgeIcons'
+import { fetcher } from '@/lib/utils'
 import {
   Tooltip,
   TooltipContent,
@@ -61,14 +62,6 @@ interface LeaderboardData {
   leaderboard: LeaderboardEntry[]
   currentUser: CurrentUser | null
   type: 'all_time' | 'weekly'
-}
-
-const fetcher = async (url: string) => {
-  const res = await fetch(url)
-  if (!res.ok) {
-    throw new Error(`Failed to fetch: ${res.status}`)
-  }
-  return res.json()
 }
 
 export default function Leaderboard() {

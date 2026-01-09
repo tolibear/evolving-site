@@ -113,56 +113,43 @@ export default function Avatar({
     </>
   )
 
-  // If link is disabled, render as a simple div
-  if (disableLink) {
-    return (
-      <div className="relative inline-block" ref={divRef}>
-        <div
-          onMouseEnter={() => setShowTooltipState(true)}
-          onMouseLeave={() => setShowTooltipState(false)}
-          className={sharedClasses}
-        >
-          {avatarContent}
-        </div>
+  const containerRef = disableLink ? divRef : buttonRef
+  const showTierBadge = tier && tier !== 'bronze' && (size === 'sm' || size === 'md' || size === 'lg')
 
-        {/* Tier badge overlay - only for non-bronze tiers and larger sizes */}
-        {tier && tier !== 'bronze' && (size === 'sm' || size === 'md' || size === 'lg') && (
-          <div className="absolute -bottom-0.5 -right-0.5">
-            <TierBadgeMini tier={tier} />
-          </div>
-        )}
-
-        {/* Tooltip - rendered via portal to escape overflow containers */}
-        {showTooltip && showTooltipState && <Tooltip username={username} targetRef={divRef} />}
-      </div>
-    )
+  const wrapperProps = {
+    onMouseEnter: () => setShowTooltipState(true),
+    onMouseLeave: () => setShowTooltipState(false),
+    className: disableLink
+      ? sharedClasses
+      : `${sharedClasses} focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1`,
   }
 
   return (
     <div className="relative inline-block">
-      <button
-        ref={buttonRef}
-        onClick={handleClick}
-        onMouseEnter={() => setShowTooltipState(true)}
-        onMouseLeave={() => setShowTooltipState(false)}
-        className={`
-          ${sharedClasses}
-          focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1
-        `}
-        aria-label={`View @${username}'s Twitter profile`}
-      >
-        {avatarContent}
-      </button>
+      {disableLink ? (
+        <div ref={divRef} {...wrapperProps}>
+          {avatarContent}
+        </div>
+      ) : (
+        <button
+          ref={buttonRef}
+          onClick={handleClick}
+          aria-label={`View @${username}'s Twitter profile`}
+          {...wrapperProps}
+        >
+          {avatarContent}
+        </button>
+      )}
 
       {/* Tier badge overlay - only for non-bronze tiers and larger sizes */}
-      {tier && tier !== 'bronze' && (size === 'sm' || size === 'md' || size === 'lg') && (
+      {showTierBadge && (
         <div className="absolute -bottom-0.5 -right-0.5">
           <TierBadgeMini tier={tier} />
         </div>
       )}
 
       {/* Tooltip - rendered via portal to escape overflow containers */}
-      {showTooltip && showTooltipState && <Tooltip username={username} targetRef={buttonRef} />}
+      {showTooltip && showTooltipState && <Tooltip username={username} targetRef={containerRef} />}
     </div>
   )
 }

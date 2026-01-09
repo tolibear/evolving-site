@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState } from 'react'
 import SuggestionForm from '@/components/SuggestionForm'
 import SuggestionList from '@/components/SuggestionList'
 import RecentlyCompleted from '@/components/RecentlyCompleted'
@@ -99,9 +99,7 @@ export function SidebarContent() {
   return (
     <div className="flex flex-col h-full">
       {/* Expedite success notification */}
-      <Suspense fallback={null}>
-        <ExpediteSuccessToast />
-      </Suspense>
+      <ExpediteSuccessToast />
 
       {/* Header: Compact status + theme toggle + user info */}
       <div className="flex items-center justify-between mb-4">

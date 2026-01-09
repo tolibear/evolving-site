@@ -149,74 +149,32 @@ const initSchema = async () => {
     INSERT OR IGNORE INTO status (id, state, message) VALUES (1, 'idle', 'Awaiting next suggestion...');
   `)
 
-  // Add ai_note columns (ignore if already exists)
-  try {
-    await db.execute('ALTER TABLE suggestions ADD COLUMN ai_note TEXT')
-  } catch {
-    // Column already exists
-  }
-  try {
-    await db.execute('ALTER TABLE changelog ADD COLUMN ai_note TEXT')
-  } catch {
-    // Column already exists
-  }
-  // Add icon_type column to changelog for custom icons (ignore if already exists)
-  try {
-    await db.execute('ALTER TABLE changelog ADD COLUMN icon_type TEXT DEFAULT NULL')
-  } catch {
-    // Column already exists
-  }
-  // Add automation_mode column (ignore if already exists)
-  try {
-    await db.execute("ALTER TABLE status ADD COLUMN automation_mode TEXT DEFAULT 'manual'")
-  } catch {
-    // Column already exists
-  }
-  // Add author column for Ralph Wiggum suggestions (ignore if already exists)
-  try {
-    await db.execute('ALTER TABLE suggestions ADD COLUMN author TEXT DEFAULT NULL')
-  } catch {
-    // Column already exists
-  }
-  // Add interval_minutes column for configurable check interval (ignore if already exists)
-  try {
-    await db.execute('ALTER TABLE status ADD COLUMN interval_minutes INTEGER DEFAULT 10')
-  } catch {
-    // Column already exists
-  }
-  // Add next_check_at column for countdown sync (ignore if already exists)
-  try {
-    await db.execute('ALTER TABLE status ADD COLUMN next_check_at TEXT DEFAULT NULL')
-  } catch {
-    // Column already exists
-  }
-  // Add submitter_hash column for tracking who submitted each suggestion (ignore if already exists)
-  try {
-    await db.execute('ALTER TABLE suggestions ADD COLUMN submitter_hash TEXT DEFAULT NULL')
-  } catch {
-    // Column already exists
-  }
-  // Add vote_type column for tracking upvotes vs downvotes (ignore if already exists)
-  try {
-    await db.execute("ALTER TABLE votes ADD COLUMN vote_type TEXT DEFAULT 'up'")
-  } catch {
-    // Column already exists
-  }
-  // Add user_id columns for Twitter auth (ignore if already exists)
-  try {
-    await db.execute('ALTER TABLE suggestions ADD COLUMN user_id INTEGER REFERENCES users(id)')
-  } catch {
-    // Column already exists
-  }
-  try {
-    await db.execute('ALTER TABLE votes ADD COLUMN user_id INTEGER REFERENCES users(id)')
-  } catch {
-    // Column already exists
-  }
-  try {
-    await db.execute('ALTER TABLE comments ADD COLUMN user_id INTEGER REFERENCES users(id)')
-  } catch {
-    // Column already exists
+  // Column migrations - each may already exist, so errors are expected
+  const columnMigrations = [
+    { table: 'suggestions', column: 'ai_note', type: 'TEXT' },
+    { table: 'changelog', column: 'ai_note', type: 'TEXT' },
+    { table: 'changelog', column: 'icon_type', type: 'TEXT DEFAULT NULL' },
+    { table: 'status', column: 'automation_mode', type: "TEXT DEFAULT 'manual'" },
+    { table: 'suggestions', column: 'author', type: 'TEXT DEFAULT NULL' },
+    { table: 'status', column: 'interval_minutes', type: 'INTEGER DEFAULT 10' },
+    { table: 'status', column: 'next_check_at', type: 'TEXT DEFAULT NULL' },
+    { table: 'suggestions', column: 'submitter_hash', type: 'TEXT DEFAULT NULL' },
+    { table: 'votes', column: 'vote_type', type: "TEXT DEFAULT 'up'" },
+    { table: 'suggestions', column: 'user_id', type: 'INTEGER REFERENCES users(id)' },
+    { table: 'votes', column: 'user_id', type: 'INTEGER REFERENCES users(id)' },
+    { table: 'comments', column: 'user_id', type: 'INTEGER REFERENCES users(id)' },
+    { table: 'suggestions', column: 'expedite_amount_cents', type: 'INTEGER DEFAULT 0' },
+    { table: 'votes', column: 'vote_order', type: 'INTEGER' },
+    { table: 'users', column: 'referral_code', type: 'TEXT UNIQUE' },
+    { table: 'users', column: 'referred_by', type: 'INTEGER REFERENCES users(id)' },
+  ]
+
+  for (const { table, column, type } of columnMigrations) {
+    try {
+      await db.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`)
+    } catch {
+      // Column already exists - expected during normal operation
+    }
   }
 
   // Drop old expedite_payments table if schema is wrong (it's new and empty)
@@ -285,13 +243,6 @@ const initSchema = async () => {
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_user ON expedite_payments(user_id)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_status ON expedite_payments(status)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_expedite_session ON expedite_payments(stripe_checkout_session_id)`)
-
-  // Add expedite_amount_cents column to suggestions (cached total for efficient sorting)
-  try {
-    await db.execute('ALTER TABLE suggestions ADD COLUMN expedite_amount_cents INTEGER DEFAULT 0')
-  } catch {
-    // Column already exists
-  }
 
   // ===== REPUTATION SYSTEM TABLES =====
 
@@ -381,25 +332,6 @@ const initSchema = async () => {
 
   // Index for efficient chat retrieval
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at DESC)`)
-
-  // Add vote_order column for tracking early voters
-  try {
-    await db.execute('ALTER TABLE votes ADD COLUMN vote_order INTEGER')
-  } catch {
-    // Column already exists
-  }
-
-  // Add referral columns to users
-  try {
-    await db.execute('ALTER TABLE users ADD COLUMN referral_code TEXT UNIQUE')
-  } catch {
-    // Column already exists
-  }
-  try {
-    await db.execute('ALTER TABLE users ADD COLUMN referred_by INTEGER REFERENCES users(id)')
-  } catch {
-    // Column already exists
-  }
 
   // One-time migration: Mark suggestion #12 as implemented (vote allowance feature)
   // The feature was implemented in commit d4a0b11 but database wasn't updated

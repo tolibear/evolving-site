@@ -7,12 +7,13 @@ import { AuthProvider } from './AuthProvider'
 import { CreditProvider } from './CreditProvider'
 import { TerminalProvider } from './terminal/TerminalProvider'
 import { TerminalContainer } from './terminal/TerminalContainer'
+import { ChatWindow } from './chat/ChatWindow'
 
 interface ClientProvidersProps {
   children: ReactNode
 }
 
-// TEST 6: + TerminalContainer
+// TEST 7: + ChatWindow
 export function ClientProviders({ children }: ClientProvidersProps) {
   return (
     <ThemeProvider>
@@ -28,6 +29,7 @@ export function ClientProviders({ children }: ClientProvidersProps) {
                     </div>
                   </main>
                 </div>
+                <ChatWindow />
               </TerminalContainer>
             </TerminalProvider>
           </CreditProvider>

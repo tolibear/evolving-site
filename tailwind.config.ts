@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
-  darkMode: ['class', 'class'],
+  darkMode: 'class',
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -18,7 +18,7 @@ const config: Config = {
   			},
   			success: 'var(--success)',
   			muted: {
-  				DEFAULT: 'hsl(var(--muted))',
+  				DEFAULT: 'hsl(var(--muted-foreground))',
   				foreground: 'hsl(var(--muted-foreground))'
   			},
   			card: {

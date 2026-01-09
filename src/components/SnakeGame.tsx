@@ -18,6 +18,7 @@ export function SnakeGame() {
   const [highScore, setHighScore] = useState(0)
   const directionRef = useRef<Direction>('RIGHT')
   const gameLoopRef = useRef<NodeJS.Timeout | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const generateFood = useCallback((currentSnake: Position[]): Position => {
     let newFood: Position
@@ -38,6 +39,8 @@ export function SnakeGame() {
     directionRef.current = 'RIGHT'
     setScore(0)
     setGameState('playing')
+    // Focus the game container so keyboard events work
+    containerRef.current?.focus()
   }, [generateFood])
 
   const checkCollision = useCallback((head: Position, body: Position[]): boolean => {
@@ -111,54 +114,55 @@ export function SnakeGame() {
     }
   }, [gameState, moveSnake])
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (gameState !== 'playing') {
-        if (e.key === ' ' || e.key === 'Enter') {
-          resetGame()
-        }
-        return
-      }
-
-      const currentDir = directionRef.current
-      switch (e.key) {
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-          if (currentDir !== 'DOWN') {
-            directionRef.current = 'UP'
-            setDirection('UP')
-          }
-          break
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-          if (currentDir !== 'UP') {
-            directionRef.current = 'DOWN'
-            setDirection('DOWN')
-          }
-          break
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          if (currentDir !== 'RIGHT') {
-            directionRef.current = 'LEFT'
-            setDirection('LEFT')
-          }
-          break
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          if (currentDir !== 'LEFT') {
-            directionRef.current = 'RIGHT'
-            setDirection('RIGHT')
-          }
-          break
-      }
+  // Handle keyboard input - now scoped to container focus
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Prevent arrow keys from scrolling the page
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+      e.preventDefault()
     }
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    if (gameState !== 'playing') {
+      if (e.key === ' ' || e.key === 'Enter') {
+        resetGame()
+      }
+      return
+    }
+
+    const currentDir = directionRef.current
+    switch (e.key) {
+      case 'ArrowUp':
+      case 'w':
+      case 'W':
+        if (currentDir !== 'DOWN') {
+          directionRef.current = 'UP'
+          setDirection('UP')
+        }
+        break
+      case 'ArrowDown':
+      case 's':
+      case 'S':
+        if (currentDir !== 'UP') {
+          directionRef.current = 'DOWN'
+          setDirection('DOWN')
+        }
+        break
+      case 'ArrowLeft':
+      case 'a':
+      case 'A':
+        if (currentDir !== 'RIGHT') {
+          directionRef.current = 'LEFT'
+          setDirection('LEFT')
+        }
+        break
+      case 'ArrowRight':
+      case 'd':
+      case 'D':
+        if (currentDir !== 'LEFT') {
+          directionRef.current = 'RIGHT'
+          setDirection('RIGHT')
+        }
+        break
+    }
   }, [gameState, resetGame])
 
   // Load high score from localStorage
@@ -177,7 +181,13 @@ export function SnakeGame() {
   }, [highScore])
 
   return (
-    <div className="win96-window max-w-fit mx-auto">
+    <div
+      ref={containerRef}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      className="win96-window max-w-fit mx-auto outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+      onClick={() => containerRef.current?.focus()}
+    >
       {/* Title bar */}
       <div className="win96-titlebar">
         <span className="text-xs font-bold flex items-center gap-1">

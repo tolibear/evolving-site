@@ -1,6 +1,7 @@
 'use client'
 
 import useSWR from 'swr'
+import { fetcher, formatRelativeTime } from '@/lib/utils'
 
 interface NeedsInputSuggestion {
   id: number
@@ -9,8 +10,6 @@ interface NeedsInputSuggestion {
   created_at: string
   ai_note: string | null
 }
-
-const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 export default function NeedsInput() {
   const { data: suggestions } = useSWR<NeedsInputSuggestion[]>(
@@ -21,21 +20,6 @@ export default function NeedsInput() {
 
   if (!suggestions || suggestions.length === 0) {
     return null
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMins / 60)
-    const diffDays = Math.floor(diffHours / 24)
-
-    if (diffMins < 1) return 'just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays < 7) return `${diffDays}d ago`
-    return date.toLocaleDateString()
   }
 
   return (
@@ -85,7 +69,7 @@ export default function NeedsInput() {
 
                 {/* Metadata */}
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-muted">{formatDate(suggestion.created_at)}</span>
+                  <span className="text-xs text-muted">{formatRelativeTime(suggestion.created_at)}</span>
                   <span className="text-xs text-neutral-300 dark:text-neutral-600 font-mono select-none">
                     #{suggestion.id}
                   </span>

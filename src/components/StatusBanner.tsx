@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import useSWR, { mutate } from 'swr'
+import { fetcher } from '@/lib/utils'
 
 interface Status {
   current_suggestion_id: number | null
@@ -12,8 +13,6 @@ interface Status {
   interval_minutes: number
   next_check_at: string | null
 }
-
-const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 export default function StatusBanner() {
   const { data: status, error } = useSWR<Status>(

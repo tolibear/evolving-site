@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import useSWR from 'swr'
-import FeatureIcon from './FeatureIcon'
+import { fetcher, formatRelativeTime } from '@/lib/utils'
 
 interface ChangelogEntry {
   id: number
@@ -14,8 +14,6 @@ interface ChangelogEntry {
   ai_note: string | null
   icon_type: string | null
 }
-
-const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 const ITEMS_TO_SHOW = 5
 
@@ -31,21 +29,6 @@ export default function Changelog() {
       dedupingInterval: 5000,
     }
   )
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMins / 60)
-    const diffDays = Math.floor(diffHours / 24)
-
-    if (diffMins < 1) return 'just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays < 7) return `${diffDays}d ago`
-    return date.toLocaleDateString()
-  }
 
   if (isLoading) {
     return (
@@ -102,7 +85,7 @@ export default function Changelog() {
                     </svg>
                     {entry.votes_when_implemented}
                   </span>
-                  <span>{formatDate(entry.implemented_at)}</span>
+                  <span>{formatRelativeTime(entry.implemented_at)}</span>
                   {entry.commit_hash && (
                     <code className="bg-neutral-100 dark:bg-neutral-700 px-1 rounded text-xs">
                       {entry.commit_hash.slice(0, 7)}

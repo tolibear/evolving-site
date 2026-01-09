@@ -9,6 +9,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * SWR fetcher for JSON APIs
+ */
+export const fetcher = (url: string) => fetch(url).then(res => res.json())
+
+/**
  * In-memory rate limiter (fallback for sync contexts)
  * For API routes, use checkRateLimitAsync from utils-server which uses database-backed storage
  */

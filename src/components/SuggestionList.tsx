@@ -4,20 +4,8 @@ import { useState, useMemo } from 'react'
 import useSWR from 'swr'
 import SuggestionCard from './SuggestionCard'
 import VoteAllowanceDisplay from './VoteAllowanceDisplay'
-
-interface Submitter {
-  id: number
-  username: string
-  avatar: string | null
-  name: string | null
-}
-
-interface Contributor {
-  id: number
-  username: string
-  avatar: string | null
-  type: 'comment' | 'vote'
-}
+import { fetcher } from '@/lib/utils'
+import type { Submitter, Contributor } from '@/types'
 
 interface Suggestion {
   id: number
@@ -43,8 +31,6 @@ interface Status {
 interface UserVotesResponse {
   votes: Record<number, 'up' | null>
 }
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 const ITEMS_TO_SHOW = 5
 

@@ -2,20 +2,8 @@
 
 import useSWR from 'swr'
 import ContributorStack from './ContributorStack'
-
-interface Contributor {
-  id: number
-  username: string
-  avatar: string | null
-  type: 'comment' | 'vote'
-}
-
-interface Submitter {
-  id: number
-  username: string
-  avatar: string | null
-  name: string | null
-}
+import { fetcher, formatRelativeTime } from '@/lib/utils'
+import type { Submitter, Contributor } from '@/types'
 
 interface ChangelogEntry {
   id: number
@@ -28,8 +16,6 @@ interface ChangelogEntry {
   contributorCount?: number
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json())
-
 export default function RecentlyCompleted() {
   const { data: entries } = useSWR<ChangelogEntry[]>(
     '/api/changelog?limit=3&contributors=true',
@@ -39,21 +25,6 @@ export default function RecentlyCompleted() {
 
   if (!entries || entries.length === 0) {
     return null
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMins / 60)
-    const diffDays = Math.floor(diffHours / 24)
-
-    if (diffMins < 1) return 'just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays < 7) return `${diffDays}d ago`
-    return date.toLocaleDateString()
   }
 
   return (
@@ -105,7 +76,7 @@ export default function RecentlyCompleted() {
                         compact
                       />
                     )}
-                    <span className="text-xs text-muted">{formatDate(entry.implemented_at)}</span>
+                    <span className="text-xs text-muted">{formatRelativeTime(entry.implemented_at)}</span>
                   </div>
                   <span className="text-xs text-neutral-300 dark:text-neutral-600 font-mono select-none">
                     #{entry.suggestion_id}

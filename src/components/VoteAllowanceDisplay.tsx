@@ -1,13 +1,12 @@
 'use client'
 
 import useSWR from 'swr'
+import { fetcher } from '@/lib/utils'
 
 interface VoteAllowanceResponse {
   remainingVotes: number
   voterHash: string
 }
-
-const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 export default function VoteAllowanceDisplay() {
   const { data, error, isLoading } = useSWR<VoteAllowanceResponse>(

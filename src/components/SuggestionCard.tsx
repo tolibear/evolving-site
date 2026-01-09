@@ -5,10 +5,8 @@ import useSWR, { mutate } from 'swr'
 import VoteButton from './VoteButton'
 import ContributorStack from './ContributorStack'
 import LoginPrompt from './LoginPrompt'
-import ExpediteButton from './ExpediteButton'
-import { InlineBoostCheckout } from './InlineBoostCheckout'
 import { useAuth } from './AuthProvider'
-import { useCredits } from './CreditProvider'
+import { fetcher, formatRelativeTime } from '@/lib/utils'
 
 interface Comment {
   id: number
@@ -54,8 +52,6 @@ interface SuggestionCardProps {
   expediteAmountCents?: number
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
-
 export default function SuggestionCard({
   id,
   content,
@@ -72,10 +68,8 @@ export default function SuggestionCard({
   contributorCount = 0,
   expediteAmountCents = 0,
 }: SuggestionCardProps) {
-  const { isLoggedIn, user } = useAuth()
-  const { openCheckout } = useCredits()
+  const { isLoggedIn } = useAuth()
   const [showComments, setShowComments] = useState(false)
-  const [showBoost, setShowBoost] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -99,22 +93,6 @@ export default function SuggestionCard({
       setCommentText(userComment.content)
     }
   }, [userComment, editingComment, commentText])
-
-  // Format the date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMins / 60)
-    const diffDays = Math.floor(diffHours / 24)
-
-    if (diffMins < 1) return 'just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays < 7) return `${diffDays}d ago`
-    return date.toLocaleDateString()
-  }
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -222,7 +200,7 @@ export default function SuggestionCard({
                   Ralph
                 </span>
               )}
-              <span className="text-xs text-muted">{formatDate(createdAt)}</span>
+              <span className="text-xs text-muted">{formatRelativeTime(createdAt)}</span>
             </div>
             {suggestionNumber && (
               <span className="text-xs text-neutral-300 dark:text-neutral-600 font-mono select-none">
@@ -338,7 +316,7 @@ export default function SuggestionCard({
                     <p className="text-foreground">{comment.content}</p>
                     <span className="text-xs text-muted">
                       {isOwnComment && <span className="text-accent mr-1">You</span>}
-                      {formatDate(comment.created_at)}
+                      {formatRelativeTime(comment.created_at)}
                     </span>
                   </div>
                 )

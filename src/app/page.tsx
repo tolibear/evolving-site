@@ -6,16 +6,24 @@
 
 import { useState } from 'react'
 import { SnakeGame } from '@/components/SnakeGame'
+import { DuckHuntGame } from '@/components/DuckHuntGame'
+
+type ActiveGame = 'none' | 'snake' | 'duckhunt'
 
 export default function Home() {
-  const [showSnake, setShowSnake] = useState(false)
+  const [activeGame, setActiveGame] = useState<ActiveGame>('none')
 
   return (
     <div className="min-h-[calc(100vh-10rem)] flex items-center justify-center px-4">
-      {showSnake ? (
+      {activeGame === 'snake' ? (
         <div className="flex flex-col items-center gap-4">
-          <SnakeGame onClose={() => setShowSnake(false)} />
+          <SnakeGame onClose={() => setActiveGame('none')} />
           <p className="text-xs text-muted">A classic retro Snake game suggested by the community</p>
+        </div>
+      ) : activeGame === 'duckhunt' ? (
+        <div className="flex flex-col items-center gap-4">
+          <DuckHuntGame onClose={() => setActiveGame('none')} />
+          <p className="text-xs text-muted">A Duck Hunt game suggested by the community</p>
         </div>
       ) : (
         <>
@@ -39,13 +47,20 @@ export default function Home() {
             {/* Games Section */}
             <div className="mt-8 pt-6 border-t border-neutral-200 dark:border-neutral-700">
               <h3 className="text-sm font-medium text-foreground mb-3">Games</h3>
-              <div className="flex justify-center gap-3">
+              <div className="flex justify-center gap-3 flex-wrap">
                 <button
-                  onClick={() => setShowSnake(true)}
+                  onClick={() => setActiveGame('snake')}
                   className="win96-btn flex items-center gap-2 px-4 py-2 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
                 >
                   <span>🐍</span>
                   <span>Snake</span>
+                </button>
+                <button
+                  onClick={() => setActiveGame('duckhunt')}
+                  className="win96-btn flex items-center gap-2 px-4 py-2 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
+                >
+                  <span>🦆</span>
+                  <span>Duck Hunt</span>
                 </button>
               </div>
             </div>

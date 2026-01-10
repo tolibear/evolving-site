@@ -11,6 +11,8 @@ interface ChangelogEntry {
   suggestion_content: string
   votes_when_implemented: number
   implemented_at: string
+  ai_note: string | null
+  commit_hash: string | null
   submitter?: Submitter | null
   contributors?: Contributor[]
   contributorCount?: number
@@ -65,6 +67,13 @@ export default function RecentlyCompleted() {
                   {entry.suggestion_content}
                 </p>
 
+                {/* AI Note */}
+                {entry.ai_note && (
+                  <p className="text-xs text-muted italic mt-1.5 pl-2 border-l-2 border-green-300 dark:border-green-700 line-clamp-2">
+                    {entry.ai_note}
+                  </p>
+                )}
+
                 {/* Byline: Contributors + metadata + number */}
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-2">
@@ -77,6 +86,11 @@ export default function RecentlyCompleted() {
                       />
                     )}
                     <span className="text-xs text-muted">{formatRelativeTime(entry.implemented_at)}</span>
+                    {entry.commit_hash && (
+                      <code className="text-xs bg-neutral-100 dark:bg-neutral-700 px-1 rounded">
+                        {entry.commit_hash.slice(0, 7)}
+                      </code>
+                    )}
                   </div>
                   <span className="text-xs text-neutral-300 dark:text-neutral-600 font-mono select-none">
                     #{entry.suggestion_id}

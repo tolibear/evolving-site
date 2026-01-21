@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import useSWR from 'swr'
+import confetti from 'canvas-confetti'
 import ContributorStack from './ContributorStack'
 import { fetcher, formatRelativeTime } from '@/lib/utils'
 import type { Submitter, Contributor } from '@/types'
@@ -18,12 +20,67 @@ interface ChangelogEntry {
   contributorCount?: number
 }
 
+function triggerConfetti() {
+  // Fire confetti from both sides
+  const count = 200
+  const defaults = {
+    origin: { y: 0.7 },
+    zIndex: 9999,
+  }
+
+  function fire(particleRatio: number, opts: confetti.Options) {
+    confetti({
+      ...defaults,
+      ...opts,
+      particleCount: Math.floor(count * particleRatio),
+    })
+  }
+
+  // Burst from left
+  fire(0.25, { spread: 26, startVelocity: 55, origin: { x: 0.2, y: 0.7 } })
+  fire(0.2, { spread: 60, origin: { x: 0.2, y: 0.7 } })
+  fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8, origin: { x: 0.2, y: 0.7 } })
+  fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2, origin: { x: 0.2, y: 0.7 } })
+  fire(0.1, { spread: 120, startVelocity: 45, origin: { x: 0.2, y: 0.7 } })
+
+  // Burst from right
+  fire(0.25, { spread: 26, startVelocity: 55, origin: { x: 0.8, y: 0.7 } })
+  fire(0.2, { spread: 60, origin: { x: 0.8, y: 0.7 } })
+  fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8, origin: { x: 0.8, y: 0.7 } })
+  fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2, origin: { x: 0.8, y: 0.7 } })
+  fire(0.1, { spread: 120, startVelocity: 45, origin: { x: 0.8, y: 0.7 } })
+}
+
 export default function RecentlyCompleted() {
   const { data: entries } = useSWR<ChangelogEntry[]>(
     '/api/changelog?limit=3&contributors=true',
     fetcher,
     { refreshInterval: 30000 }
   )
+
+  // Track the latest entry ID to detect new completions
+  const lastEntryIdRef = useRef<number | null>(null)
+  const isInitialLoadRef = useRef(true)
+
+  useEffect(() => {
+    if (!entries || entries.length === 0) return
+
+    const latestId = entries[0].id
+
+    // Skip confetti on initial page load
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false
+      lastEntryIdRef.current = latestId
+      return
+    }
+
+    // Trigger confetti when a new entry appears
+    if (lastEntryIdRef.current !== null && latestId !== lastEntryIdRef.current) {
+      triggerConfetti()
+    }
+
+    lastEntryIdRef.current = latestId
+  }, [entries])
 
   if (!entries || entries.length === 0) {
     return null
